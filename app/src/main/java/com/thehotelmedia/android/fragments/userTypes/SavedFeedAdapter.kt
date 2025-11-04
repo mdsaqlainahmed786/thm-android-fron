@@ -32,6 +32,7 @@ import com.thehotelmedia.android.activity.BusinessProfileDetailsActivity
 import com.thehotelmedia.android.activity.ViewEventDetailsActivity
 import com.thehotelmedia.android.adapters.userTypes.individual.home.MediaPagerAdapter
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.EditPostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.TagPeopleBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment
@@ -371,6 +372,24 @@ class SavedFeedAdapter(
         // Share button click
         binding.shareBtn.setOnClickListener {
             context.sharePostWithDeepLink(postId,ownerUserId)
+        }
+
+        // Show edit button only for the owner of the post
+        val isOwner = (post.userID ?: "") == ownerUserId
+        binding.editBtn.visibility = if (isOwner) View.VISIBLE else View.GONE
+
+        binding.editBtn.setOnClickListener {
+            val currentContent = post.content.orEmpty()
+            val sheet = EditPostBottomSheetFragment.newInstance(currentContent)
+            sheet.onSaveClicked = { updatedContent ->
+                val postId = post.Id
+                if (!postId.isNullOrEmpty()) {
+                    individualViewModal.updatePost(postId, updatedContent)
+                    post.content = updatedContent
+                    notifyDataSetChanged()
+                }
+            }
+            sheet.show(parentFragmentManager, "EditPostBottomSheet")
         }
 
         binding.menuBtn.setOnClickListener { view ->

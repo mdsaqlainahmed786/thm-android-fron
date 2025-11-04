@@ -352,6 +352,30 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
             }
         }
     }
+
+    // Update Post
+    private val _updatePostResult = MutableLiveData<DeleteModal>()
+    val updatePostResult: LiveData<DeleteModal> = _updatePostResult
+    fun updatePost(postID: String, content: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.updatePost(postID, content)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _updatePostResult.postValue(res)
+                    _loading.postValue(false)
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
     //Export Chat
     private val _exportChatResult = MutableLiveData<ExportChatModal>()
     val exportChatResult: LiveData<ExportChatModal> = _exportChatResult

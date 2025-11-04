@@ -76,6 +76,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
+import retrofit2.http.PUT
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
@@ -316,6 +317,14 @@ interface Application {
         @Field("message") message: String,
         @Field("parentID") parentID: String,
     ): Call<CreateCommentModal>
+
+    @PUT("posts"+"/{id}")
+    @FormUrlEncoded
+    fun updatePost(
+        @Header("x-access-token") token: String,
+        @Path(value = "id",encoded = true) id: String,
+        @Field("content") content: String,
+    ): Call<DeleteModal>
 
     @POST("posts/comments/likes"+"/{id}")
     fun likeComments(

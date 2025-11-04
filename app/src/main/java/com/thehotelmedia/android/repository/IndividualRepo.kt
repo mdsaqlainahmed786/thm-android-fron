@@ -164,6 +164,17 @@ class IndividualRepo (private val context: Context){
         }
     }
 
+    suspend fun updatePost(postID: String, content: String): Response<DeleteModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.updatePost(accessToken, postID, content).execute()
+        }
+    }
+
     suspend fun shareProfileData(id: String,userID: String): Response<ShareProfileModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
