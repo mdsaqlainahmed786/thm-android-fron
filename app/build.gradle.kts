@@ -114,7 +114,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.3.0")
     implementation("androidx.media3:media3-exoplayer-dash:1.3.0")
     implementation("androidx.media3:media3-ui:1.3.0")
-    implementation("com.github.a914-gowtham:android-video-trimmer:1.7.19")
+    // Removed android-video-trimmer and ffmpeg-kit; using a lightweight pass-through flow instead
 
     implementation(libs.androidx.runtime.saved.instance.state)
     implementation(libs.androidx.media3.datasource)

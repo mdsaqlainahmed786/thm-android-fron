@@ -11,8 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
-import com.gowtham.library.utils.TrimType
-import com.gowtham.library.utils.TrimVideo
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
 import com.thehotelmedia.android.customClasses.*
@@ -64,33 +62,10 @@ class VideoTrimmerActivity : BaseActivity() {
         initUI()
     }
 
+    // No external trimmer: we pass through the original video, or upload it directly for stories
     private val startResult = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val trimmedUri = Uri.parse(TrimVideo.getTrimmedVideoPath(result.data))
-
-            val validPath = trimmedUri.path ?: return@registerForActivityResult
-            val videoFile = File(validPath)
-
-            if (videoFile.exists()) {
-                if (from == "CreateStory") {
-                    individualViewModal.createStory(null, videoFile)
-                } else {
-                    val resultIntent = Intent().apply {
-                        putExtra("trimmed_video_uri", trimmedUri.toString())
-                    }
-                    setResult(RESULT_OK, resultIntent)
-                    finish()
-                }
-            } else {
-                showToast("Trimmed video file not found!")
-                finish()
-            }
-        }else{
-            finish()
-        }
-    }
+    ) { }
 
     private fun initUI() {
         preferenceManager = PreferenceManager.getInstance(this)
@@ -110,11 +85,24 @@ class VideoTrimmerActivity : BaseActivity() {
             videoDuration = 30
         }
 
-        videoUri?.toString()?.let {
-            TrimVideo.activity(it)
-                .setTrimType(TrimType.MIN_MAX_DURATION)
-                .setMinToMax(MIN_VIDEO_DURATION.toLong(),videoDuration.toLong())
-                .start(this, startResult)
+        // Immediately proceed without trimming
+        videoUri?.let { uri ->
+            if (from == "CreateStory") {
+                val videoFile = copyUriToTempFile(uri)
+                if (videoFile != null) {
+                    individualViewModal.createStory(null, videoFile)
+                } else {
+                    showToast("Unable to prepare video")
+                    finish()
+                    return
+                }
+            } else {
+                val resultIntent = Intent().apply {
+                    putExtra("trimmed_video_uri", uri.toString())
+                }
+                setResult(RESULT_OK, resultIntent)
+                finish()
+            }
         }
 
         individualViewModal.createStoryResult.observe(this) { result ->
@@ -157,6 +145,21 @@ class VideoTrimmerActivity : BaseActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_WRITE_PERMISSION && grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
             CustomSnackBar.showSnackBar(binding.root, MessageStore.permissionRequiredToSaveVideo(this))
+        }
+    }
+
+    private fun copyUriToTempFile(uri: Uri): File? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val tempFile = File.createTempFile("thm_video_", ".mp4", cacheDir)
+            inputStream.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            tempFile
+        } catch (e: Exception) {
+            null
         }
     }
 }
