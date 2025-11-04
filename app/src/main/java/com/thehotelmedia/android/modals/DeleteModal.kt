@@ -1,6 +1,7 @@
 package com.thehotelmedia.android.modals
 
 import com.google.gson.annotations.SerializedName
+import com.google.gson.JsonElement
 
 
 data class DeleteModal (
@@ -8,6 +9,6 @@ data class DeleteModal (
   @SerializedName("status"     ) var status     : Boolean? = null,
   @SerializedName("statusCode" ) var statusCode : Int?     = null,
   @SerializedName("message"    ) var message    : String?  = null,
-  @SerializedName("data"       ) var data       : String?  = null
+  @SerializedName("data"       ) var data       : JsonElement?  = null
 
 )

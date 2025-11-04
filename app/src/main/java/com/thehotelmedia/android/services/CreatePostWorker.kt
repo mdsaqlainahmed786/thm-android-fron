@@ -49,6 +49,7 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
         val selectedLat = inputData.getDouble("selectedLat", 0.0)
         val selectedLng = inputData.getDouble("selectedLng", 0.0)
         val selectedFeeling = inputData.getString("selectedFeeling") ?: ""
+        val collaboratorUserIDs = inputData.getStringArray("collaboratorUserIDs")?.toList() ?: emptyList()
 
         createNotificationChannel()
         showNotification("Uploading Post...")
@@ -56,7 +57,7 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
         sendServiceStartedBroadcast()
 
         return try {
-            uploadPost(mediaList, selectedTagIdList, content, selectedPlaceName, selectedLat, selectedLng, selectedFeeling)
+            uploadPost(mediaList, selectedTagIdList, content, selectedPlaceName, selectedLat, selectedLng, selectedFeeling, collaboratorUserIDs)
             Result.success()
         } catch (e: Exception) {
             Log.e("CreatePostWorker", "Upload failed", e)
@@ -78,9 +79,10 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
         selectedPlaceName: String,
         selectedLat: Double,
         selectedLng: Double,
-        selectedFeeling: String
+        selectedFeeling: String,
+        collaboratorUserIDs: List<String>
     ) {
-        createPost(content, selectedPlaceName, selectedLat, selectedLng, selectedFeeling, mediaList, selectedTagIdList)
+        createPost(content, selectedPlaceName, selectedLat, selectedLng, selectedFeeling, mediaList, selectedTagIdList, collaboratorUserIDs)
     }
 
     private fun createPost(
@@ -90,7 +92,8 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
         selectedLng: Double,
         selectedFeeling: String,
         mediaList: List<String>,
-        selectedTagIdList: List<String>
+        selectedTagIdList: List<String>,
+        collaboratorUserIDs: List<String>
     ) {
 
         println("asfhdjkshfjksah  mediaList  $mediaList")
@@ -148,6 +151,22 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
                 val status = response.body()?.status
                 val msg = response.body()?.message ?: "Something went wrong!"
                 if (status == true){
+                    val postId = response.body()?.data?.id ?: ""
+                    if (postId.isNotEmpty()) {
+                        // Send collaboration invites sequentially
+                        try {
+                            val token = preferenceManager.getString(PreferenceManager.Keys.ACCESS_TOKEN, "") ?: ""
+                            collaboratorUserIDs.forEach { invitedUserId ->
+                                try {
+                                    apiService.collaborationInvite(token, postId, invitedUserId).execute()
+                                } catch (e: Exception) {
+                                    Log.e("CreatePostWorker", "Collab invite failed for $invitedUserId", e)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("CreatePostWorker", "Failed sending collaboration invites", e)
+                        }
+                    }
                     showFinalNotification("Post Uploaded Successfully ✅", "Your post has been uploaded!")
                 }else{
                     showFinalNotification("Upload Failed ❌", msg)

@@ -71,6 +71,7 @@ class CreatePostActivity : BaseActivity() {
     private var cameraImageUri: Uri? = null
     private val REQUEST_CODE_TAG_PEOPLE = 1001
     private var selectedTagPeopleList = ArrayList<TagPeople>()
+    private var selectedCollaborators = ArrayList<TagPeople>()
     private var selectedFeeling: String = ""
     private var businessesType: String = ""
     private lateinit var preferenceManager : PreferenceManager
@@ -158,6 +159,7 @@ class CreatePostActivity : BaseActivity() {
     }
 
     private lateinit var tagPeopleLauncher: ActivityResultLauncher<Intent>
+    private lateinit var collaboratorLauncher: ActivityResultLauncher<Intent>
     private lateinit var feelingLauncher: ActivityResultLauncher<Intent>
 
     // Other imports and class definition
@@ -246,6 +248,9 @@ class CreatePostActivity : BaseActivity() {
         tagPeopleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             handleSelectedTagPeople(result)
         }
+        collaboratorLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            handleSelectedCollaborators(result)
+        }
         feelingLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             handleSelectedFeeling(result)
         }
@@ -266,6 +271,12 @@ class CreatePostActivity : BaseActivity() {
             val intent = Intent(this, TagPeopleActivity::class.java)
             intent.putExtra("selectedTagPeopleList", selectedTagPeopleList)
             tagPeopleLauncher.launch(intent)
+        }
+
+        binding.collaboratorLayout.setOnClickListener {
+            val intent = Intent(this, TagPeopleActivity::class.java)
+            intent.putExtra("selectedTagPeopleList", selectedCollaborators)
+            collaboratorLauncher.launch(intent)
         }
 
         binding.feelingLayout.setOnClickListener {
@@ -310,13 +321,14 @@ class CreatePostActivity : BaseActivity() {
 //                }
 //            }
             val selectedTagIdList = selectedTagPeopleList.map { it.id }.toMutableList()
+            val collaboratorIds = selectedCollaborators.map { it.id }
 
             val content = binding.contentEt.text.toString().trim()
             if(mediaList.isNotEmpty()){
-                createPost(mediaList,selectedTagIdList)
+                createPost(mediaList,selectedTagIdList, collaboratorIds)
             }else{
                 if (content.isNotEmpty()){
-                    createPost(mediaList,selectedTagIdList)
+                    createPost(mediaList,selectedTagIdList, collaboratorIds)
                 }else{
                     CustomSnackBar.showSnackBar(binding.root,MessageStore.pleaseAddMedia(this))
                 }
@@ -361,6 +373,16 @@ class CreatePostActivity : BaseActivity() {
 
 
 
+    }
+
+    private fun handleSelectedCollaborators(result: ActivityResult) {
+        if (result.resultCode == Activity.RESULT_OK) {
+            val bundle = result.data?.extras
+            val selectedPeopleList = bundle?.getSerializable("selectedPeopleList") as? ArrayList<TagPeople>
+            if (selectedPeopleList != null) {
+                selectedCollaborators = selectedPeopleList
+            }
+        }
     }
 
 
@@ -458,7 +480,7 @@ class CreatePostActivity : BaseActivity() {
             binding.mediaRv.visibility = View.GONE
         }else{
             binding.mediaRv.visibility = View.VISIBLE
-            attachedMediaAdapter = AttachedMediaAdapter(this, mediaList, ::onMediaUpdated)
+            attachedMediaAdapter = AttachedMediaAdapter(this, mediaList, ::onMediaUpdated, null)
             binding.mediaRv.adapter = attachedMediaAdapter
         }
 
@@ -635,11 +657,11 @@ class CreatePostActivity : BaseActivity() {
     }
 
 
-    private fun createPost(mediaList: MutableList<String>, selectedTagIdList: MutableList<String>) {
+    private fun createPost(mediaList: MutableList<String>, selectedTagIdList: MutableList<String>, collaboratorIds: List<String>) {
         val content = binding.contentEt.text.toString().trim()
         successGiff.show(getString(R.string.post_uploaded_will_be_live_shortly)) {
             // Callback when animation is complete
-            startCreatePostWorker(this, mediaList, selectedTagIdList, content, selectedPlaceName, selectedLat, selectedLng, selectedFeeling)
+            startCreatePostWorker(this, mediaList, selectedTagIdList, content, selectedPlaceName, selectedLat, selectedLng, selectedFeeling, collaboratorIds)
         }
     }
 

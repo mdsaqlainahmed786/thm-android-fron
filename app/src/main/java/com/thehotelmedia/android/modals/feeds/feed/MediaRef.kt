@@ -1,8 +1,10 @@
 package com.thehotelmedia.android.modals.feeds.feed
 
+import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
+import kotlinx.parcelize.Parcelize
 
-
+@Parcelize
 data class MediaRef (
 
   @SerializedName("_id"               ) var Id                : String? = null,
@@ -12,4 +14,4 @@ data class MediaRef (
   @SerializedName("thumbnailUrl"      ) var thumbnailUrl      : String? = null,
   @SerializedName("duration"          ) var duration          : Double? = null
 
-)
+) : Parcelable

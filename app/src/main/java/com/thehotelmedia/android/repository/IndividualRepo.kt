@@ -69,6 +69,9 @@ import com.thehotelmedia.android.modals.userProfile.UserProfileModel
 import com.thehotelmedia.android.modals.viewMedia.ViewMediaModal
 import com.thehotelmedia.android.modals.viewPostEvent.ViewPostEventModal
 import com.thehotelmedia.android.modals.visitWebSite.WebsiteRedirectModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationActionModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationPostsModal
+import com.thehotelmedia.android.modals.collaboration.CollaboratorsListModal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -158,6 +161,50 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.postViews(accessToken,postIds).execute()
+        }
+    }
+
+    suspend fun updatePost(postID: String, content: String, feelings: String, media: List<String>, deletedMedia: List<String>): Response<DeleteModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            
+            // Convert strings to RequestBody
+            val contentBody = content.toRequestBody("text/plain".toMediaTypeOrNull())
+            val feelingsBody = feelings.toRequestBody("text/plain".toMediaTypeOrNull())
+            
+            // Create deletedMedia JSON array as RequestBody
+            val deletedMediaJson = if (deletedMedia.isNotEmpty()) {
+                val jsonArray = deletedMedia.joinToString(",", "[", "]") { "\"$it\"" }
+                jsonArray.toRequestBody("application/json".toMediaTypeOrNull())
+            } else {
+                null
+            }
+            
+            // Convert media URIs to MultipartBody.Part
+            val mediaParts = media.mapIndexed { index, mediaPath ->
+                val file = when {
+                    mediaPath.startsWith("content://") -> {
+                        val filename = "temp_image_$index.jpg"
+                        getFileFromContentUri(context, Uri.parse(mediaPath), filename)
+                    }
+                    mediaPath.startsWith("file://") -> {
+                        File(mediaPath.replace("file://", ""))
+                    }
+                    else -> {
+                        File(mediaPath) // Direct path
+                    }
+                }
+                requireNotNull(file) { "File conversion failed for path: $mediaPath" }
+                val mimeType = Files.probeContentType(file.toPath()) ?: "image/*"
+                val requestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("media", file.name, requestBody)
+            }
+            
+            return@withContext call.updatePost(accessToken, postID, contentBody, feelingsBody, deletedMediaJson, mediaParts).execute()
         }
     }
 
@@ -1269,6 +1316,51 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.getJobDetails(accessToken,jobId).execute()
+        }
+    }
+
+    // Collaboration
+    suspend fun collaborationInvite(postID: String, invitedUserID: String): Response<CollaborationActionModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.collaborationInvite(accessToken, postID, invitedUserID).execute()
+        }
+    }
+
+    suspend fun collaborationRespond(postID: String, action: String): Response<CollaborationActionModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.collaborationRespond(accessToken, postID, action).execute()
+        }
+    }
+
+    suspend fun getCollaborationPosts(): Response<CollaborationPostsModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.getCollaborationPosts(accessToken).execute()
+        }
+    }
+
+    suspend fun getPostCollaborators(postID: String): Response<CollaboratorsListModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.getPostCollaborators(accessToken, postID).execute()
         }
     }
 

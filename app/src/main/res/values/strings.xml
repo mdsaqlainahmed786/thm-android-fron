@@ -237,6 +237,7 @@
     <string name="block_text">Are you really want to block this user?</string>
     <string name="photo_video">Photo/video</string>
     <string name="tag_people">Tag people</string>
+    <string name="invite_collaborator">Invite collaborator</string>
     <string name="feeling_activity">Feeling/activity</string>
     <string name="check_in">Check in</string>
     <string name="tags">Tags :</string>
@@ -459,6 +460,8 @@
     <string name="people_are_joined">People are joined:</string>
     <string name="km_distance_form_your_location">km Distance form your location</string>
     <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="cancel">Cancel</string>
     <string name="max_media_selection_error">You can\'t select more than %1$d media</string>
     <string name="download_failed">Download Failed</string>
     <string name="file_download">File Downloaded</string>

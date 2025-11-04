@@ -71,6 +71,9 @@ import com.thehotelmedia.android.modals.userProfile.UserProfileModel
 import com.thehotelmedia.android.modals.viewMedia.ViewMediaModal
 import com.thehotelmedia.android.modals.viewPostEvent.ViewPostEventModal
 import com.thehotelmedia.android.modals.visitWebSite.WebsiteRedirectModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationActionModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationPostsModal
+import com.thehotelmedia.android.modals.collaboration.CollaboratorsListModal
 import com.thehotelmedia.android.modals.weatherOrAqi.aqi.AqiModal
 import com.thehotelmedia.android.modals.weatherOrAqi.weather.WeatherModal
 import com.thehotelmedia.android.pagination.blockUsers.BlockedUserPagingSource
@@ -203,6 +206,98 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
             }
         }
     }
+
+    // Collaboration: Invite
+    private val _collaborationInviteResult = MutableLiveData<CollaborationActionModal>()
+    val collaborationInviteResult: LiveData<CollaborationActionModal> = _collaborationInviteResult
+    fun collaborationInvite(postID: String, invitedUserID: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.collaborationInvite(postID, invitedUserID)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _collaborationInviteResult.postValue(res)
+                    _loading.postValue(false)
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
+
+    // Collaboration: Respond
+    private val _collaborationRespondResult = MutableLiveData<CollaborationActionModal>()
+    val collaborationRespondResult: LiveData<CollaborationActionModal> = _collaborationRespondResult
+    fun collaborationRespond(postID: String, action: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.collaborationRespond(postID, action)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _collaborationRespondResult.postValue(res)
+                    _loading.postValue(false)
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
+
+    // Collaboration: List posts
+    private val _collaborationPostsResult = MutableLiveData<CollaborationPostsModal>()
+    val collaborationPostsResult: LiveData<CollaborationPostsModal> = _collaborationPostsResult
+    fun getCollaborationPosts() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.getCollaborationPosts()
+                if (response.isSuccessful) {
+                    _collaborationPostsResult.postValue(response.body())
+                    _loading.postValue(false)
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
+
+    // Collaboration: List collaborators per post
+    private val _postCollaboratorsResult = MutableLiveData<CollaboratorsListModal>()
+    val postCollaboratorsResult: LiveData<CollaboratorsListModal> = _postCollaboratorsResult
+    fun getPostCollaborators(postID: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.getPostCollaborators(postID)
+                if (response.isSuccessful) {
+                    _postCollaboratorsResult.postValue(response.body())
+                    _loading.postValue(false)
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
     //Export Chat
     private val _deleteChatResult = MutableLiveData<DeleteModal>()
     val deleteChatResult: LiveData<DeleteModal> = _deleteChatResult
@@ -254,6 +349,58 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                 _loading.postValue(false)
                 toastMessageLiveData.postValue(t.message)
                 Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
+    // Update Post
+    private val _updatePostResult = MutableLiveData<DeleteModal>()
+    val updatePostResult: LiveData<DeleteModal> = _updatePostResult
+    fun updatePost(postID: String, content: String, feelings: String, media: List<String>, deletedMedia: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.updatePost(postID, content, feelings, media, deletedMedia)
+                if (response.isSuccessful) {
+                    try {
+                        val res = response.body()
+                        toastMessageLiveData.postValue(res?.message ?: N_A)
+                        _updatePostResult.postValue(res)
+                        _loading.postValue(false)
+                    } catch (e: Exception) {
+                        // Handle JSON parsing error
+                        Log.e(tag, "Error parsing response: ${e.message}", e)
+                        val errorModal = DeleteModal().apply {
+                            status = false
+                            message = "Error parsing response: ${e.message}"
+                        }
+                        toastMessageLiveData.postValue(errorModal.message)
+                        _updatePostResult.postValue(errorModal)
+                        _loading.postValue(false)
+                    }
+                } else {
+                    val errorMessage = try {
+                        response.errorBody()?.string() ?: response.message() ?: "Failed to update post"
+                    } catch (e: Exception) {
+                        response.message() ?: "Failed to update post"
+                    }
+                    val errorModal = DeleteModal().apply {
+                        status = false
+                        message = errorMessage
+                    }
+                    toastMessageLiveData.postValue(errorModal.message)
+                    _updatePostResult.postValue(errorModal)
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                Log.e(tag, "Error updating post: ${t.message}", t)
+                val errorModal = DeleteModal().apply {
+                    status = false
+                    message = t.message ?: "An error occurred"
+                }
+                _updatePostResult.postValue(errorModal)
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
             }
         }
     }

@@ -66,14 +66,39 @@ class EditImageActivity : BaseActivity() {
             .setPinchTextScalable(true)
             .build()
 
-        // Get image URI from intent
-        imageUri = intent.getParcelableExtra("image_uri")
-
-        // Start crop immediately after image selection
-        imageUri?.let { startCropActivity(it) }
-
-        // Disable editing buttons until crop is completed
-        enableEditingButtons(false)
+        // Get image URI from intent - try both Parcelable and String
+        var tempUri: Uri? = intent.getParcelableExtra("image_uri")
+        if (tempUri == null) {
+            val uriString = intent.getStringExtra("image_uri_string")
+            if (uriString != null) {
+                tempUri = Uri.parse(uriString)
+            }
+        }
+        
+        // Store in class property
+        imageUri = tempUri
+        
+        // Check if image is already cropped (coming from EditPostActivity)
+        val alreadyCropped = intent.getBooleanExtra("already_cropped", false)
+        
+        // Use local immutable variable to allow smart cast
+        val uriToUse = tempUri
+        if (uriToUse != null) {
+            if (alreadyCropped) {
+                // Image is already cropped, load it directly
+                croppedImageUri = uriToUse
+                loadImage(uriToUse) // loadImage will enable buttons after image loads
+            } else {
+                // Start crop immediately after image selection
+                startCropActivity(uriToUse)
+                // Disable editing buttons until crop is completed
+                enableEditingButtons(false)
+            }
+        } else {
+            // No image URI provided, finish activity
+            Toast.makeText(this, "No image provided", Toast.LENGTH_SHORT).show()
+            finish()
+        }
 
         // Set up click listeners for editing options
         setupEditButtons()
@@ -156,19 +181,42 @@ private fun startCropActivity(uri: Uri) {
 
     // Load the cropped image into PhotoEditor
     private fun loadImage(uri: Uri) {
+        Log.d("EditImageActivity", "Loading image from URI: $uri")
+        
+        // Verify the URI is valid and file exists (for file:// URIs)
+        if (uri.scheme == "file" || uri.scheme == null) {
+            val path = uri.path ?: uri.toString().replace("file://", "")
+            val file = File(path)
+            if (!file.exists()) {
+                Log.e("EditImageActivity", "File does not exist: ${file.absolutePath}")
+                Toast.makeText(this, "Image file not found: ${file.absolutePath}", Toast.LENGTH_SHORT).show()
+                finish()
+                return
+            }
+            Log.d("EditImageActivity", "File exists: ${file.absolutePath}, size: ${file.length()} bytes")
+        }
+        
         Glide.with(this)
             .asBitmap()
             .load(uri)
+            .apply(RequestOptions().error(R.drawable.ic_image_placeholder_image))
             .into(object : CustomTarget<Bitmap>() {
                 override fun onResourceReady(resource: Bitmap, transition: Transition<in Bitmap>?) {
+                    Log.d("EditImageActivity", "Image loaded successfully, size: ${resource.width}x${resource.height}")
                     // Scale the image to fit the PhotoEditorView without stretching it
                     binding.photoEditorView.source.setImageBitmap(resource)
                     // Adjust the ImageView's scaleType if necessary
                     binding.photoEditorView.source.scaleType = ImageView.ScaleType.FIT_CENTER
+                    // Enable editing buttons after image is loaded
+                    enableEditingButtons(true)
                 }
-                override fun onLoadCleared(placeholder: Drawable?) {}
+                override fun onLoadCleared(placeholder: Drawable?) {
+                    Log.d("EditImageActivity", "Image load cleared")
+                }
                 override fun onLoadFailed(errorDrawable: Drawable?) {
-                    Log.e("EditImageActivity", "Failed to load image")
+                    Log.e("EditImageActivity", "Failed to load image from URI: $uri")
+                    Toast.makeText(this@EditImageActivity, "Failed to load image", Toast.LENGTH_SHORT).show()
+                    finish()
                 }
             })
     }

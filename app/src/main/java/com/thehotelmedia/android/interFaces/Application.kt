@@ -60,6 +60,9 @@ import com.thehotelmedia.android.modals.userProfile.UserProfileModel
 import com.thehotelmedia.android.modals.viewMedia.ViewMediaModal
 import com.thehotelmedia.android.modals.viewPostEvent.ViewPostEventModal
 import com.thehotelmedia.android.modals.visitWebSite.WebsiteRedirectModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationActionModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationPostsModal
+import com.thehotelmedia.android.modals.collaboration.CollaboratorsListModal
 import com.thehotelmedia.android.modals.weatherOrAqi.aqi.AqiModal
 import com.thehotelmedia.android.modals.weatherOrAqi.weather.WeatherModal
 import okhttp3.MultipartBody
@@ -73,6 +76,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
+import retrofit2.http.PUT
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
@@ -106,7 +110,7 @@ interface Application {
         @Path(value = "id",encoded = true) userId: String,
     ): Call<DeleteModal>
 
-    @DELETE("posts"+"/{id}"+"/soft")
+    @DELETE("posts"+"/{id}")
     fun deletePost(
         @Header("x-access-token") token: String,
         @Path(value = "id",encoded = true) postId: String,
@@ -313,6 +317,17 @@ interface Application {
         @Field("message") message: String,
         @Field("parentID") parentID: String,
     ): Call<CreateCommentModal>
+
+    @Multipart
+    @PUT("posts"+"/{id}")
+    fun updatePost(
+        @Header("x-access-token") token: String,
+        @Path(value = "id",encoded = true) id: String,
+        @Part("content") content: RequestBody,
+        @Part("feelings") feelings: RequestBody,
+        @Part("deletedMedia") deletedMedia: RequestBody?,
+        @Part media: List<MultipartBody.Part>
+    ): Call<DeleteModal>
 
     @POST("posts/comments/likes"+"/{id}")
     fun likeComments(
@@ -770,5 +785,33 @@ interface Application {
         @Header("x-access-token") token: String,
         @Path(value = "jobId",encoded = true) jobId: String,
     ): Call<JobDetailsModal>
+
+    // Collaboration APIs
+    @POST("collaboration/invite")
+    @FormUrlEncoded
+    fun collaborationInvite(
+        @Header("x-access-token") token: String,
+        @Field("postID") postID: String,
+        @Field("invitedUserID") invitedUserID: String,
+    ): Call<CollaborationActionModal>
+
+    @POST("collaboration/respond")
+    @FormUrlEncoded
+    fun collaborationRespond(
+        @Header("x-access-token") token: String,
+        @Field("postID") postID: String,
+        @Field("action") action: String,
+    ): Call<CollaborationActionModal>
+
+    @GET("collaboration")
+    fun getCollaborationPosts(
+        @Header("x-access-token") token: String,
+    ): Call<CollaborationPostsModal>
+
+    @GET("collaboration"+"/{postID}"+"/collaborators")
+    fun getPostCollaborators(
+        @Header("x-access-token") token: String,
+        @Path(value = "postID", encoded = true) postID: String,
+    ): Call<CollaboratorsListModal>
 
 }

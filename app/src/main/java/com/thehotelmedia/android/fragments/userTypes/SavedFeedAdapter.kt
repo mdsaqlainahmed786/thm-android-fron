@@ -32,6 +32,7 @@ import com.thehotelmedia.android.activity.BusinessProfileDetailsActivity
 import com.thehotelmedia.android.activity.ViewEventDetailsActivity
 import com.thehotelmedia.android.adapters.userTypes.individual.home.MediaPagerAdapter
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.EditPostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.TagPeopleBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment
@@ -371,6 +372,42 @@ class SavedFeedAdapter(
         // Share button click
         binding.shareBtn.setOnClickListener {
             context.sharePostWithDeepLink(postId,ownerUserId)
+        }
+
+        // Show edit and delete buttons only for the owner of the post
+        val isOwner = (post.userID ?: "") == ownerUserId
+        binding.editBtn.visibility = if (isOwner) View.VISIBLE else View.GONE
+        binding.deleteBtn.visibility = if (isOwner) View.VISIBLE else View.GONE
+
+        binding.editBtn.setOnClickListener {
+            val currentContent = post.content.orEmpty()
+            val currentFeeling = post.feelings
+            val currentMedia = post.mediaRef
+            val postId = post.Id ?: ""
+            
+            if (postId.isNotEmpty()) {
+                com.thehotelmedia.android.activity.userTypes.forms.EditPostActivity.start(
+                    context,
+                    postId,
+                    currentContent,
+                    currentFeeling,
+                    currentMedia
+                )
+            }
+        }
+
+        binding.deleteBtn.setOnClickListener {
+            val bottomSheet = YesOrNoBottomSheetFragment.newInstance(MessageStore.sureWantToDeletePost(context))
+            bottomSheet.onYesClicked = {
+                if (itemData != null) {
+                    removeItem(itemData)
+                    individualViewModal.deletePost(postId)
+                }
+            }
+            bottomSheet.onNoClicked = {
+                // User cancelled, do nothing
+            }
+            bottomSheet.show(parentFragmentManager, "YesOrNoBottomSheet")
         }
 
         binding.menuBtn.setOnClickListener { view ->
