@@ -324,6 +324,7 @@ interface Application {
         @Header("x-access-token") token: String,
         @Path(value = "id",encoded = true) id: String,
         @Field("content") content: String,
+        @Field("feelings") feelings: String,
     ): Call<DeleteModal>
 
     @POST("posts/comments/likes"+"/{id}")

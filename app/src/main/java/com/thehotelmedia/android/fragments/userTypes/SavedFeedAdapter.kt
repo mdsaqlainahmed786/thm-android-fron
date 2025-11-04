@@ -380,16 +380,19 @@ class SavedFeedAdapter(
 
         binding.editBtn.setOnClickListener {
             val currentContent = post.content.orEmpty()
-            val sheet = EditPostBottomSheetFragment.newInstance(currentContent)
-            sheet.onSaveClicked = { updatedContent ->
-                val postId = post.Id
-                if (!postId.isNullOrEmpty()) {
-                    individualViewModal.updatePost(postId, updatedContent)
-                    post.content = updatedContent
-                    notifyDataSetChanged()
-                }
+            val currentFeeling = post.feelings
+            val currentMedia = post.mediaRef
+            val postId = post.Id ?: ""
+            
+            if (postId.isNotEmpty()) {
+                com.thehotelmedia.android.activity.userTypes.forms.EditPostActivity.start(
+                    context,
+                    postId,
+                    currentContent,
+                    currentFeeling,
+                    currentMedia
+                )
             }
-            sheet.show(parentFragmentManager, "EditPostBottomSheet")
         }
 
         binding.menuBtn.setOnClickListener { view ->

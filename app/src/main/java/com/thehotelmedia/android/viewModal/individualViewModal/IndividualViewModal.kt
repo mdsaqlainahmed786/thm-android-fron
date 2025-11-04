@@ -356,21 +356,49 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     // Update Post
     private val _updatePostResult = MutableLiveData<DeleteModal>()
     val updatePostResult: LiveData<DeleteModal> = _updatePostResult
-    fun updatePost(postID: String, content: String) {
+    fun updatePost(postID: String, content: String, feelings: String? = null, media: List<String> = emptyList()) {
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
-                val response = individualRepo.updatePost(postID, content)
+                val response = individualRepo.updatePost(postID, content, feelings, media)
                 if (response.isSuccessful) {
-                    val res = response.body()
-                    toastMessageLiveData.postValue(res?.message ?: N_A)
-                    _updatePostResult.postValue(res)
-                    _loading.postValue(false)
+                    try {
+                        val res = response.body()
+                        toastMessageLiveData.postValue(res?.message ?: N_A)
+                        _updatePostResult.postValue(res)
+                        _loading.postValue(false)
+                    } catch (e: Exception) {
+                        // Handle JSON parsing error
+                        Log.e(tag, "Error parsing response: ${e.message}", e)
+                        val errorModal = DeleteModal().apply {
+                            status = false
+                            message = "Error parsing response: ${e.message}"
+                        }
+                        toastMessageLiveData.postValue(errorModal.message)
+                        _updatePostResult.postValue(errorModal)
+                        _loading.postValue(false)
+                    }
                 } else {
-                    toastMessageLiveData.postValue(response.message())
+                    val errorMessage = try {
+                        response.errorBody()?.string() ?: response.message() ?: "Failed to update post"
+                    } catch (e: Exception) {
+                        response.message() ?: "Failed to update post"
+                    }
+                    val errorModal = DeleteModal().apply {
+                        status = false
+                        message = errorMessage
+                    }
+                    toastMessageLiveData.postValue(errorModal.message)
+                    _updatePostResult.postValue(errorModal)
                     _loading.postValue(false)
                 }
             } catch (t: Throwable) {
+                Log.e(tag, "Error updating post: ${t.message}", t)
+                val errorModal = DeleteModal().apply {
+                    status = false
+                    message = t.message ?: "An error occurred"
+                }
+                _updatePostResult.postValue(errorModal)
                 _loading.postValue(false)
                 toastMessageLiveData.postValue(t.message)
             }

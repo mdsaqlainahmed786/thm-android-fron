@@ -164,14 +164,17 @@ class IndividualRepo (private val context: Context){
         }
     }
 
-    suspend fun updatePost(postID: String, content: String): Response<DeleteModal> {
+    suspend fun updatePost(postID: String, content: String, feelings: String? = null, media: List<String> = emptyList()): Response<DeleteModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
             throw IllegalStateException("Access token is null or empty")
         }
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
-            return@withContext call.updatePost(accessToken, postID, content).execute()
+            // Pass feelings - if null, Retrofit will send it as empty or omit it
+            // Convert null to empty string to ensure consistent API behavior
+            val feelingsValue = feelings ?: ""
+            return@withContext call.updatePost(accessToken, postID, content, feelingsValue).execute()
         }
     }
 

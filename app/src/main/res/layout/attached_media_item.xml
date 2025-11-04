@@ -26,16 +26,31 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize6Percent" />
 
-            <androidx.appcompat.widget.AppCompatImageView
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
                 android:layout_margin="@dimen/_2sdp"
-                android:id="@+id/cancelBtn"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="end|top"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_cancel"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/editBtn"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_edit"
+                    android:contentDescription="@string/edit"
+                    android:visibility="gone"/>
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/cancelBtn"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_cancel"/>
+            </LinearLayout>
 
             <ImageView
                 android:id="@+id/playIconImageView"
@@ -48,7 +63,6 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="@+id/mediaImageView"
                 app:layout_constraintTop_toTopOf="@+id/mediaImageView" />
-
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -480,7 +480,7 @@ class CreatePostActivity : BaseActivity() {
             binding.mediaRv.visibility = View.GONE
         }else{
             binding.mediaRv.visibility = View.VISIBLE
-            attachedMediaAdapter = AttachedMediaAdapter(this, mediaList, ::onMediaUpdated)
+            attachedMediaAdapter = AttachedMediaAdapter(this, mediaList, ::onMediaUpdated, null)
             binding.mediaRv.adapter = attachedMediaAdapter
         }
 

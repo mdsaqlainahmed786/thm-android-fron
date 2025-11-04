@@ -14,7 +14,8 @@ import com.thehotelmedia.android.databinding.AttachedMediaItemBinding
 class AttachedMediaAdapter(
     private val context: Context,
     private val mediaList: MutableList<String>,
-    private val onMediaUpdated: (MutableList<String>) -> Unit
+    private val onMediaUpdated: (MutableList<String>) -> Unit,
+    private val onEditClick: ((String, Int) -> Unit)? = null
 ) : RecyclerView.Adapter<AttachedMediaAdapter.MediaViewHolder>() {
 
     inner class MediaViewHolder(val binding: AttachedMediaItemBinding) : RecyclerView.ViewHolder(binding.root)
@@ -73,6 +74,8 @@ class AttachedMediaAdapter(
 
             // Show play icon overlay for video
             binding.playIconImageView.visibility = View.VISIBLE
+            // Hide edit button for videos
+            binding.editBtn.visibility = View.GONE
         }else {
             // Load image directly
             Glide.with(context)
@@ -81,6 +84,13 @@ class AttachedMediaAdapter(
 
             // Hide play icon for images
             binding.playIconImageView.visibility = View.GONE
+            // Show edit button for images if callback is provided
+            binding.editBtn.visibility = if (onEditClick != null) View.VISIBLE else View.GONE
+        }
+
+        // Handle edit button click (for images)
+        binding.editBtn.setOnClickListener {
+            onEditClick?.invoke(mediaList[position], position)
         }
 
         // Handle cancel button click
