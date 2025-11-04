@@ -4,8 +4,23 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    
+    <!-- Circular blue background matching cancel button style -->
     <path
-        android:fillColor="@color/text_color"
-        android:pathData="M3,17.25V21h3.75L17.81,9.94l-3.75,-3.75L3,17.25zM20.71,7.04c0.39,-0.39 0.39,-1.02 0,-1.41l-2.34,-2.34c-0.39,-0.39 -1.02,-0.39 -1.41,0l-1.83,1.83 3.75,3.75 1.83,-1.83z"/>
+        android:pathData="M12,0L12,0A12,12 0,0 1,24 12L24,12A12,12 0,0 1,12 24L12,24A12,12 0,0 1,0 12L0,12A12,12 0,0 1,12 0z"
+        android:fillColor="#4169E1"
+        android:fillAlpha="0.9"/>
+    
+    <!-- Pencil icon - filled design for better visibility -->
+    <path
+        android:pathData="M16.5,5.5L18.5,7.5L9.5,16.5L7.5,14.5L16.5,5.5Z"
+        android:fillColor="#FFFFFF"/>
+    
+    <path
+        android:pathData="M7.5,14.5L9.5,16.5L6.5,19.5L4.5,17.5L7.5,14.5Z"
+        android:fillColor="#FFFFFF"/>
+    
+    <path
+        android:pathData="M4.5,17.5L6.5,19.5L4,19.5L4.5,17.5Z"
+        android:fillColor="#FFFFFF"/>
 </vector>
-

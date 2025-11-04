@@ -77,9 +77,12 @@ class AttachedMediaAdapter(
             // Hide edit button for videos
             binding.editBtn.visibility = View.GONE
         }else {
-            // Load image directly
+            // Load image directly - clear any previous image first
+            binding.mediaImageView.setImageDrawable(null)
             Glide.with(context)
                 .load(mediaUri)
+                .placeholder(R.drawable.ic_image_placeholder_image)
+                .error(R.drawable.ic_image_placeholder_image)
                 .into(binding.mediaImageView)
 
             // Hide play icon for images
@@ -106,10 +109,21 @@ class AttachedMediaAdapter(
     }
 
     fun updateMediaList(newMediaList: List<String>) {
-        mediaList.clear()
-        mediaList.addAll(newMediaList)
-        notifyDataSetChanged()
-        onMediaUpdated(mediaList)
+        // Check if list has changed by comparing sizes and content
+        val hasChanged = if (mediaList.size != newMediaList.size) {
+            true
+        } else {
+            // Compare each item to detect changes
+            mediaList.zip(newMediaList).any { (old, new) -> old != new }
+        }
+        
+        if (hasChanged) {
+            mediaList.clear()
+            mediaList.addAll(newMediaList)
+            notifyDataSetChanged()
+            // Don't call onMediaUpdated here to prevent infinite loops
+            // The callback should only be called when user explicitly removes items
+        }
     }
 
 }

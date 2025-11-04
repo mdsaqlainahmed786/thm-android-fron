@@ -164,17 +164,47 @@ class IndividualRepo (private val context: Context){
         }
     }
 
-    suspend fun updatePost(postID: String, content: String, feelings: String? = null, media: List<String> = emptyList()): Response<DeleteModal> {
+    suspend fun updatePost(postID: String, content: String, feelings: String, media: List<String>, deletedMedia: List<String>): Response<DeleteModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
             throw IllegalStateException("Access token is null or empty")
         }
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
-            // Pass feelings - if null, Retrofit will send it as empty or omit it
-            // Convert null to empty string to ensure consistent API behavior
-            val feelingsValue = feelings ?: ""
-            return@withContext call.updatePost(accessToken, postID, content, feelingsValue).execute()
+            
+            // Convert strings to RequestBody
+            val contentBody = content.toRequestBody("text/plain".toMediaTypeOrNull())
+            val feelingsBody = feelings.toRequestBody("text/plain".toMediaTypeOrNull())
+            
+            // Create deletedMedia JSON array as RequestBody
+            val deletedMediaJson = if (deletedMedia.isNotEmpty()) {
+                val jsonArray = deletedMedia.joinToString(",", "[", "]") { "\"$it\"" }
+                jsonArray.toRequestBody("application/json".toMediaTypeOrNull())
+            } else {
+                null
+            }
+            
+            // Convert media URIs to MultipartBody.Part
+            val mediaParts = media.mapIndexed { index, mediaPath ->
+                val file = when {
+                    mediaPath.startsWith("content://") -> {
+                        val filename = "temp_image_$index.jpg"
+                        getFileFromContentUri(context, Uri.parse(mediaPath), filename)
+                    }
+                    mediaPath.startsWith("file://") -> {
+                        File(mediaPath.replace("file://", ""))
+                    }
+                    else -> {
+                        File(mediaPath) // Direct path
+                    }
+                }
+                requireNotNull(file) { "File conversion failed for path: $mediaPath" }
+                val mimeType = Files.probeContentType(file.toPath()) ?: "image/*"
+                val requestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("media", file.name, requestBody)
+            }
+            
+            return@withContext call.updatePost(accessToken, postID, contentBody, feelingsBody, deletedMediaJson, mediaParts).execute()
         }
     }
 

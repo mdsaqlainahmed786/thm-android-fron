@@ -318,13 +318,15 @@ interface Application {
         @Field("parentID") parentID: String,
     ): Call<CreateCommentModal>
 
+    @Multipart
     @PUT("posts"+"/{id}")
-    @FormUrlEncoded
     fun updatePost(
         @Header("x-access-token") token: String,
         @Path(value = "id",encoded = true) id: String,
-        @Field("content") content: String,
-        @Field("feelings") feelings: String,
+        @Part("content") content: RequestBody,
+        @Part("feelings") feelings: RequestBody,
+        @Part("deletedMedia") deletedMedia: RequestBody?,
+        @Part media: List<MultipartBody.Part>
     ): Call<DeleteModal>
 
     @POST("posts/comments/likes"+"/{id}")
