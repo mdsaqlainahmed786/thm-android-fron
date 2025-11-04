@@ -1116,7 +1116,7 @@ fun formatBookingDates(checkInDate: String?, checkOutDate: String?): Triple<Stri
 }
 
 
-fun startCreatePostWorker(context: Context, mediaList: List<String>, selectedTagIdList: List<String>, content: String, selectedPlaceName: String, selectedLat: Double, selectedLng: Double, selectedFeeling: String) {
+fun startCreatePostWorker(context: Context, mediaList: List<String>, selectedTagIdList: List<String>, content: String, selectedPlaceName: String, selectedLat: Double, selectedLng: Double, selectedFeeling: String, collaboratorIds: List<String>) {
     val data = workDataOf(
         "mediaList" to mediaList.toTypedArray(),
         "selectedTagIdList" to selectedTagIdList.toTypedArray(),
@@ -1124,7 +1124,8 @@ fun startCreatePostWorker(context: Context, mediaList: List<String>, selectedTag
         "selectedPlaceName" to selectedPlaceName,
         "selectedLat" to selectedLat,
         "selectedLng" to selectedLng,
-        "selectedFeeling" to selectedFeeling
+        "selectedFeeling" to selectedFeeling,
+        "collaboratorUserIDs" to collaboratorIds.toTypedArray()
     )
 
     val workRequest = OneTimeWorkRequestBuilder<CreatePostWorker>()

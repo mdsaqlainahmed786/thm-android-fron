@@ -69,6 +69,9 @@ import com.thehotelmedia.android.modals.userProfile.UserProfileModel
 import com.thehotelmedia.android.modals.viewMedia.ViewMediaModal
 import com.thehotelmedia.android.modals.viewPostEvent.ViewPostEventModal
 import com.thehotelmedia.android.modals.visitWebSite.WebsiteRedirectModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationActionModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationPostsModal
+import com.thehotelmedia.android.modals.collaboration.CollaboratorsListModal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -1269,6 +1272,51 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.getJobDetails(accessToken,jobId).execute()
+        }
+    }
+
+    // Collaboration
+    suspend fun collaborationInvite(postID: String, invitedUserID: String): Response<CollaborationActionModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.collaborationInvite(accessToken, postID, invitedUserID).execute()
+        }
+    }
+
+    suspend fun collaborationRespond(postID: String, action: String): Response<CollaborationActionModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.collaborationRespond(accessToken, postID, action).execute()
+        }
+    }
+
+    suspend fun getCollaborationPosts(): Response<CollaborationPostsModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.getCollaborationPosts(accessToken).execute()
+        }
+    }
+
+    suspend fun getPostCollaborators(postID: String): Response<CollaboratorsListModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.getPostCollaborators(accessToken, postID).execute()
         }
     }
 

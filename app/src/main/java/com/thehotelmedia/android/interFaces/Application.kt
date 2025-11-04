@@ -60,6 +60,9 @@ import com.thehotelmedia.android.modals.userProfile.UserProfileModel
 import com.thehotelmedia.android.modals.viewMedia.ViewMediaModal
 import com.thehotelmedia.android.modals.viewPostEvent.ViewPostEventModal
 import com.thehotelmedia.android.modals.visitWebSite.WebsiteRedirectModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationActionModal
+import com.thehotelmedia.android.modals.collaboration.CollaborationPostsModal
+import com.thehotelmedia.android.modals.collaboration.CollaboratorsListModal
 import com.thehotelmedia.android.modals.weatherOrAqi.aqi.AqiModal
 import com.thehotelmedia.android.modals.weatherOrAqi.weather.WeatherModal
 import okhttp3.MultipartBody
@@ -770,5 +773,33 @@ interface Application {
         @Header("x-access-token") token: String,
         @Path(value = "jobId",encoded = true) jobId: String,
     ): Call<JobDetailsModal>
+
+    // Collaboration APIs
+    @POST("collaboration/invite")
+    @FormUrlEncoded
+    fun collaborationInvite(
+        @Header("x-access-token") token: String,
+        @Field("postID") postID: String,
+        @Field("invitedUserID") invitedUserID: String,
+    ): Call<CollaborationActionModal>
+
+    @POST("collaboration/respond")
+    @FormUrlEncoded
+    fun collaborationRespond(
+        @Header("x-access-token") token: String,
+        @Field("postID") postID: String,
+        @Field("action") action: String,
+    ): Call<CollaborationActionModal>
+
+    @GET("collaboration")
+    fun getCollaborationPosts(
+        @Header("x-access-token") token: String,
+    ): Call<CollaborationPostsModal>
+
+    @GET("collaboration"+"/{postID}"+"/collaborators")
+    fun getPostCollaborators(
+        @Header("x-access-token") token: String,
+        @Path(value = "postID", encoded = true) postID: String,
+    ): Call<CollaboratorsListModal>
 
 }
