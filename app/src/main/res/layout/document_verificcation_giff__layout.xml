@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/black_20">
+    <eightbitlab.com.blurview.BlurView
+        android:id="@+id/blurView"
+        android:padding="20dp"
+        android:background="@color/black_20"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_centerInParent="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/giff_background_14">
+
+
+
+
+
+<!--                <com.airbnb.lottie.LottieAnimationView-->
+<!--                    android:id="@+id/lottieView"-->
+<!--                    android:layout_width="@dimen/_190sdp"-->
+<!--                    android:layout_height="@dimen/_190sdp"-->
+<!--                    android:layout_marginStart="@dimen/_16sdp"-->
+<!--                    android:layout_marginTop="@dimen/_16sdp"-->
+<!--                    android:layout_marginEnd="@dimen/_16sdp"-->
+<!--                    app:lottie_autoPlay="true"-->
+<!--                    app:lottie_loop="true"/>-->
+
+                <ImageView
+                    android:id="@+id/giffImageView"
+                    android:layout_width="@dimen/_190sdp"
+                    android:layout_height="@dimen/_190sdp"
+                    android:layout_marginStart="@dimen/_16sdp"
+                    android:layout_marginTop="@dimen/_16sdp"
+                    android:layout_marginEnd="@dimen/_16sdp"/>
+
+                <TextView
+                    android:id="@+id/messageTv"
+                    android:textAlignment="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:text="Sucessfull message"
+                    android:maxWidth="@dimen/_200sdp"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color"
+                    android:layout_marginBottom="@dimen/_16sdp"/>
+
+
+
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+        </RelativeLayout>
+
+
+
+
+
+    </eightbitlab.com.blurview.BlurView>
+
+</FrameLayout>

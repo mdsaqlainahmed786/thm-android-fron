@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:background="@color/black"
+        android:layout_height="match_parent">
+
+        <!-- ImageView -->
+        <com.thehotelmedia.android.customDialog.ZoomClass
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible"
+            android:minHeight="@dimen/_340sdp"
+            android:maxHeight="@dimen/_520sdp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"/>
+
+        <!-- PlayerView for ExoPlayer -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/videoLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible">
+
+            <com.google.android.exoplayer2.ui.PlayerView
+                android:id="@+id/playerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:use_controller="true"
+                android:background="@color/black"
+                app:controller_layout_id="@layout/custom_exo_player_control_view" />
+
+<!--            <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                app:layout_constraintTop_toTopOf="parent"-->
+<!--                app:layout_constraintEnd_toEndOf="parent"-->
+<!--                android:layout_width="@dimen/_220sdp"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_margin="@dimen/_12sdp"-->
+<!--                android:orientation="horizontal">-->
+
+<!--                <SeekBar-->
+<!--                    android:layout_gravity="center_vertical"-->
+<!--                    android:id="@+id/volumeSeekBar"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="6dp"-->
+<!--                    android:max="100"-->
+<!--                    android:thumb="@null"-->
+<!--                    android:thumbTint="@color/white"-->
+<!--                    android:progressDrawable="@drawable/custom_seekbar"-->
+<!--                    android:background="@android:color/transparent" />-->
+
+<!--            </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <ImageView
+            android:id="@+id/videoThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:visibility="visible" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

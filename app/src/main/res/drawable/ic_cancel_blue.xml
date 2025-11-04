@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+  <path
+      android:pathData="M7.581,0.775L7.581,0.775A7.527,7.527 0,0 1,15.108 8.303L15.108,8.303A7.527,7.527 0,0 1,7.581 15.83L7.581,15.83A7.527,7.527 0,0 1,0.053 8.303L0.053,8.303A7.527,7.527 0,0 1,7.581 0.775z"
+      android:fillColor="@color/faded_round_btn"/>
+  <path
+      android:pathData="M4.983,10.886L10.16,5.71M4.983,5.71L10.16,10.886"
+      android:strokeWidth="1.4114"
+      android:fillColor="#00000000"
+      android:strokeColor="#ffffff"
+      android:strokeLineCap="round"/>
+</vector>

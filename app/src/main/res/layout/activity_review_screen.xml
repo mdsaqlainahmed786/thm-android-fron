@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        tools:context=".activity.userTypes.forms.reviewScreen.ReviewScreenActivity" >
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/backBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_back_arrow" />
+
+                <TextView
+                    android:id="@+id/titleTv"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/comic_bold"
+                    android:text="@string/review"
+                    android:textColor="@color/text_color"
+                    android:textSize="18sp" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/doneButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_blue_tick_icon" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            <androidx.core.widget.NestedScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/checkInLayout"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/background_14"
+                        android:padding="12dp"
+                        android:orientation="vertical">
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/notificationBtn"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:layout_gravity="center"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:src="@drawable/ic_checkin_blue"/>
+                            <TextView
+                                android:layout_marginStart="@dimen/_4sdp"
+                                android:layout_weight="1"
+                                android:layout_gravity="center"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/check_in"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/comic_regular"/>
+
+                            <ImageView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:src="@drawable/ic_next_arrow_grey"/>
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/ratingLayout"
+                        android:layout_marginTop="12dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/background_14"
+                            android:padding="12dp"
+                            android:orientation="vertical"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="12dp">
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_120sdp"
+                                app:cardCornerRadius="14dp"
+                                app:strokeColor="@color/transparent"
+                                android:background="@color/transparent"
+                                app:cardBackgroundColor="@color/transparent">
+
+                                <androidx.constraintlayout.widget.ConstraintLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent">
+
+                                    <com.google.android.material.imageview.ShapeableImageView
+                                        android:id="@+id/imageView"
+                                        android:layout_width="0dp"
+                                        android:layout_height="0dp"
+                                        android:background="@color/grey"
+                                        android:src="@drawable/onboard_pic_one"
+                                        android:scaleType="fitXY"
+                                        app:layout_constraintBottom_toBottomOf="parent"
+                                        app:layout_constraintEnd_toEndOf="parent"
+                                        app:layout_constraintStart_toStartOf="parent"
+                                        app:layout_constraintTop_toTopOf="parent"
+                                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize6Percent" />
+
+
+                                    <eightbitlab.com.blurview.BlurView
+                                        android:id="@+id/blurView"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        app:layout_constraintEnd_toEndOf="parent"
+                                        app:layout_constraintStart_toStartOf="parent"
+                                        app:layout_constraintTop_toTopOf="parent" >
+
+                                        <androidx.constraintlayout.widget.ConstraintLayout
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_margin="8dp">
+
+                                            <com.google.android.material.card.MaterialCardView
+                                                android:id="@+id/hotelCv"
+                                                android:layout_width="@dimen/_38sdp"
+                                                android:layout_height="@dimen/_38sdp"
+                                                android:layout_gravity="center"
+                                                app:cardBackgroundColor="@color/black"
+                                                app:cardCornerRadius="@dimen/_50sdp"
+                                                app:layout_constraintBottom_toBottomOf="parent"
+                                                app:layout_constraintStart_toStartOf="parent"
+                                                app:layout_constraintTop_toTopOf="parent"
+                                                app:strokeColor="@color/post_stroke"
+                                                app:strokeWidth="1.6dp">
+
+
+                                                <com.google.android.material.imageview.ShapeableImageView
+                                                    android:id="@+id/hotelProfileIv"
+                                                    android:layout_width="match_parent"
+                                                    android:layout_height="match_parent"
+                                                    android:layout_margin="3dp"
+                                                    android:background="@color/grey"
+                                                    android:scaleType="fitXY"
+                                                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                                            </com.google.android.material.card.MaterialCardView>
+
+                                            <TextView
+                                                android:id="@+id/hotelNameTv"
+                                                android:layout_marginStart="@dimen/_4sdp"
+                                                android:layout_width="0dp"
+                                                android:layout_height="wrap_content"
+                                                android:fontFamily="@font/comic_regular"
+                                                android:text="Grand Imperial"
+                                                android:textColor="@color/white"
+                                                android:textSize="16sp"
+                                                app:layout_constraintBottom_toTopOf="@+id/linearLayout2"
+                                                app:layout_constraintEnd_toEndOf="parent"
+                                                app:layout_constraintStart_toEndOf="@+id/hotelCv"
+                                                app:layout_constraintTop_toTopOf="parent"
+                                                app:layout_constraintVertical_chainStyle="packed" />
+
+                                            <LinearLayout
+                                                android:id="@+id/linearLayout2"
+                                                android:layout_width="0dp"
+                                                android:layout_height="wrap_content"
+                                                android:orientation="horizontal"
+                                                app:layout_constraintBottom_toBottomOf="parent"
+                                                app:layout_constraintEnd_toEndOf="parent"
+                                                app:layout_constraintHorizontal_bias="0.5"
+                                                app:layout_constraintStart_toStartOf="@+id/hotelNameTv"
+                                                app:layout_constraintTop_toBottomOf="@+id/hotelNameTv">
+
+                                                <TextView
+                                                    android:id="@+id/hotelAddressTv"
+                                                    android:layout_width="match_parent"
+                                                    android:layout_height="wrap_content"
+                                                    android:ellipsize="end"
+                                                    android:fontFamily="@font/comic_regular"
+                                                    android:text="Landran, Kharar - Landran Rd, Sector 116, Sahibzada Ajit Singh Nagar, Punjab 140308"
+                                                    android:textColor="@color/white_40"
+                                                    android:textSize="11sp" />
+
+                                            </LinearLayout>
+
+
+                                        </androidx.constraintlayout.widget.ConstraintLayout>
+                                    </eightbitlab.com.blurview.BlurView>
+
+
+                                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                            </com.google.android.material.card.MaterialCardView>
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/reviewRatingRv"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="12dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            tools:listitem="@layout/review_rating_item"
+                            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/descriptionLayout"
+                            android:layout_margin="12dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+                            <TextView
+                                android:layout_gravity="center"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/description"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/comic_regular"/>
+                            <androidx.appcompat.widget.AppCompatEditText
+                                android:id="@+id/descriptionEt"
+                                android:padding="12dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_140sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_selector_14"
+                                android:inputType="textMultiLine|textCapSentences"
+                                android:gravity="top|start"
+                                android:drawablePadding="@dimen/_2sdp"
+                                android:hint="@string/description"
+                                android:paddingStart="12dp"
+                                android:textColor="@color/text_color"
+                                android:textColorHint="@color/text_color_60"
+                                android:textSize="14sp" />
+
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:layout_marginStart="12dp"
+                            android:layout_marginBottom="24dp"
+                            android:id="@+id/mediaRv"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            tools:listitem="@layout/attached_media_item"
+                            app:spanCount="2"
+                            android:layout_marginEnd="-12dp"
+                            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"/>
+
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:id="@+id/photoVideoLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/background_14"
+                            android:orientation="horizontal"
+                            android:padding="12dp">
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:layout_gravity="center"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:src="@drawable/ic_gallery_blue"/>
+                            <TextView
+                                android:layout_gravity="center"
+                                android:layout_width="0dp"
+                                android:layout_weight="1"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/attachment"
+                                android:textColor="@color/text_color_70"
+                                android:textSize="13sp"
+                                app:layout_constraintBottom_toTopOf="@+id/feelingTv"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toEndOf="@+id/userPicIv"
+                                app:layout_constraintTop_toTopOf="parent"
+                                app:layout_constraintVertical_chainStyle="packed" />
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:layout_gravity="center"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:src="@drawable/ic_next_arrow_grey"/>
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

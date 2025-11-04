@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".fragments.helpAndSupport.ContactUsFragment">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:padding="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/whatsappBtn"
+                android:enabled="false"
+                android:inputType="textPersonName"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:background="@drawable/rounded_edit_text_background_selector_14"
+                android:drawableStart="@drawable/ic_whatsapp"
+                android:drawablePadding="@dimen/_2sdp"
+                android:hint="@string/whatsapp"
+                android:paddingStart="12dp"
+                android:textColor="@color/text_color"
+                android:fontFamily="@font/comic_regular"
+                android:textColorHint="@color/text_hint_color"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_marginTop="@dimen/_20sdp"
+                android:layout_marginBottom="@dimen/_20sdp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/or"
+                android:textSize="14sp"
+                android:fontFamily="@font/comic_regular"
+                android:textColor="@color/text_color_60"
+                android:layout_gravity="center"/>
+
+            <TextView
+                android:id="@+id/nameTv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/comic_regular"
+                android:text="@string/name"
+                android:textColor="@color/text_color_60"
+                android:textSize="14sp"/>
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/nameEt"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginTop="@dimen/_4sdp"
+                android:background="@drawable/rounded_edit_text_background_selector_14"
+                android:inputType="textCapWords"
+                android:hint="@string/name"
+                android:paddingStart="12dp"
+                android:textColor="@color/text_color_60"
+                android:textColorHint="@color/text_hint_color"
+                android:textSize="14sp"/>
+
+
+            <TextView
+                android:id="@+id/emailTv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_14sdp"
+                android:fontFamily="@font/comic_regular"
+                android:text="@string/email"
+                android:textColor="@color/text_color_60"
+                android:textSize="14sp"/>
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/emailEt"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginTop="@dimen/_4sdp"
+                android:background="@drawable/rounded_edit_text_background_selector_14"
+                android:inputType="textEmailAddress"
+                android:hint="@string/email"
+                android:paddingStart="12dp"
+                android:textColor="@color/blue"
+                android:textColorHint="@color/text_color_60"
+                android:textSize="14sp" />
+            <TextView
+                android:id="@+id/descriptionTv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_14sdp"
+                android:fontFamily="@font/comic_regular"
+                android:text="@string/message"
+                android:textColor="@color/text_color_60"
+                android:textSize="14sp"/>
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/descriptionEt"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_100sdp"
+                android:layout_marginTop="@dimen/_4sdp"
+                android:background="@drawable/rounded_edit_text_background_selector_14"
+                android:inputType="textMultiLine"
+                android:lines="5"
+                android:maxLines="10"
+                android:gravity="top|start"
+                android:scrollbars="vertical"
+                android:drawablePadding="@dimen/_2sdp"
+                android:hint="@string/message"
+                android:padding="12dp"
+                android:textColor="@color/text_color_60"
+                android:textColorHint="@color/text_hint_color"
+                android:textSize="14sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/nextBtn"
+                android:layout_width="@dimen/_44sdp"
+                android:layout_height="@dimen/_44sdp"
+                android:layout_gravity="center"
+                app:cardBackgroundColor="@color/transparent"
+                android:layout_centerInParent="true"
+                app:cardCornerRadius="@dimen/_50sdp"
+                app:strokeColor="@color/blue"
+                app:strokeWidth="@dimen/_3sdp">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_centerInParent="true"
+                    android:layout_margin="@dimen/_6sdp"
+                    android:background="@color/round_btn_background"
+                    android:src="@drawable/next_arrow_blue"
+                    app:contentPadding="@dimen/_9sdp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+    </FrameLayout>
+</layout>

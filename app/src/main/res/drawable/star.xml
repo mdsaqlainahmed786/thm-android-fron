@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background"
+        android:drawable="@drawable/ic_star_outline"/> <!-- Your unselected star drawable -->
+    <item android:id="@android:id/secondaryProgress"
+        android:drawable="@drawable/ic_star_outline"/> <!-- Optional, for half-star rating -->
+    <item android:id="@android:id/progress"
+        android:drawable="@drawable/ic_star_filled"/> <!-- Your selected star drawable -->
+</layer-list>

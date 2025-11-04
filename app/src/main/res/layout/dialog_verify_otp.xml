@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:background="@drawable/otp_dialog_background"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OTP Verification"
+                android:textColor="@color/text_color"
+                android:fontFamily="@font/comic_regular"
+                android:textSize="16sp" />
+
+
+
+            <LinearLayout
+                android:layout_marginTop="@dimen/_24sdp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Enter the OTP you received to"
+                    android:textColor="@color/text_color_60"
+                    android:fontFamily="@font/comic_regular"
+                    android:textSize="13sp" />
+                <TextView
+                    android:layout_marginStart="8dp"
+                    android:id="@+id/phoneTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="+91 XXXXXX"
+                    android:textColor="@color/text_color"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/comic_regular" />
+
+            </LinearLayout>
+
+
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/verificationCodeLayout"
+                android:layout_marginTop="10dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@drawable/rounded_edit_text_background_normal">
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/otpEt"
+                    android:layout_weight="1"
+                    android:inputType="phone"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/_40sdp"
+                    android:background="@drawable/transparent_background"
+                    android:drawablePadding="@dimen/_2sdp"
+                    android:hint="@string/enter_verification_code_small"
+                    android:paddingStart="12dp"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_hint_color"
+                    android:textSize="14sp" />
+                <TextView
+                    android:layout_gravity="center"
+                    android:id="@+id/resendOtp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/comic_regular"
+                    android:text="@string/resend_otp"
+                    android:layout_marginEnd="12dp"
+                    android:textColor="@color/text_color_60"
+                    android:textSize="12sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/textView2" />
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            <TextView
+                android:id="@+id/nextBtn"
+                android:layout_marginTop="@dimen/_20sdp"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_32sdp"
+                android:text="@string/next"
+                android:gravity="center"
+                android:textSize="15sp"
+                android:background="@drawable/rounded_edit_text_background_blue"
+                android:fontFamily="@font/comic_regular"
+                android:textColor="@color/selected_text_color"/>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+    </LinearLayout>
+
+
+
+
+
+</layout>

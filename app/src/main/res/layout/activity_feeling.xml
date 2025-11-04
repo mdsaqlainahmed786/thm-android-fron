@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/background_color"
+        tools:context=".activity.userTypes.forms.createPost.FeelingActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/backBtn"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_back_arrow"/>
+
+            <TextView
+                android:id="@+id/titleTv"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/feeling_activity_cap"
+                android:textColor="@color/text_color"
+                android:textSize="18sp"
+                android:fontFamily="@font/comic_bold"/>
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/doneBtn"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_blue_tick_icon"/>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:id="@+id/searchEt"
+                    android:inputType="textPersonName"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:drawableStart="@drawable/ic_search"
+                    android:drawablePadding="@dimen/_2sdp"
+                    android:hint="@string/search"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:paddingStart="12dp"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_hint_color"
+                    android:textSize="14sp" />
+
+
+                <RelativeLayout
+                    android:id="@+id/feelingLayout"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="12dp"
+                    android:background="@drawable/background_14">
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="@dimen/_8sdp"
+                        android:layout_marginBottom="@dimen/_8sdp"
+                        android:layout_centerInParent="true"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp">
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:id="@+id/emoji"
+                            android:visibility="gone"
+                            android:layout_gravity="center"
+                            android:layout_width="@dimen/_25sdp"
+                            android:layout_height="@dimen/_25sdp"
+                            android:background="@color/grey"/>
+
+                        <TextView
+                            android:layout_weight="1"
+                            android:layout_marginStart="@dimen/_4sdp"
+                            android:layout_gravity="center_vertical"
+                            android:id="@+id/feelingTv"
+                            android:singleLine="true"
+                            android:ellipsize="end"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:textSize="15sp"
+                            android:fontFamily="@font/comic_regular"
+                            android:textColor="@color/text_color"
+                            android:text="Feeling Sad"/>
+                        <View
+                            android:layout_gravity="center"
+                            android:layout_width="@dimen/_25sdp"
+                            android:layout_height="@dimen/_25sdp"
+                            android:background="@color/transparent"/>
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:id="@+id/cancel"
+                            android:layout_gravity="center"
+                            android:layout_width="@dimen/_16sdp"
+                            android:layout_height="@dimen/_16sdp"
+                            android:src="@drawable/ic_cancel_blue_small"/>
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+                </RelativeLayout>
+
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/feelingsRv"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="4dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:listitem="@layout/feelings_items_layout"
+                    app:spanCount="2"
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"/>
+
+
+
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp"/>
+            </androidx.appcompat.widget.LinearLayoutCompat>
+        </androidx.core.widget.NestedScrollView>
+
+
+
+
+
+
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+</layout>

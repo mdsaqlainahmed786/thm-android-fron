@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <color name="background_color">#FAFAFA</color>
+    <color name="background_color_80">#CCFAFAFA</color>
+    <color name="background_color_60">#99FAFAFA</color>
+    <color name="onboarding_shadow_color">#1C1C1C</color>
+    <color name="text_color">#1C1C1C</color>
+    <color name="text_color_80">#CC1C1C1C</color>
+    <color name="text_color_70">#B31C1C1C</color>
+    <color name="text_color_60">#991C1C1C</color>
+    <color name="text_color_50">#801C1C1C</color>
+    <color name="text_color_40">#661C1C1C</color>
+    <color name="text_color_25">#401C1C1C</color>
+    <color name="star_icon_color">#999999</color>
+    <color name="icon_color">#1C1C1C</color>
+    <color name="icon_color_80">#CC1C1C1C</color>
+    <color name="icon_color_60">#991C1C1C</color>
+    <color name="icon_color_40">#661C1C1C</color>
+<!--    <color name="et_background">#99FAFAFA</color>-->
+    <color name="et_background">#99FAFAFA</color>
+    <color name="et_background_30">#4DFAFAFA</color>
+    <color name="et_background_50">#80FAFAFA</color>
+    <color name="et_background_60">#99FAFAFA</color>
+    <color name="round_btn_background">#4169E1</color>
+    <color name="round_btn_arrow">#FAFAFA</color>
+    <color name="text_hint_color">#991C1C1C</color>
+    <color name="social_btn_background">#804169E1</color>
+    <color name="faded_round_btn">#CC4169E1</color>
+    <color name="dropdown_background">#FAFAFA</color>
+    <color name="stroke_color">#4169E1</color>
+    <color name="bottom_nav_stroke">#4169E1</color>
+    <color name="three_dot_background">#FAFAFA</color>
+    <color name="three_dot">#4169E1</color>
+    <color name="blurred_background">#4DFAFAFA</color>
+    <color name="post_background">#4169E1</color>
+    <color name="business_type_background">#334169E1</color>
+    <color name="business_type_stroke">#804169E1</color>
+    <color name="unselected_business">#5050504D</color>
+    <color name="unselected_business_stroke">#8050504D</color>
+    <color name="selected_business">#4169E1</color>
+    <color name="selected_business_stroke">#4169E1</color>
+    <color name="selected_text_color">#FAFAFA</color>
+    <color name="unselected_text_color">#801C1C1C</color>
+    <color name="seek_bar_thumb_stroke">#1C1C1C</color>
+    <color name="seek_bar_progress">#50505055</color>
+    <color name="profile_background">#1C1C1C14</color>
+    <color name="edit_profile_background">#4169E1</color>
+    <color name="edit_profile_stroke">#4169E1</color>
+    <color name="home_icon_color">#4169E1</color>
+    <color name="bottom_sheet_background">#FAFAFA</color>
+    <color name="background_14_color">#DFDFDF</color>
+    <color name="dialog_background">#DFDFDF</color>
+    <color name="transaction_background">#4169E1</color>
+    <color name="transaction_price_color">#FAFAFA</color>
+    <color name="transaction_time_color">#CC1C1C1C</color>
+    <color name="business_background">#4D4169E1</color>
+    <color name="business_stroke">#804169E1</color>
+    <color name="amenities_background">#CCFAFAFA</color>
+    <color name="selected_week">#4169E1</color>
+    <color name="unselected_week">#80FAFAFA</color>
+    <color name="cancel_btn_background">#FAFAFA</color>
+    <color name="cancel_color">#4169E1</color>
+    <color name="subscription_tick_color">#FAFAFA</color>
+
+
+    <color name="insight_selected_background">#FAFAFA</color>
+    <color name="insight_selected_stroke">#00000000</color>
+    <color name="insight_selected_date">#4169E1</color>
+    <color name="insight_selected_day">#FAFAFA</color>
+
+    <color name="insight_unselected_background">#00000000</color>
+    <color name="insight_unselected_stroke">#991C1C1C</color>
+    <color name="insight_unselected_date">#991C1C1C</color>
+    <color name="insight_unselected_day">#991C1C1C</color>
+
+    <color name="gradient_start_color">#B34169E1</color>
+    <color name="gradient_center_color">#80FAFAFA</color>
+    <color name="subscription_stroke">#4169E1</color>
+
+    <color name="my_profile_btn_stroke">#4169E1</color>
+    <color name="my_profile_btn_background">#4169E1</color>
+    <color name="my_profile_btn_background_selected">#CC1C1C1C</color>
+    <color name="my_profile_btn_stroke_selected">#505050</color>
+
+    <color name="report_background">#CC4169E1</color>
+    <color name="report_btn_background">#FAFAFA</color>
+    <color name="report_btn_stroke">#505050</color>
+    <color name="tag_background">#1C1C1C14</color>
+
+
+
+    <color name="unselected_report_btn_background">#99FAFAFA</color>
+    <color name="unselected_report_btn_stroke">#1A505050</color>
+    <color name="selected_report_btn_background">#FAFAFA</color>
+    <color name="selected_report_btn_stroke">#FAFAFA</color>
+
+    <color name="blue_background">#4169E1</color>
+    <color name="blue_background_stroke">#80505050</color>
+    <color name="unselected_age_background">#505050</color>
+    <color name="selected_age_background">#4169E1</color>
+
+    <color name="rooms_stroke">#4169E1</color>
+    <color name="room_bg">#991C1C1C</color>
+
+    <color name="business_background_btn">#4169E1</color>
+    <color name="business_stroke_btn">#80505050</color>
+
+
+    <color name="btn_background">#FAFAFA</color>
+    <color name="business_btn_arrow">#4169E1</color>
+
+
+
+    <color name="black">#1C1C1C</color>
+    <color name="black_10">#1A000000</color>
+    <color name="black_20">#33000000</color>
+    <color name="black_30">#4D000000</color>
+    <color name="black_70">#B3000000</color>
+    <color name="black_50">#80000000</color>
+    <color name="black_80">#CC000000</color>
+    <color name="black_90">#E6000000</color>
+    <color name="white">#FAFAFA</color>
+    <color name="yellow">#FFFF00</color>
+    <color name="star_yellow">#F2C94C</color>
+    <color name="star_normal">#E0E0E0</color>
+    <color name="post_stroke">#ECC5C0</color>
+    <color name="white_25">#40FFFFFF</color>
+    <color name="white_20">#33FFFFFF</color>
+    <color name="white_5">#0DFFFFFF</color>
+    <color name="white_40">#66FFFFFF</color>
+    <color name="white_50">#80FFFFFF</color>
+    <color name="white_60">#99FFFFFF</color>
+    <color name="white_70">#B3FFFFFF</color>
+    <color name="white_80">#CCFFFFFF</color>
+    <color name="red">#B50000</color>
+    <color name="red_50">#CCB50000</color>
+    <color name="transparent">#00000000</color>
+    <color name="transparent_60">#99000000</color>
+
+
+
+
+
+    <color name="blue">#4169E1</color>
+    <color name="blue_10">#1A4169E1</color>
+    <color name="blue_30">#4D4169E1</color>
+    <color name="blue_40">#664169E1</color>
+    <color name="blue_50">#804169E1</color>
+    <color name="blue_70">#B34169E1</color>
+    <color name="blue_80">#CC4169E1</color>
+
+
+
+    <color name="grey">#505050</color>
+
+
+
+    <color name="grey_50">#505050</color>
+    <color name="msg_background">#1C1C1C</color>
+    <color name="background">#E61C1C1C</color>
+    <color name="blur_background">#E61C1C1C</color>
+    <color name="et_stroke">#505050</color>
+    <color name="et_round_stroke">#00505050</color>
+    <color name="notification_background">#CC505050</color>
+    <color name="view_line">#212121</color>
+    <color name="green">#00A100</color>
+    <color name="light_green">#009054</color>
+    <color name="green_50">#8000A100</color>
+    <color name="prog_grey">#D9D9D9</color>
+    <color name="tab_selected_text">#B50000</color>
+    <color name="graph_line_purple">#645FA7</color>
+    <color name="graph_line_green">#087643</color>
+    <color name="graph_line_pink">#A6026E</color>
+    <color name="graph_line_yellow">#7E7B1A</color>
+    <color name="star_one_color">#FF0000</color>
+    <color name="star_two_color">#FFA500</color>
+    <color name="star_three_color">#FFFF00</color>
+    <color name="star_four_color">#08BA08</color>
+    <color name="star_five_color">#00FF00</color>
+
+
+    <color name="purple">#6F42C1</color>
+
+
+</resources>

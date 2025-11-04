@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        android:orientation="vertical"
+        android:padding="12dp"
+        tools:context=".activity.userTypes.profile.EditAmenitiesActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/backBtn"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_back_arrow"/>
+
+            <TextView
+                android:id="@+id/titleTv"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/business_related_question"
+                android:textColor="@color/text_color"
+                android:textSize="18sp"
+                android:fontFamily="@font/comic_bold"/>
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/doneBtn"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_blue_tick_icon"/>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+<!--        <TextView-->
+<!--            android:id="@+id/descriptionTv"-->
+<!--            android:layout_marginTop="@dimen/_20sdp"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="Description"-->
+<!--            android:textColor="@color/white_60"-->
+<!--            android:textSize="14sp"-->
+<!--            android:fontFamily="@font/comic_regular"/>-->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/relatedQuestionRv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:listitem="@layout/business_related_question_item"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+</layout>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="@dimen/_80sdp"
+        android:layout_height="@dimen/_80sdp">
+
+        <!--        <com.google.android.material.imageview.ShapeableImageView-->
+        <!--            android:padding="2dp"-->
+        <!--            android:id="@+id/shapeableImageView2"-->
+        <!--            android:layout_width="@dimen/_40sdp"-->
+        <!--            android:layout_height="@dimen/_40sdp"-->
+        <!--            app:layout_constraintBottom_toTopOf="@+id/text"-->
+        <!--            app:layout_constraintEnd_toEndOf="parent"-->
+        <!--            app:layout_constraintHorizontal_bias="0.5"-->
+        <!--            app:layout_constraintStart_toStartOf="parent"-->
+        <!--            app:layout_constraintTop_toTopOf="parent"-->
+        <!--            android:src="@drawable/pet_friendly"-->
+        <!--            app:layout_constraintVertical_chainStyle="packed"-->
+        <!--            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"-->
+        <!--            app:strokeColor="@color/blue"-->
+        <!--            app:strokeWidth="1dp" />-->
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardView"
+            android:layout_marginTop="@dimen/_2sdp"
+            android:layout_width="@dimen/_40sdp"
+            android:layout_height="@dimen/_40sdp"
+            app:cardBackgroundColor="@color/amenities_background"
+            app:cardCornerRadius="@dimen/_50sdp"
+            app:layout_constraintBottom_toTopOf="@+id/titleTv"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            app:strokeColor="@color/blue_50"
+            app:strokeWidth="1dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/imageView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:layout_margin="@dimen/_8sdp"
+                android:src="@drawable/pet_friendly" />
+
+
+        </com.google.android.material.card.MaterialCardView>
+
+
+        <TextView
+            android:id="@+id/titleTv"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/comic_regular"
+            android:paddingStart="@dimen/_6sdp"
+            android:paddingEnd="@dimen/_6sdp"
+            android:text="Gym/Swimming pool"
+            android:maxLines="2"
+            android:ellipsize="none"
+            android:textAlignment="center"
+            android:textColor="@color/text_color_60"
+            android:textSize="10sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/cardView" />
+
+        <!--        <TextView-->
+        <!--            android:id="@+id/dot"-->
+        <!--            android:textAlignment="center"-->
+        <!--            android:layout_width="@dimen/_12sdp"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:text="@string/dot"-->
+        <!--            android:textSize="12sp"-->
+        <!--            android:textColor="@color/white_60"-->
+        <!--            app:layout_constraintStart_toStartOf="parent"-->
+        <!--            app:layout_constraintTop_toTopOf="@+id/text" />-->
+        <!--        <TextView-->
+        <!--            android:layout_marginStart="3dp"-->
+        <!--            android:id="@+id/text"-->
+        <!--            android:layout_width="0dp"-->
+        <!--            android:layout_height="wrap_content"-->
+        <!--            android:fontFamily="@font/comic_regular"-->
+        <!--            android:textColor="@color/white_60"-->
+        <!--            android:textSize="12sp"-->
+        <!--            android:text="Gym/Swimming pool"-->
+        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--            app:layout_constraintEnd_toEndOf="parent"-->
+        <!--            app:layout_constraintStart_toEndOf="@+id/dot"-->
+        <!--            app:layout_constraintTop_toTopOf="parent" />-->
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

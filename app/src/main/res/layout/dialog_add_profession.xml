@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <!-- Add variables or imports here if needed -->
+    </data>
+
+    <LinearLayout
+        android:id="@+id/dialog_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_margin="@dimen/_12sdp"
+            android:padding="@dimen/_14sdp"
+            android:background="@drawable/otp_dialog_background">
+
+            <!-- Title Row -->
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/add_profession"
+                    android:textColor="@color/text_color"
+                    android:fontFamily="@font/comic_regular"
+                    android:textSize="16sp" />
+
+                <ImageView
+                    android:id="@+id/cancelBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:src="@drawable/ic_cancel" />
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+            <!-- Profession Dropdown -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="@dimen/_14sdp"
+                android:background="@drawable/rounded_edit_text_background_selector">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/textInputCategory"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_centerInParent="true"
+                    android:background="@android:color/transparent"
+                    app:boxStrokeWidth="0dp"
+                    app:boxStrokeWidthFocused="0dp"
+                    app:endIconDrawable="@drawable/toggle_dropdown"
+                    app:endIconTint="@color/grey">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/businessTypesTv"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/transparent"
+                        android:inputType="none"
+                        android:padding="8dp"
+                        android:text="@string/profession"
+                        android:textColor="@color/text_color_50"
+                        android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </RelativeLayout>
+
+            <!-- Other Profession EditText -->
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/otherProfessionEt"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                android:hint="@string/profession"
+                android:inputType="textCapWords"
+                android:background="@drawable/rounded_edit_text_background_selector"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/text_color"
+                android:textColorHint="@color/text_hint_color"
+                android:textSize="14sp" />
+
+            <!-- Submit Button -->
+            <Button
+                android:id="@+id/submitBtn"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="@dimen/_12sdp"
+                android:backgroundTint="@color/blue"
+                android:text="@string/submit"
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+    </LinearLayout>
+
+</layout>

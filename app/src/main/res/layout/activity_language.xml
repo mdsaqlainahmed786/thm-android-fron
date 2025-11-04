@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:background="@color/background_color"
+        tools:context=".activity.userTypes.individual.settingsScreen.LanguageActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/backBtn"
+                    android:layout_gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/ic_back_arrow"/>
+                <TextView
+                    android:layout_gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/language"
+                    android:textColor="@color/text_color"
+                    android:textSize="18sp"
+                    android:fontFamily="@font/comic_bold"/>
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            <RadioGroup
+                android:layout_marginTop="@dimen/_12sdp"
+                android:id="@+id/language_radio_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+
+
+                <CheckBox
+                    android:id="@+id/radioEnglish"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/english"
+                    android:textColor="@color/text_color"
+                    android:background="@drawable/background_normal_14"
+                    android:theme="@style/CustomCheckBox"/>
+
+                <CheckBox
+                    android:layout_marginTop="8dp"
+                    android:id="@+id/radioHindi"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hindi"
+                    android:textColor="@color/text_color"
+                    android:background="@drawable/background_normal_14"
+                    android:theme="@style/CustomCheckBox"/>
+
+                <CheckBox
+                    android:layout_marginTop="8dp"
+                    android:id="@+id/radioMarathi"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/marathi"
+                    android:textColor="@color/text_color"
+                    android:background="@drawable/background_normal_14"
+                    android:theme="@style/CustomCheckBox"/>
+
+                <CheckBox
+                    android:layout_marginTop="8dp"
+                    android:id="@+id/radioGujarati"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/gujarati"
+                    android:textColor="@color/text_color"
+                    android:background="@drawable/background_normal_14"
+                    android:theme="@style/CustomCheckBox"/>
+                <CheckBox
+                    android:layout_marginTop="8dp"
+                    android:id="@+id/radioKannada"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/kannada"
+                    android:textColor="@color/text_color"
+                    android:background="@drawable/background_normal_14"
+                    android:theme="@style/CustomCheckBox"/>
+
+                <CheckBox
+                    android:layout_marginTop="8dp"
+                    android:id="@+id/radioTelugu"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/telugu"
+                    android:textColor="@color/text_color"
+                    android:background="@drawable/background_normal_14"
+                    android:theme="@style/CustomCheckBox"/>
+            </RadioGroup>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btnNext"
+            android:layout_width="@dimen/_44sdp"
+            android:layout_height="@dimen/_44sdp"
+            android:layout_gravity="center"
+            app:cardBackgroundColor="@color/transparent"
+            app:cardCornerRadius="@dimen/_50sdp"
+            android:layout_marginBottom="@dimen/_12sdp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintVertical_bias="0.35000002"
+            app:strokeColor="@color/blue"
+            app:strokeWidth="@dimen/_3sdp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_centerInParent="true"
+                android:layout_margin="@dimen/_6sdp"
+                android:background="@color/round_btn_background"
+                android:src="@drawable/next_arrow_blue"
+                app:contentPadding="@dimen/_9sdp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

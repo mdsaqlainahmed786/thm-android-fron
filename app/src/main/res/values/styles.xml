@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <style name="Theme.RemoveSplashScreenTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
+
+
+
+
+    <!-- Style for selected text -->
+    <style name="BottomNavigationSelectedText" parent="TextAppearance.AppCompat.Medium">
+        <item name="android:textSize">24sp</item> <!-- Selected text size -->
+        <item name="android:textColor">@color/blue</item>
+    </style>
+
+    <style name="MyTabTextAppearance" parent="TextAppearance.Design.Tab">
+        <item name="android:textColor">@color/text_color</item>
+    </style>
+
+
+
+    <style name="CustomSeekBar" parent="Widget.AppCompat.SeekBar">
+        <item name="android:progressDrawable">@drawable/custom_seekbar_progress</item>
+        <item name="android:thumb">@drawable/custom_seekbar_thumb</item>
+        <!-- Set the height of the SeekBar track -->
+        <item name="android:minHeight">5dp</item>
+        <item name="android:maxHeight">5dp</item>
+    </style>
+    <style name="CustomCheckBox" parent="Theme.MaterialComponents.DayNight">
+        <item name="colorControlNormal">@color/blue</item>
+        <item name="colorControlActivated">@color/blue</item>
+    </style>
+
+    <style name="CustomRatingBar" parent="Widget.AppCompat.RatingBar">
+        <item name="android:progressDrawable">@drawable/custom_rating_bar</item>
+        <item name="android:minHeight">14dp</item>
+        <item name="android:maxHeight">47dp</item>
+    </style>
+
+    <style name="CustomTimePickerDialog" parent="ThemeOverlay.MaterialComponents.Dialog">
+        <!-- Set the header background color -->
+        <item name="colorAccent">@color/blue</item>
+    </style>
+
+    <style name="CustomEmojiStyle" >
+        <!-- colorControlNormal -->
+        <item name="colorControlNormal">@color/grey</item> <!-- Default color for controls like buttons, icons -->
+        <!-- colorAccent -->
+        <item name="colorAccent">@color/blue</item> <!-- Color used for accent elements in the UI, e.g., active buttons, icons -->
+        <!-- colorControlHighlight -->
+        <item name="colorControlHighlight">@color/blue_40</item> <!-- Color when the control is in a highlighted state (e.g., pressed, touched) -->
+
+    </style>
+
+
+</resources>

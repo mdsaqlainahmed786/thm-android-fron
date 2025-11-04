@@ -1,0 +1,12 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Track background (unfilled part) -->
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/white_50" /> <!-- Grey background -->
+        </shape>
+    </item>
+    <!-- Progress bar (filled part) -->
+    <item android:id="@android:id/progress">
+        <clip android:drawable="@drawable/custom_progress_fill" />
+    </item>
+</layer-list>

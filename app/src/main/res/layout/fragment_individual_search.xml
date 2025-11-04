@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        tools:context=".fragments.userTypes.individual.bottomNavigation.IndividualSearchFragment">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/titleLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
+
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/home_logo"/>
+                </LinearLayout>
+
+<!--                <androidx.appcompat.widget.AppCompatImageView-->
+<!--                    android:id="@+id/notificationBtn"-->
+<!--                    android:layout_width="wrap_content"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:layout_gravity="center"-->
+<!--                    android:src="@drawable/ic_notification" />-->
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:id="@+id/notificationBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_notification"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/redDotView"
+                        android:layout_marginEnd="@dimen/_3sdp"
+                        android:layout_marginTop="@dimen/_3sdp"
+                        android:layout_width="@dimen/_8sdp"
+                        android:layout_height="@dimen/_8sdp"
+                        android:background="@color/red"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp"
+                        android:id="@+id/searchLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_40sdp"
+                        android:background="@drawable/rounded_edit_text_background_normal">
+
+                        <androidx.appcompat.widget.AppCompatEditText
+                            android:layout_weight="1"
+                            android:id="@+id/searchEt"
+                            android:inputType="textPersonName"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_40sdp"
+                            android:background="@color/transparent"
+                            android:drawableStart="@drawable/ic_search"
+                            android:drawablePadding="@dimen/_2sdp"
+                            android:hint="@string/search"
+                            android:paddingStart="12dp"
+                            android:textColor="@color/text_color"
+                            android:textColorHint="@color/text_color_60"
+                            android:textSize="14sp" />
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:id="@+id/filterBtn"
+                            android:layout_gravity="center"
+                            android:paddingEnd="12dp"
+                            android:paddingStart="12dp"
+                            android:paddingTop="6dp"
+                            android:paddingBottom="6dp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/ic_filter"/>
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:id="@+id/cancelFilterBtn"
+                            android:layout_gravity="center"
+                            android:layout_marginEnd="12dp"
+                            android:layout_width="@dimen/_22sdp"
+                            android:layout_height="@dimen/_22sdp"
+                            android:src="@drawable/ic_cancel_white60"/>
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/filterLayout"
+                        android:visibility="visible"
+                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+
+                    <androidx.core.widget.NestedScrollView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:scrollbars="none">
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginTop="@dimen/_14sdp">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/looking_for"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp" />
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/lookingForRv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/location"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+                            <androidx.appcompat.widget.AppCompatEditText
+                                android:id="@+id/locationEt"
+                                android:ellipsize="end"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_40sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_selector"
+                                android:inputType="textPostalAddress"
+                                android:drawableStart="@drawable/ic_location"
+                                android:drawablePadding="@dimen/_2sdp"
+                                android:paddingEnd="12dp"
+                                android:hint="@string/location"
+                                android:focusable="false"
+                                android:clickable="true"
+                                android:paddingStart="12dp"
+                                android:textColor="@color/text_color"
+                                android:textColorHint="@color/text_hint_color"
+                                android:textSize="14sp" />
+
+
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp">
+                                <TextView
+                                    android:layout_weight="1"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="@string/radius"
+                                    android:textColor="@color/text_color_60"
+                                    android:textSize="14sp"/>
+                                <TextView
+                                    android:id="@+id/distanceTv"
+                                    android:textAlignment="textEnd"
+                                    android:layout_weight="1"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="30km"
+                                    android:textColor="@color/text_color_60"
+                                    android:textSize="14sp"/>
+
+                            </LinearLayout>
+
+
+                            <SeekBar
+                                android:layout_marginTop="@dimen/_8sdp"
+                                android:id="@+id/kmSlider"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:max="100"
+                                android:progress="0"
+                                style="@style/CustomSeekBar"
+                                android:layout_gravity="center_horizontal"/>
+
+                            <TextView
+                                android:id="@+id/mostRecentlyTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/mostly_searched"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp" />
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/mostlySearchedRv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"/>
+
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:layout_marginBottom="12dp"
+                                android:id="@+id/applyFilterBtn"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_horizontal"
+                                android:background="@drawable/rounded_edit_text_background_blue"
+                                android:orientation="vertical">
+
+
+                                <TextView
+                                    android:layout_marginEnd="@dimen/_24sdp"
+                                    android:layout_marginStart="@dimen/_24sdp"
+                                    android:layout_marginTop="@dimen/_4sdp"
+                                    android:layout_marginBottom="@dimen/_6sdp"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/apply"
+                                    android:textSize="18sp"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:textColor="@color/selected_text_color"/>
+
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+                            <View
+                                android:id="@+id/blankView2"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_80sdp"/>
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    </androidx.core.widget.NestedScrollView>
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/itemsLayout"
+                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="@dimen/_14sdp">
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:layout_marginStart="12dp"
+                            android:id="@+id/optionsRv"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            tools:listitem="@layout/options_item_tag"
+                            app:spanCount="5"
+                            tools:itemCount="5"
+                            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"/>
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:id="@+id/hasDataLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical">
+
+                                <androidx.recyclerview.widget.RecyclerView
+                                    android:layout_marginTop="12dp"
+                                    android:layout_marginStart="12dp"
+                                    android:layout_marginEnd="12dp"
+                                    android:id="@+id/itemsRv"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+                                <View
+                                    android:id="@+id/blankView"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/_80sdp"/>
+
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:id="@+id/noDataFoundLayout"
+                            android:layout_weight="1"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical">
+
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:id="@+id/appCompatImageView"
+                                android:layout_width="@dimen/_60sdp"
+                                android:layout_height="@dimen/_60sdp"
+                                android:src="@drawable/ic_no_search_icon"
+                                app:layout_constraintBottom_toTopOf="@+id/textView13"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintHorizontal_bias="0.5"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent"
+                                app:layout_constraintVertical_chainStyle="packed" />
+
+                            <TextView
+                                android:id="@+id/textView13"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/comic_regular"
+                                android:textColor="@color/text_color_60"
+                                android:text="@string/try_changing_location"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintHorizontal_bias="0.5"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@+id/appCompatImageView" />
+
+                            <TextView
+                                android:id="@+id/changeLocationBtn"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textSize="14sp"
+                                android:fontFamily="@font/comic_regular"
+                                android:textColor="@color/blue"
+                                android:text="@string/change_location"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@+id/textView13" />
+
+
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+
+
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+
+    </FrameLayout>
+</layout>

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        android:orientation="vertical"
+        android:padding="12dp"
+        tools:context=".activity.userTypes.profile.EditCategoryActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/backBtn"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_back_arrow"/>
+
+            <TextView
+                android:id="@+id/titleTv"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/category"
+                android:textColor="@color/text_color"
+                android:textSize="18sp"
+                android:fontFamily="@font/comic_bold"/>
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/doneBtn"
+                android:visibility="gone"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_blue_tick_icon"/>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <TextView
+                    android:id="@+id/descriptionTv"
+                    android:layout_marginTop="@dimen/_20sdp"
+                    android:layout_gravity="center"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/edit_category_text"
+                    android:textColor="@color/text_color_60"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/comic_regular"/>
+
+        <TextView
+            android:id="@+id/textView3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_14sdp"
+            android:fontFamily="@font/comic_regular"
+            android:text="@string/business_type"
+            android:textColor="@color/text_color_60"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textView2" />
+
+
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_marginTop="@dimen/_8sdp"
+            android:layout_width="match_parent"
+            android:background="@drawable/rounded_edit_text_background_selector"
+            android:layout_height="50dp">
+
+<!--            <ImageView-->
+<!--                android:id="@+id/businessIv"-->
+<!--                android:layout_marginStart="12dp"-->
+<!--                android:layout_gravity="center"-->
+<!--                android:layout_width="20dp"-->
+<!--                android:layout_height="20dp"-->
+<!--                android:src="@drawable/ic_hotel"/>-->
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputCategory1"
+                android:enabled="false"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/transparent"
+                app:boxStrokeWidth="0dp"
+                app:endIconDrawable="@drawable/toggle_dropdown"
+                app:boxStrokeWidthFocused="0dp"
+                app:endIconTint="@color/grey">
+
+
+                <AutoCompleteTextView
+                    android:id="@+id/businessTv"
+                    android:enabled="false"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="@dimen/_4sdp"
+                    android:fontFamily="@font/comic_regular"
+                    android:inputType="none"
+                    android:background="@color/transparent"
+                    android:padding="@dimen/_6sdp"
+                    android:text="@string/select_business"
+                    android:textColor="@color/text_color_50"
+                    android:textSize="16sp" />
+
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/typesTv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_14sdp"
+            android:fontFamily="@font/comic_regular"
+            android:text="Types"
+            android:textColor="@color/text_color_60"
+            android:textSize="14sp"/>
+
+        <RelativeLayout
+            android:layout_marginTop="@dimen/_10sdp"
+            android:layout_width="match_parent"
+            android:background="@drawable/rounded_edit_text_background_selector"
+            android:layout_height="50dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputCategory2"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_centerInParent="true"
+                android:enabled="false"
+                android:background="@color/transparent"
+                app:boxStrokeWidth="0dp"
+                app:endIconDrawable="@drawable/toggle_dropdown"
+                app:boxStrokeWidthFocused="0dp"
+                app:endIconTint="@color/grey">
+
+                <AutoCompleteTextView
+                    android:id="@+id/businessTypesTv"
+                    android:enabled="false"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="@dimen/_4sdp"
+                    android:fontFamily="@font/comic_regular"
+                    android:inputType="none"
+                    android:background="@color/transparent"
+                    android:padding="@dimen/_6sdp"
+                    android:text="Types"
+                    android:textColor="@color/text_color_50"
+                    android:textSize="16sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </RelativeLayout>
+
+
+
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+</layout>

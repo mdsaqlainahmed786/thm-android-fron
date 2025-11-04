@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        android:foreground="@drawable/ic_background"
+        tools:context=".activity.authentication.business.BusinessTypeDetailsActivity">
+
+
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scrollbars="none"
+            app:layout_constraintBottom_toTopOf="@+id/guideline2"
+            app:layout_constraintEnd_toStartOf="@+id/guideline3"
+            app:layout_constraintStart_toStartOf="@+id/guideline4"
+            app:layout_constraintTop_toTopOf="parent">
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+
+                            <ImageView
+                                android:layout_gravity="center"
+                                android:id="@+id/icon"
+                                android:layout_marginTop="@dimen/_12sdp"
+                                android:layout_width="@dimen/_80sdp"
+                                android:layout_height="@dimen/_80sdp"
+                                android:src="@drawable/ic_app_logo"
+                                app:layout_constraintEnd_toStartOf="@+id/guideline3"
+                                app:layout_constraintStart_toStartOf="@+id/guideline4"
+                                app:layout_constraintTop_toTopOf="@+id/guideline" />
+
+                            <TextView
+                                android:layout_marginTop="@dimen/_24sdp"
+                                android:id="@+id/textView2"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/business_type"
+                                android:textColor="@color/text_color"
+                                android:textSize="20sp"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent" />
+                            <TextView
+                                android:id="@+id/nameTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/name"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+                            <androidx.appcompat.widget.AppCompatEditText
+                                android:id="@+id/nameEt"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_40sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_selector"
+                                android:inputType="textCapWords"
+                                android:drawableStart="@drawable/ic_email"
+                                android:drawablePadding="@dimen/_2sdp"
+                                android:hint="@string/name"
+                                android:paddingStart="12dp"
+                                android:textColor="@color/text_color"
+                                android:textColorHint="@color/text_hint_color"
+                                android:textSize="14sp"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+                            <TextView
+                                android:id="@+id/address"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/address"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+
+                            <androidx.appcompat.widget.AppCompatEditText
+                                android:id="@+id/addressEt"
+                                android:focusable="false"
+                                android:clickable="true"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_40sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_selector"
+                                android:drawableStart="@drawable/ic_address_icon"
+                                android:drawablePadding="@dimen/_2sdp"
+                                android:hint="@string/address"
+                                android:inputType="textCapWords"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="12dp"
+                                android:textColor="@color/text_color"
+                                android:textColorHint="@color/text_hint_color"
+                                android:textSize="14sp" />
+<!--                            <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                                android:id="@+id/addressLayout"-->
+<!--                                android:layout_width="match_parent"-->
+<!--                                android:layout_height="@dimen/_40sdp"-->
+<!--                                android:orientation="vertical"-->
+<!--                                android:onClick="requestAddress"-->
+<!--                                android:layout_marginTop="@dimen/_4sdp"-->
+<!--                                android:gravity="center_vertical"-->
+<!--                                android:background="@drawable/rounded_edit_text_background_selector">-->
+
+<!--                                <androidx.appcompat.widget.AppCompatTextView-->
+<!--                                    android:id="@+id/addressTv"-->
+<!--                                    android:layout_width="match_parent"-->
+<!--                                    android:layout_height="wrap_content"-->
+<!--                                    android:layout_gravity="center"-->
+<!--                                    android:inputType="textPostalAddress"-->
+<!--                                    android:drawableStart="@drawable/ic_address_icon"-->
+<!--                                    android:drawablePadding="@dimen/_2sdp"-->
+<!--                                    android:hint="@string/address"-->
+<!--                                    android:paddingStart="12dp"-->
+<!--                                    android:paddingEnd="12dp"-->
+<!--                                    android:textColor="@color/white"-->
+<!--                                    android:textColorHint="@color/white_60"-->
+<!--                                    android:textSize="14sp"-->
+<!--                                    android:focusable="false"-->
+<!--                                    android:focusableInTouchMode="false"-->
+<!--                                    android:clickable="false"/>-->
+<!--                            </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+
+                            <TextView
+                                android:id="@+id/contactTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/contact_number"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:id="@+id/contactLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_40sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_normal">
+
+                                <androidx.constraintlayout.widget.ConstraintLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="match_parent"
+                                    android:layout_marginStart="8dp">
+
+                                    <com.hbb20.CountryCodePicker
+                                        android:id="@+id/countryCodePicker"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_centerInParent="true"
+                                        android:layout_gravity="center_vertical"
+                                        app:ccp_contentColor="@color/text_color"
+                                        app:ccp_defaultNameCode="IN"
+                                        app:ccp_showFlag="true"
+                                        app:ccp_showFullName="false"
+                                        app:ccp_showNameCode="false"
+                                        app:ccp_showPhoneCode="false"
+                                        app:ccp_textSize="14sp"
+                                        app:ccpDialog_background="@color/dialog_background"
+                                        app:ccpDialog_textColor="@color/text_hint_color"
+                                        app:ccpDialog_cornerRadius="@dimen/_12sdp"
+                                        app:ccpDialog_backgroundColor="@color/msg_background"
+                                        app:layout_constraintEnd_toEndOf="parent"
+                                        app:layout_constraintStart_toStartOf="parent"
+                                        app:layout_constraintTop_toTopOf="parent"
+                                        app:layout_constraintBottom_toBottomOf="parent" />
+
+
+                                    <com.google.android.material.imageview.ShapeableImageView
+                                        android:id="@+id/countryFlagImageView"
+                                        android:layout_width="@dimen/_21sdp"
+                                        android:layout_height="@dimen/_21sdp"
+                                        android:elevation="4dp"
+                                        android:src="@drawable/india_flag"
+                                        android:scaleType="fitXY"
+                                        app:ccpDialog_backgroundColor="@color/msg_background"
+                                        app:ccpDialog_cornerRadius="@dimen/_12sdp"
+                                        app:ccpDialog_textColor="@color/text_color_60"
+                                        app:ccp_contentColor="@color/text_color"
+                                        app:ccpDialog_background="@color/dialog_background"
+                                        app:layout_constraintBottom_toBottomOf="parent"
+                                        app:layout_constraintEnd_toEndOf="parent"
+                                        app:layout_constraintHorizontal_bias="0.20"
+                                        app:layout_constraintStart_toStartOf="parent"
+                                        app:layout_constraintTop_toTopOf="parent"
+                                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                                </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+                                <androidx.appcompat.widget.AppCompatEditText
+                                    android:layout_weight="1"
+                                    android:id="@+id/contactEt"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:inputType="phone"
+                                    android:background="@color/transparent"
+                                    android:hint="@string/contact_number_small"
+                                    android:maxLength="10"
+                                    android:textColor="@color/text_color"
+                                    android:textColorHint="@color/text_hint_color"
+                                    android:textSize="14sp"
+                                    app:layout_constraintStart_toStartOf="parent"
+                                    app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+                            <TextView
+                                android:id="@+id/webLinkTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/website_link_optional"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+                            <androidx.appcompat.widget.AppCompatEditText
+                                android:id="@+id/webLinkEt"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_40sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_selector"
+                                android:inputType="textUri"
+                                android:drawableStart="@drawable/ic_web_link"
+                                android:drawablePadding="@dimen/_2sdp"
+                                android:hint="@string/website_link_small"
+                                android:paddingStart="12dp"
+                                android:textColor="@color/text_color"
+                                android:textColorHint="@color/text_hint_color"
+                                android:textSize="14sp"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+                            <TextView
+                                android:id="@+id/emailTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/contact_email"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+                            <androidx.appcompat.widget.AppCompatEditText
+                                android:id="@+id/emailEt"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_40sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_selector"
+                                android:inputType="textEmailAddress"
+                                android:drawableStart="@drawable/ic_email"
+                                android:drawablePadding="@dimen/_2sdp"
+                                android:hint="@string/contact_email_small"
+                                android:paddingStart="12dp"
+                                android:textColor="@color/text_color"
+                                android:textColorHint="@color/text_hint_color"
+                                android:textSize="14sp"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+
+                            <TextView
+                                android:id="@+id/gstTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/gstn_optional"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+                            <androidx.appcompat.widget.AppCompatEditText
+                                android:id="@+id/gstEt"
+                                android:maxLength="15"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_40sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_selector"
+                                android:inputType="textCapCharacters"
+                                android:drawableStart="@drawable/ic_gstn_icon"
+                                android:drawablePadding="@dimen/_2sdp"
+                                android:hint="@string/gstn"
+                                android:paddingStart="12dp"
+                                android:textColor="@color/text_color"
+                                android:textColorHint="@color/text_hint_color"
+                                android:textSize="14sp"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+                            <TextView
+                                android:id="@+id/typesTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="Types"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+
+                            <RelativeLayout
+                                android:layout_marginTop="@dimen/_10sdp"
+                                android:layout_width="match_parent"
+                                android:background="@drawable/rounded_edit_text_background_selector"
+                                android:layout_height="50dp">
+
+                                <com.google.android.material.textfield.TextInputLayout
+                                    android:id="@+id/textInputCategory"
+                                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:layout_centerInParent="true"
+                                    android:background="@color/transparent"
+                                    app:boxStrokeWidth="0dp"
+                                    app:endIconDrawable="@drawable/toggle_dropdown"
+                                    app:boxStrokeWidthFocused="0dp"
+                                    app:endIconTint="@color/grey">
+
+                                    <AutoCompleteTextView
+                                        android:id="@+id/businessTypesTv"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:layout_marginBottom="@dimen/_4sdp"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:inputType="none"
+                                        android:background="@color/transparent"
+                                        android:padding="@dimen/_6sdp"
+                                        android:text="@string/types"
+                                        android:textColor="@color/text_hint_color"
+                                        android:textSize="14sp" />
+
+                                </com.google.android.material.textfield.TextInputLayout>
+
+                            </RelativeLayout>
+
+<!--                            <TextView-->
+<!--                                android:id="@+id/amenitiesTv"-->
+<!--                                android:layout_width="wrap_content"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:layout_marginTop="@dimen/_14sdp"-->
+<!--                                android:fontFamily="@font/comic_regular"-->
+<!--                                android:text="@string/amenities"-->
+<!--                                android:textColor="@color/white_60"-->
+<!--                                android:textSize="14sp"/>-->
+
+<!--                            <RelativeLayout-->
+<!--                                android:layout_width="match_parent"-->
+<!--                                android:layout_height="wrap_content">-->
+<!--                                <androidx.recyclerview.widget.RecyclerView-->
+<!--                                    android:id="@+id/recyclerView"-->
+<!--                                    android:layout_width="match_parent"-->
+<!--                                    android:layout_height="wrap_content"-->
+<!--                                    android:layout_alignParentTop="true" />-->
+<!--                            </RelativeLayout>-->
+
+
+
+                            <TextView
+                                android:id="@+id/descriptionTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_14sdp"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/bio"
+                                android:textColor="@color/text_color_60"
+                                android:textSize="14sp"/>
+
+
+                            <androidx.appcompat.widget.AppCompatEditText
+                                android:id="@+id/descriptionEt"
+                                android:padding="12dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="@dimen/_120sdp"
+                                android:layout_marginTop="@dimen/_4sdp"
+                                android:background="@drawable/rounded_edit_text_background_selector"
+                                android:inputType="textMultiLine|textCapSentences"
+                                android:gravity="top|start"
+                                android:drawablePadding="@dimen/_2sdp"
+                                android:hint="@string/bio"
+                                android:paddingStart="12dp"
+                                android:textColor="@color/text_color"
+                                android:textColorHint="@color/text_hint_color"
+                                android:textSize="14sp" />
+
+
+
+
+
+                            <RelativeLayout
+                                android:layout_marginTop="@dimen/_20sdp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/nextBtn"
+                                    android:layout_width="@dimen/_44sdp"
+                                    android:layout_height="@dimen/_44sdp"
+                                    android:layout_gravity="center"
+                                    app:cardBackgroundColor="@color/transparent"
+                                    android:layout_centerInParent="true"
+                                    app:cardCornerRadius="@dimen/_50sdp"
+                                    app:strokeColor="@color/blue"
+                                    app:strokeWidth="@dimen/_3sdp">
+
+                                    <com.google.android.material.imageview.ShapeableImageView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:layout_centerInParent="true"
+                                        android:layout_margin="@dimen/_6sdp"
+                                        android:background="@color/round_btn_background"
+                                        android:src="@drawable/next_arrow_blue"
+                                        app:contentPadding="@dimen/_9sdp"
+                                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                                </com.google.android.material.card.MaterialCardView>
+
+
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/backBtn"
+                                    android:layout_width="@dimen/_34sdp"
+                                    android:layout_height="@dimen/_34sdp"
+                                    android:layout_margin="@dimen/_6sdp"
+                                    android:elevation="@dimen/_4sdp"
+                                    android:background="@color/faded_round_btn"
+                                    android:layout_centerVertical="true"
+                                    android:src="@drawable/back_arrow_white"
+                                    app:contentPadding="@dimen/_10sdp"
+                                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+
+                            </RelativeLayout>
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        </androidx.core.widget.NestedScrollView>
+
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_begin="12dp" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_end="12dp" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_end="12dp" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_begin="12dp" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

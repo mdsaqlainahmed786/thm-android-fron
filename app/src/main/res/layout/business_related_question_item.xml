@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/QuestionsTv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_14sdp"
+            android:fontFamily="@font/comic_regular"
+            android:text="Name"
+            android:textColor="@color/text_color_60"
+            android:textSize="14sp"/>
+        <RelativeLayout
+            android:layout_marginTop="@dimen/_6sdp"
+            android:layout_width="match_parent"
+            android:background="@drawable/rounded_edit_text_background_selector"
+            android:layout_height="50dp">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputCategory"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_centerInParent="true"
+                android:background="@color/transparent"
+                app:boxStrokeWidth="0dp"
+                app:endIconDrawable="@drawable/toggle_dropdown"
+                app:boxStrokeWidthFocused="0dp"
+                app:endIconTint="@color/grey">
+
+                <AutoCompleteTextView
+                    android:id="@+id/answerTv"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="@dimen/_4sdp"
+                    android:fontFamily="@font/comic_regular"
+                    android:inputType="none"
+                    android:background="@color/transparent"
+                    android:padding="@dimen/_6sdp"
+                    android:text="@string/select_answer"
+                    android:textColor="@color/text_color_50"
+                    android:textSize="16sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </RelativeLayout>
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+</layout>

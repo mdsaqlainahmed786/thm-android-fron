@@ -1,0 +1,691 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        tools:context=".activity.ViewEventDetailsActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/linearLayoutCompat4"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/backBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_back_arrow" />
+
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="12dp">
+
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/hotelCv"
+                        android:layout_width="@dimen/_38sdp"
+                        android:layout_height="@dimen/_38sdp"
+                        android:layout_gravity="center"
+                        app:cardBackgroundColor="@color/transparent"
+                        app:cardCornerRadius="@dimen/_50sdp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:strokeColor="@color/post_stroke"
+                        app:strokeWidth="1.6dp">
+
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:id="@+id/profileIv"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_margin="3dp"
+                            android:background="@color/grey"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!--                    <com.google.android.material.imageview.ShapeableImageView-->
+                    <!--                        android:id="@+id/userPicIv"-->
+                    <!--                        android:layout_width="@dimen/_40sdp"-->
+                    <!--                        android:layout_height="@dimen/_40sdp"-->
+                    <!--                        android:background="@color/grey"-->
+                    <!--                        app:layout_constraintBottom_toBottomOf="parent"-->
+                    <!--                        app:layout_constraintStart_toStartOf="parent"-->
+                    <!--                        app:layout_constraintTop_toTopOf="parent"-->
+                    <!--                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />-->
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:orientation="vertical"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@+id/hotelCv"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <TextView
+                            android:id="@+id/fullNameTv"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/comic_regular"
+                            android:text=""
+                            android:textColor="@color/text_color"
+                            android:textSize="16sp" />
+
+                        <TextView
+                            android:id="@+id/addressTv"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/comic_regular"
+                            android:text=""
+                            android:textColor="@color/text_color_60"
+                            android:textSize="11sp" />
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+
+
+                <!--                <TextView-->
+                <!--                    android:id="@+id/titleTv"-->
+                <!--                    android:layout_weight="1"-->
+                <!--                    android:layout_gravity="center"-->
+                <!--                    android:layout_width="0dp"-->
+                <!--                    android:layout_height="wrap_content"-->
+                <!--                    android:text="@string/create_event"-->
+                <!--                    android:textColor="@color/white"-->
+                <!--                    android:textSize="18sp"-->
+                <!--                    android:fontFamily="@font/comic_bold"/>-->
+
+                <!--                <androidx.appcompat.widget.AppCompatImageView-->
+                <!--                    android:id="@+id/doneBtn"-->
+                <!--                    android:layout_gravity="center"-->
+                <!--                    android:layout_width="wrap_content"-->
+                <!--                    android:layout_height="wrap_content"-->
+                <!--                    android:src="@drawable/ic_blue_tick_icon"/>-->
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/hasDataLayout"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+
+<!--                    <androidx.constraintlayout.widget.ConstraintLayout-->
+<!--                        android:layout_width="match_parent"-->
+<!--                        android:layout_height="wrap_content"-->
+<!--                        android:layout_marginStart="12dp"-->
+<!--                        android:layout_marginEnd="12dp"-->
+<!--                        android:background="@drawable/background_14"-->
+<!--                        android:padding="12dp">-->
+
+
+<!--                        <com.google.android.material.card.MaterialCardView-->
+<!--                            android:id="@+id/hotelCv"-->
+<!--                            android:layout_width="@dimen/_38sdp"-->
+<!--                            android:layout_height="@dimen/_38sdp"-->
+<!--                            android:layout_gravity="center"-->
+<!--                            app:cardBackgroundColor="@color/black"-->
+<!--                            app:cardCornerRadius="@dimen/_50sdp"-->
+<!--                            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--                            app:layout_constraintStart_toStartOf="parent"-->
+<!--                            app:layout_constraintTop_toTopOf="parent"-->
+<!--                            app:strokeColor="@color/post_stroke"-->
+<!--                            app:strokeWidth="1.6dp">-->
+
+
+<!--                            <com.google.android.material.imageview.ShapeableImageView-->
+<!--                                android:id="@+id/profileIv"-->
+<!--                                android:layout_width="match_parent"-->
+<!--                                android:layout_height="match_parent"-->
+<!--                                android:layout_margin="3dp"-->
+<!--                                android:background="@color/grey"-->
+<!--                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />-->
+
+<!--                        </com.google.android.material.card.MaterialCardView>-->
+
+<!--                        &lt;!&ndash;                    <com.google.android.material.imageview.ShapeableImageView&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:id="@+id/userPicIv"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_width="@dimen/_40sdp"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:layout_height="@dimen/_40sdp"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        android:background="@color/grey"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        app:layout_constraintBottom_toBottomOf="parent"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        app:layout_constraintStart_toStartOf="parent"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        app:layout_constraintTop_toTopOf="parent"&ndash;&gt;-->
+<!--                        &lt;!&ndash;                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />&ndash;&gt;-->
+
+<!--                        <androidx.appcompat.widget.LinearLayoutCompat-->
+<!--                            android:layout_width="0dp"-->
+<!--                            android:layout_height="wrap_content"-->
+<!--                            android:layout_marginStart="12dp"-->
+<!--                            android:orientation="vertical"-->
+<!--                            app:layout_constraintBottom_toBottomOf="parent"-->
+<!--                            app:layout_constraintEnd_toEndOf="parent"-->
+<!--                            app:layout_constraintStart_toEndOf="@+id/hotelCv"-->
+<!--                            app:layout_constraintTop_toTopOf="parent">-->
+
+<!--                            <TextView-->
+<!--                                android:id="@+id/fullNameTv"-->
+<!--                                android:layout_width="match_parent"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:fontFamily="@font/comic_regular"-->
+<!--                                android:text="Arvind Kumar Singh"-->
+<!--                                android:textColor="@color/white"-->
+<!--                                android:textSize="16sp" />-->
+
+<!--                            <TextView-->
+<!--                                android:id="@+id/addressTv"-->
+<!--                                android:layout_width="match_parent"-->
+<!--                                android:layout_height="wrap_content"-->
+<!--                                android:fontFamily="@font/comic_regular"-->
+<!--                                android:text="Landran, Kharar - Landran Rd, Sector 116, Sahibzada Ajit Singh Nagar, Punjab 140308"-->
+<!--                                android:textColor="@color/white_60"-->
+<!--                                android:textSize="11sp" />-->
+<!--                        </androidx.appcompat.widget.LinearLayoutCompat>-->
+
+
+<!--                    </androidx.constraintlayout.widget.ConstraintLayout>-->
+
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/eventImageView"
+                        android:scaleType="center"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_150sdp"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="12dp"
+                        android:background="@color/grey"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize10Percent" />
+
+
+                    <TextView
+                        android:id="@+id/eventNameTv"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="12dp"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="MIRROR FINE FASHION EXHIBITION"
+                        android:textColor="@color/text_color"
+                        android:textSize="16sp" />
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/peopleJoinedLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/peopleJoinedTv"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_weight="1"
+                            android:fontFamily="@font/comic_regular"
+                            android:text="50 People are joined:"
+                            android:textColor="@color/text_color"
+                            android:textSize="14sp" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView1"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:background="@color/grey"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView2"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:layout_marginStart="-15dp"
+                                android:background="@color/red"
+                                android:elevation="1dp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView3"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:layout_marginStart="-15dp"
+                                android:background="@color/grey"
+                                android:elevation="1dp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView4"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:layout_marginStart="-15dp"
+                                android:background="@color/red"
+                                android:elevation="1dp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView5"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:layout_marginStart="-15dp"
+                                android:background="@color/grey"
+                                android:elevation="1dp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView6"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:layout_marginStart="-15dp"
+                                android:background="@color/red"
+                                android:elevation="1dp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                        </LinearLayout>
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="12dp"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="@string/description"
+                        android:textColor="@color/text_color"
+                        android:textSize="14sp" />
+
+
+                    <TextView
+                        android:id="@+id/descriptionTv"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="12dp"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="A bit pricey, but the quality of the food and the sophisticated atmosphere made it worth every penny A bit pricey, but the quality of the food and the"
+                        android:textColor="@color/text_color_70"
+                        android:textSize="12sp" />
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/addressLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:layout_width="@dimen/_34sdp"
+                            android:layout_height="@dimen/_34sdp"
+                            android:background="@color/faded_round_btn"
+                            android:src="@drawable/ic_location_white"
+                            app:contentPadding="@dimen/_8sdp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/venueNameTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="Mohali, Punjab"
+                                android:textColor="@color/text_color"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/venueAddressTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="Landran Rd, Sector 116, Sahibzada Ajit Singh Nagar, Punjab 140308"
+                                android:textColor="@color/text_color_70"
+                                android:textSize="12sp" />
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="12dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:layout_width="@dimen/_34sdp"
+                            android:layout_height="@dimen/_34sdp"
+                            android:background="@color/faded_round_btn"
+                            android:src="@drawable/ic_calender_white"
+                            app:contentPadding="@dimen/_8sdp"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/startEndDateTv"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="Sat. 2 Nov 2024"
+                                android:textColor="@color/text_color"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/startEndTimeTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="04:00pm - 08:00pm"
+                                android:textColor="@color/text_color_70"
+                                android:textSize="12sp" />
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/venueLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginEnd="12dp"
+                            android:fontFamily="@font/comic_regular"
+                            android:text="@string/about_the_event_venue"
+                            android:textColor="@color/text_color"
+                            android:textSize="14sp" />
+
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_150sdp"
+                            app:cardCornerRadius="@dimen/_16sdp"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginEnd="12dp"
+                            app:strokeColor="@color/transparent">
+                            <fragment
+                                android:id="@+id/map"
+                                android:name="com.google.android.gms.maps.SupportMapFragment"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+
+
+
+
+                        </com.google.android.material.card.MaterialCardView>
+
+
+                        <TextView
+                            android:id="@+id/venueDistanceTv"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginEnd="12dp"
+                            android:fontFamily="@font/comic_regular"
+                            android:text="15km Distance form your location"
+                            android:textColor="@color/text_color"
+                            android:textSize="14sp" />
+
+
+                        <TextView
+                            android:id="@+id/venueAddressTv2"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginEnd="12dp"
+                            android:fontFamily="@font/comic_regular"
+                            android:text="Landran Rd, Sector 116, Sahibzada Ajit Singh Nagar, Punjab 140308"
+                            android:textColor="@color/text_color_70"
+                            android:textSize="12sp" />
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/streamLinkLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginEnd="12dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/comic_regular"
+                            android:text="@string/streaming_link"
+                            android:textColor="@color/text_color"
+                            android:textSize="14sp" />
+
+
+                        <TextView
+                            android:id="@+id/streamLinkTv"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/comic_regular"
+                            android:text="https://echo.free.beeceptor.com"
+                            android:textColor="@color/blue"
+                            android:textSize="12sp" />
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_64sdp" />
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+            </androidx.core.widget.NestedScrollView>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_marginBottom="12dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@color/transparent"
+            app:layout_constraintBottom_toBottomOf="@+id/linearLayoutCompat4"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/shareBtn"
+                android:layout_gravity="center_vertical"
+                android:layout_width="@dimen/_34sdp"
+                android:layout_height="@dimen/_34sdp"
+                app:cardBackgroundColor="@color/transparent"
+                app:strokeColor="@color/blue_50"
+                app:cardCornerRadius="@dimen/_50sdp"
+                app:strokeWidth="1dp">
+
+                <eightbitlab.com.blurview.BlurView
+                    android:id="@+id/shareBlurView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent">
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:background="@color/faded_round_btn"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="12dp"
+                        android:orientation="horizontal">
+                        <ImageView
+                            android:layout_gravity="center_vertical"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/ic_share_white"/>
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+                </eightbitlab.com.blurview.BlurView>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_gravity="center_vertical"
+                android:id="@+id/joiningBtn"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/_34sdp"
+                app:cardBackgroundColor="@color/transparent"
+                app:strokeColor="@color/blue_50"
+                app:cardCornerRadius="@dimen/_20sdp"
+                app:strokeWidth="1dp">
+
+                <eightbitlab.com.blurview.BlurView
+                    android:id="@+id/joiningBlurView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent">
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:background="@color/faded_round_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="12dp"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_gravity="center_vertical"
+                        android:id="@+id/joiningIv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:src="@drawable/ic_outline_star_white_"/>
+
+                    <TextView
+                        android:id="@+id/joiningTv"
+                        android:layout_marginStart="4dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_vertical"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="@string/joining_"
+                        android:textColor="@color/white"
+                        android:textSize="14sp" />
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                </eightbitlab.com.blurview.BlurView>
+            </com.google.android.material.card.MaterialCardView>
+
+
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/saveBtn"
+                android:layout_gravity="center_vertical"
+                android:layout_width="@dimen/_34sdp"
+                android:layout_height="@dimen/_34sdp"
+                app:cardBackgroundColor="@color/transparent"
+                app:strokeColor="@color/blue_50"
+                app:cardCornerRadius="@dimen/_50sdp"
+                app:strokeWidth="1dp">
+
+                <eightbitlab.com.blurview.BlurView
+                    android:id="@+id/saveBlurView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent">
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:background="@color/faded_round_btn"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="12dp"
+                        android:orientation="horizontal">
+                        <ImageView
+                            android:id="@+id/saveIv"
+                            android:layout_gravity="center_vertical"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/ic_save_white"/>
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+                </eightbitlab.com.blurview.BlurView>
+            </com.google.android.material.card.MaterialCardView>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

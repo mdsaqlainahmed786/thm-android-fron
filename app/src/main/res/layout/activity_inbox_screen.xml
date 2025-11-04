@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        android:foreground="@drawable/ic_background"
+        tools:context=".activity.InboxScreenActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/backBtn"
+                android:gravity="center_vertical"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_back_arrow"/>
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/profilePicIv"
+                android:layout_width="@dimen/_32sdp"
+                android:layout_height="@dimen/_32sdp"
+                android:background="@color/grey"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+            <TextView
+                android:layout_marginStart="12dp"
+                android:gravity="center_vertical"
+                android:id="@+id/titleTv"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/notifications"
+                android:textColor="@color/text_color"
+                android:textSize="18sp"
+                android:fontFamily="@font/comic_bold"/>
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/menuBtn"
+                android:gravity="center_vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_menu_horizontal_blue" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/inboxRv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:stackFromEnd="true"
+                    tools:listitem="@layout/chat_item_layout"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/_41sdp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:layout_margin="12dp"
+                android:background="@drawable/send_message_background">
+
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/messageEt"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:padding="12dp"
+                    android:layout_gravity="center"
+                    android:layout_height="wrap_content"
+                    android:background="@color/transparent"
+                    android:hint="@string/message"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_hint_color"
+                    android:textSize="14sp"
+                    android:gravity="top|start"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:scrollHorizontally="false"
+                    android:overScrollMode="never"
+                    android:maxLines="5"
+                    android:scrollbars="vertical"/>
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/galleryBtn"
+                    android:gravity="center_vertical"
+                    android:layout_width="@dimen/_24sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:layout_gravity="center"
+                    android:padding="@dimen/_2sdp"
+                    android:layout_marginEnd="1dp"
+                    android:src="@drawable/ic_attachment_icon" />
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/emojiBtn"
+                    android:gravity="center_vertical"
+                    android:layout_width="@dimen/_24sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:layout_gravity="center"
+                    android:padding="@dimen/_1sdp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_emoji_small" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+
+            <ImageView
+                android:id="@+id/sendMsgBtn"
+                android:layout_marginEnd="12dp"
+                android:layout_gravity="center_vertical"
+                android:layout_width="@dimen/_39sdp"
+                android:layout_height="@dimen/_39sdp"
+                android:contentDescription="@string/send"
+                android:src="@drawable/ic_send_arrow"
+                android:padding="@dimen/_8sdp"
+                android:background="@drawable/circular_blue_50_background"/>
+
+
+
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            <androidx.emoji2.emojipicker.EmojiPickerView
+                android:id="@+id/emojiPicker"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_220sdp"
+                android:theme="@style/CustomEmojiStyle"
+                android:visibility="gone"
+                app:emojiGridColumns="9" />
+
+
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+        <!-- Floating Action Button above the send message button -->
+        <ImageView
+            android:id="@+id/scrollDownBtn"
+            android:visibility="gone"
+            android:layout_width="@dimen/_24sdp"
+            android:layout_height="@dimen/_24sdp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="@dimen/_60sdp"
+            android:src="@drawable/ic_scroll_arrow_down"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_gravity="end|bottom"
+            android:contentDescription="@string/scroll_down"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

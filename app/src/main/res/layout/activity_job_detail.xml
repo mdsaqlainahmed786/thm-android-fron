@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:background="@color/background_color"
+        android:orientation="vertical"
+        tools:context=".activity.JobDetailActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/backBtn"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_back_arrow"/>
+
+            <TextView
+                android:id="@+id/titleTv"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/job_details"
+                android:textColor="@color/text_color"
+                android:textSize="18sp"
+                android:fontFamily="@font/comic_bold"/>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/hasDataLayout"
+            android:visibility="visible"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginBottom="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_weight="0.5"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/job_title"
+                        android:textColor="@color/text_color_60"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/jobTitleTv"
+                        android:textAlignment="textEnd"
+                        android:layout_weight="1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Job Title"
+                        android:textColor="@color/text_color_40"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_weight="0.5"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/designation"
+                        android:textColor="@color/text_color_60"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/designationTv"
+                        android:textAlignment="textEnd"
+                        android:layout_weight="1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Job Title"
+                        android:textColor="@color/text_color_40"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_weight="0.5"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/job_type"
+                        android:textColor="@color/text_color_60"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/jobTypeTv"
+                        android:textAlignment="textEnd"
+                        android:layout_weight="1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Job Title"
+                        android:textColor="@color/text_color_40"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_weight="0.5"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/experience"
+                        android:textColor="@color/text_color_60"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/experienceTv"
+                        android:textAlignment="textEnd"
+                        android:layout_weight="1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Job Title"
+                        android:textColor="@color/text_color_40"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_weight="0.5"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/salary_offer"
+                        android:textColor="@color/text_color_60"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/salaryOfferTv"
+                        android:textAlignment="textEnd"
+                        android:layout_weight="1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Job Title"
+                        android:textColor="@color/text_color_40"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_weight="0.6"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/number_of_vacancies"
+                        android:textColor="@color/text_color_60"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/noOfVacanciesTv"
+                        android:textAlignment="textEnd"
+                        android:layout_weight="1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Job Title"
+                        android:textColor="@color/text_color_40"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_weight="0.5"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/joining_date"
+                        android:textColor="@color/text_color_60"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:id="@+id/joiningDateTv"
+                        android:textAlignment="textEnd"
+                        android:layout_weight="1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="Job Title"
+                        android:textColor="@color/text_color_40"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_marginTop="@dimen/_12sdp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/job_description"
+                        android:textColor="@color/text_color_60"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:layout_marginTop="@dimen/_2sdp"
+                        android:id="@+id/descriptionTv"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Job Title"
+                        android:textColor="@color/text_color_40"
+                        android:fontFamily="@font/comic_regular"
+                        android:textSize="14sp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+        </androidx.core.widget.NestedScrollView>
+
+            <TextView
+                android:id="@+id/applyBtn"
+                android:layout_margin="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_32sdp"
+                android:background="@drawable/rounded_edit_text_background_blue"
+                android:fontFamily="@font/comic_regular"
+                android:gravity="center"
+                android:text="@string/apply"
+                android:textColor="@color/selected_text_color"
+                android:textSize="15sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+</layout>

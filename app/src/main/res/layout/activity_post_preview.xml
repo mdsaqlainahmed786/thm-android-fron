@@ -1,0 +1,1015 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        tools:context=".activity.PostPreviewActivity">
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            tools:layout_editor_absoluteX="16dp"
+            tools:layout_editor_absoluteY="80dp">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/backBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_back_arrow" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/home_logo" />
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+            <androidx.core.widget.NestedScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/postLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:orientation="vertical"
+                            android:padding="5dp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent">
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:id="@+id/userLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="@dimen/_26sdp"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/profileCv"
+                                    android:layout_width="@dimen/_42sdp"
+                                    android:layout_height="@dimen/_42sdp"
+                                    android:layout_gravity="center"
+                                    app:cardBackgroundColor="@color/transparent"
+                                    app:cardCornerRadius="@dimen/_50sdp"
+                                    app:strokeColor="@color/post_stroke"
+                                    app:strokeWidth="1.6dp">
+
+
+                                    <com.google.android.material.imageview.ShapeableImageView
+                                        android:id="@+id/profileIv"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:layout_margin="3.6dp"
+                                        android:background="@color/grey"
+                                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                                </com.google.android.material.card.MaterialCardView>
+
+                                <androidx.appcompat.widget.LinearLayoutCompat
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:layout_marginStart="@dimen/_6sdp"
+                                    android:orientation="vertical">
+
+
+                                    <TextView
+                                        android:id="@+id/nameTv"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="Grand Imperial"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="16sp" />
+
+
+                                    <LinearLayout
+                                        android:id="@+id/businessTypeLayout"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:orientation="horizontal">
+
+                                        <TextView
+                                            android:id="@+id/typeTv"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:fontFamily="@font/comic_regular"
+                                            android:text="( Hotel - 3 star )"
+                                            android:textColor="@color/text_color_40"
+                                            android:textSize="11sp" />
+
+                                        <TextView
+                                            android:id="@+id/averageRatingTv"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:fontFamily="@font/comic_regular"
+                                            android:text="( 3 star)"
+                                            android:textColor="@color/text_color_40"
+                                            android:textSize="11sp" />
+                                    </LinearLayout>
+
+
+                                    <TextView
+                                        android:id="@+id/locationTv"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="SAS Nagar Mohali"
+                                        android:textColor="@color/text_color_40"
+                                        android:textSize="11sp" />
+
+
+                                </androidx.appcompat.widget.LinearLayoutCompat>
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:id="@+id/mediaLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_6sdp"
+                                android:orientation="vertical">
+
+                                <!--                    <com.google.android.material.imageview.ShapeableImageView-->
+
+                                <!--                        android:layout_width="match_parent"-->
+                                <!--                        android:layout_height="@dimen/_200sdp"-->
+                                <!--                        android:background="@color/grey"-->
+                                <!--                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize6Percent"/>-->
+
+
+                                <androidx.viewpager2.widget.ViewPager2
+                                    android:id="@+id/viewPager"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/_250sdp" />
+
+                                <com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator
+                                    android:id="@+id/indicator_layout"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:layout_margin="@dimen/_6sdp"
+                                    app:dotsColor="@color/grey"
+                                    app:dotsSize="@dimen/_4sdp"
+                                    app:dotsSpacing="@dimen/_2sdp"
+                                    app:selectedDotColor="@color/blue" />
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                            <TextView
+                                android:id="@+id/allDescriptionTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_6sdp"
+                                android:clickable="true"
+                                android:focusable="false"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="SAS Nagar Mohali"
+                                android:textColor="@color/text_color"
+                                android:textSize="11sp" />
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:layout_marginTop="@dimen/_6sdp"
+                                android:layout_marginBottom="@dimen/_6sdp"
+                                android:background="@color/text_color_40" />
+
+
+                            <androidx.constraintlayout.widget.ConstraintLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+                                <LinearLayout
+                                    android:id="@+id/likeBtn"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/background_with_blue_stroke"
+                                    android:orientation="horizontal"
+                                    android:padding="@dimen/_4sdp"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintStart_toStartOf="parent"
+                                    app:layout_constraintTop_toTopOf="parent">
+
+                                    <ImageView
+                                        android:layout_marginStart="@dimen/_2sdp"
+                                        android:id="@+id/likeIv"
+                                        android:layout_width="@dimen/_16sdp"
+                                        android:layout_height="@dimen/_16sdp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_unlike_icon" />
+
+                                    <TextView
+                                        android:id="@+id/likeTv"
+                                        android:layout_width="@dimen/_20sdp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="--"
+                                        android:textAlignment="center"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="12sp" />
+
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/commentBtn"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:layout_marginStart="@dimen/_8sdp"
+                                    android:background="@drawable/background_with_blue_stroke"
+                                    android:orientation="horizontal"
+                                    android:padding="@dimen/_4sdp"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintStart_toEndOf="@+id/likeBtn"
+                                    app:layout_constraintTop_toTopOf="parent">
+
+                                    <ImageView
+                                        android:layout_marginStart="@dimen/_2sdp"
+                                        android:id="@+id/commentIv"
+                                        android:layout_width="@dimen/_16sdp"
+                                        android:layout_height="@dimen/_16sdp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_comment_icon" />
+
+                                    <TextView
+                                        android:id="@+id/commentTv"
+                                        android:layout_width="@dimen/_20sdp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="--"
+                                        android:textAlignment="center"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="12sp" />
+
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/shareBtn"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:layout_marginStart="@dimen/_8sdp"
+                                    android:background="@drawable/background_with_blue_stroke"
+                                    android:orientation="horizontal"
+                                    android:padding="@dimen/_4sdp"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintStart_toEndOf="@+id/commentBtn"
+                                    app:layout_constraintTop_toTopOf="parent">
+
+                                    <ImageView
+                                        android:layout_marginStart="@dimen/_2sdp"
+                                        android:id="@+id/shareIv"
+                                        android:layout_width="@dimen/_16sdp"
+                                        android:layout_height="@dimen/_16sdp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_share_icon" />
+
+                                    <TextView
+                                        android:id="@+id/shareTv"
+                                        android:layout_width="@dimen/_20sdp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="--"
+                                        android:textAlignment="center"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="12sp" />
+
+                                </LinearLayout>
+
+
+                                <LinearLayout
+                                    android:visibility="gone"
+                                    android:layout_marginStart="@dimen/_8sdp"
+                                    android:id="@+id/postViewsBtn"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/background_with_blue_stroke"
+                                    android:orientation="horizontal"
+                                    android:padding="@dimen/_4sdp"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintStart_toEndOf="@+id/shareBtn"
+                                    app:layout_constraintTop_toTopOf="parent">
+
+                                    <ImageView
+                                        android:layout_marginStart="@dimen/_2sdp"
+                                        android:id="@+id/postViewsIv"
+                                        android:layout_width="@dimen/_16sdp"
+                                        android:layout_height="@dimen/_16sdp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_views" />
+
+                                    <TextView
+                                        android:id="@+id/postViewsTv"
+                                        android:layout_width="@dimen/_20sdp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="--"
+                                        android:textAlignment="center"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="12sp" />
+
+                                </LinearLayout>
+
+
+                                <ImageView
+                                    android:id="@+id/saveIv"
+                                    android:layout_width="@dimen/_20sdp"
+                                    android:layout_height="@dimen/_20sdp"
+                                    android:src="@drawable/ic_unsave_icon"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintEnd_toEndOf="parent"
+                                    app:layout_constraintTop_toTopOf="parent" />
+
+
+                            </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+                        </LinearLayout>
+
+
+                        <ImageView
+                            android:id="@+id/menuBtn"
+                            android:layout_width="@dimen/_20sdp"
+                            android:layout_height="@dimen/_20sdp"
+                            android:layout_gravity="end"
+                            android:layout_margin="8dp"
+                            android:src="@drawable/ic_post_menu_blue"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:strokeColor="@color/transparent" />
+
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/reviewLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="visible">
+
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_margin="3dp"
+                            android:orientation="vertical"
+                            android:padding="5dp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent">
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:id="@+id/userLayoutReview"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/userProfileIv"
+                                    android:layout_width="@dimen/_36sdp"
+                                    android:layout_height="@dimen/_36sdp"
+                                    android:layout_margin="3.6dp"
+                                    android:background="@color/grey"
+                                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+
+                                <androidx.appcompat.widget.LinearLayoutCompat
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:layout_marginStart="@dimen/_6sdp"
+                                    android:orientation="vertical">
+
+
+                                    <TextView
+                                        android:id="@+id/userNameTv"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginEnd="@dimen/_26sdp"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="Grand Imperial"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="16sp" />
+
+
+                                    <TextView
+                                        android:id="@+id/daysTv"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="-- days"
+                                        android:textColor="@color/text_color_40"
+                                        android:textSize="11sp" />
+
+
+                                </androidx.appcompat.widget.LinearLayoutCompat>
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_6sdp"
+                                android:orientation="vertical">
+
+                                <!--                    <com.google.android.material.imageview.ShapeableImageView-->
+
+                                <!--                        android:layout_width="match_parent"-->
+                                <!--                        android:layout_height="@dimen/_200sdp"-->
+                                <!--                        android:background="@color/grey"-->
+                                <!--                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize6Percent"/>-->
+
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="@dimen/_260sdp"
+                                    android:background="@color/transparent"
+                                    app:cardBackgroundColor="@color/transparent"
+                                    app:cardCornerRadius="14dp"
+                                    app:strokeColor="@color/transparent">
+
+                                    <androidx.constraintlayout.widget.ConstraintLayout
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent">
+
+                                        <com.google.android.material.imageview.ShapeableImageView
+                                            android:id="@+id/imageView"
+                                            android:layout_width="0dp"
+                                            android:layout_height="0dp"
+                                            android:background="@color/grey"
+                                            android:scaleType="fitXY"
+                                            android:src="@drawable/onboard_pic_one"
+                                            app:layout_constraintBottom_toBottomOf="parent"
+                                            app:layout_constraintEnd_toEndOf="parent"
+                                            app:layout_constraintStart_toStartOf="parent"
+                                            app:layout_constraintTop_toTopOf="parent"
+                                            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize6Percent" />
+
+
+                                        <eightbitlab.com.blurview.BlurView
+                                            android:id="@+id/topBlurView"
+                                            android:layout_width="0dp"
+                                            android:layout_height="wrap_content"
+                                            android:background="@color/black_30"
+                                            app:layout_constraintEnd_toEndOf="parent"
+                                            app:layout_constraintStart_toStartOf="parent"
+                                            app:layout_constraintTop_toTopOf="parent">
+
+                                            <androidx.constraintlayout.widget.ConstraintLayout
+                                                android:id="@+id/businessLayout"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:layout_margin="8dp">
+
+                                                <com.google.android.material.card.MaterialCardView
+                                                    android:id="@+id/hotelCv"
+                                                    android:layout_width="@dimen/_40sdp"
+                                                    android:layout_height="@dimen/_40sdp"
+                                                    android:layout_gravity="center"
+                                                    app:cardBackgroundColor="@color/transparent"
+                                                    app:cardCornerRadius="@dimen/_50sdp"
+                                                    app:layout_constraintBottom_toBottomOf="parent"
+                                                    app:layout_constraintStart_toStartOf="parent"
+                                                    app:layout_constraintTop_toTopOf="parent"
+                                                    app:strokeColor="@color/post_stroke"
+                                                    app:strokeWidth="1.6dp">
+
+
+                                                    <com.google.android.material.imageview.ShapeableImageView
+                                                        android:id="@+id/hotelProfileIv"
+                                                        android:layout_width="match_parent"
+                                                        android:layout_height="match_parent"
+                                                        android:layout_margin="3.6dp"
+                                                        android:background="@color/grey"
+                                                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                                                </com.google.android.material.card.MaterialCardView>
+
+                                                <TextView
+                                                    android:id="@+id/hotelNameTv"
+                                                    android:layout_width="0dp"
+                                                    android:layout_height="wrap_content"
+                                                    android:layout_marginStart="8dp"
+                                                    android:fontFamily="@font/comic_regular"
+                                                    android:text="Grand Imperial"
+                                                    android:textColor="@color/text_color"
+                                                    android:textSize="16sp"
+                                                    app:layout_constraintBottom_toTopOf="@+id/linearLayout2"
+                                                    app:layout_constraintEnd_toEndOf="parent"
+                                                    app:layout_constraintStart_toEndOf="@+id/hotelCv"
+                                                    app:layout_constraintTop_toTopOf="parent"
+                                                    app:layout_constraintVertical_chainStyle="packed" />
+
+                                                <LinearLayout
+                                                    android:id="@+id/linearLayout2"
+                                                    android:layout_width="wrap_content"
+                                                    android:layout_height="wrap_content"
+                                                    android:orientation="horizontal"
+                                                    app:layout_constraintBottom_toTopOf="@+id/linearLayout3"
+                                                    app:layout_constraintStart_toStartOf="@+id/hotelNameTv"
+                                                    app:layout_constraintTop_toBottomOf="@+id/hotelNameTv">
+
+                                                    <TextView
+                                                        android:id="@+id/hotelTypeTv"
+                                                        android:layout_width="match_parent"
+                                                        android:layout_height="wrap_content"
+                                                        android:ellipsize="end"
+                                                        android:maxWidth="@dimen/_150sdp"
+                                                        android:fontFamily="@font/comic_regular"
+                                                        android:singleLine="true"
+                                                        android:text="(Marriage Banquets -Traditional Banquet)"
+                                                        android:textColor="@color/text_color_40"
+                                                        android:textSize="11sp" />
+
+                                                    <TextView
+                                                        android:id="@+id/averageRatingTvReview"
+                                                        android:layout_width="match_parent"
+                                                        android:layout_height="wrap_content"
+                                                        android:fontFamily="@font/comic_regular"
+                                                        android:text="( 3 star)"
+                                                        android:textColor="@color/text_color_40"
+                                                        android:textSize="11sp" />
+                                                </LinearLayout>
+
+                                                <LinearLayout
+                                                    android:id="@+id/linearLayout3"
+                                                    android:layout_width="0dp"
+                                                    android:layout_height="wrap_content"
+                                                    android:orientation="horizontal"
+                                                    app:layout_constraintBottom_toBottomOf="parent"
+                                                    app:layout_constraintEnd_toEndOf="parent"
+                                                    app:layout_constraintStart_toStartOf="@+id/linearLayout2"
+                                                    app:layout_constraintTop_toBottomOf="@+id/linearLayout2">
+
+                                                    <TextView
+                                                        android:id="@+id/location"
+                                                        android:layout_width="match_parent"
+                                                        android:layout_height="wrap_content"
+                                                        android:fontFamily="@font/comic_regular"
+                                                        android:text="Zirkpur"
+                                                        android:textColor="@color/text_color_40"
+                                                        android:textSize="11sp" />
+
+                                                </LinearLayout>
+
+                                            </androidx.constraintlayout.widget.ConstraintLayout>
+                                        </eightbitlab.com.blurview.BlurView>
+
+                                        <eightbitlab.com.blurview.BlurView
+                                            android:id="@+id/bottomBlurView"
+                                            android:layout_width="0dp"
+                                            android:background="@color/black_30"
+                                            android:layout_height="wrap_content"
+                                            app:layout_constraintBottom_toBottomOf="parent"
+                                            app:layout_constraintEnd_toEndOf="parent"
+                                            app:layout_constraintStart_toStartOf="parent">
+
+
+                                            <androidx.appcompat.widget.LinearLayoutCompat
+                                                android:layout_width="match_parent"
+                                                android:layout_height="match_parent"
+                                                android:layout_margin="8dp"
+                                                android:orientation="horizontal">
+
+                                                <TextView
+                                                    android:id="@+id/averageRatingTV"
+                                                    android:layout_width="wrap_content"
+                                                    android:layout_height="wrap_content"
+                                                    android:layout_gravity="center"
+                                                    android:layout_weight="1"
+                                                    android:fontFamily="@font/comic_regular"
+                                                    android:text="Average Stars"
+                                                    android:textColor="@color/yellow"
+                                                    android:textSize="24sp" />
+
+                                                <TextView
+                                                    android:id="@+id/ratingTypeTV"
+                                                    android:layout_width="wrap_content"
+                                                    android:layout_height="wrap_content"
+                                                    android:layout_gravity="center"
+                                                    android:layout_marginStart="8dp"
+                                                    android:fontFamily="@font/comic_regular"
+                                                    android:text="Average"
+                                                    android:textColor="@color/yellow"
+                                                    android:textSize="20sp" />
+
+
+                                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                                        </eightbitlab.com.blurview.BlurView>
+
+                                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                                </com.google.android.material.card.MaterialCardView>
+
+
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                            <TextView
+                                android:id="@+id/contentTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_6sdp"
+                                android:clickable="true"
+                                android:focusable="false"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="The service was outstanding, the decor was so lush and elegant. I have had dozens of family members call and compliment on how professional was the management and staff. I would recommend Grand Imperial in a heartbeat!!!"
+                                android:textColor="@color/text_color"
+                                android:textSize="11sp" />
+
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/attachmentRv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:clipToPadding="false"
+                                android:layout_marginTop="4dp"
+                                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                                tools:listitem="@layout/item_attachment"/>
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:layout_marginTop="@dimen/_6sdp"
+                                android:layout_marginBottom="@dimen/_6sdp"
+                                android:background="@color/text_color_40" />
+
+                            <androidx.constraintlayout.widget.ConstraintLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+                                <LinearLayout
+                                    android:id="@+id/likeBtnReview"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/background_with_blue_stroke"
+                                    android:orientation="horizontal"
+                                    android:padding="@dimen/_4sdp"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintStart_toStartOf="parent"
+                                    app:layout_constraintTop_toTopOf="parent">
+
+                                    <ImageView
+                                        android:layout_marginStart="@dimen/_2sdp"
+                                        android:id="@+id/likeIvReview"
+                                        android:layout_width="@dimen/_16sdp"
+                                        android:layout_height="@dimen/_16sdp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_unlike_icon" />
+
+                                    <TextView
+                                        android:id="@+id/likeTvReview"
+                                        android:layout_width="@dimen/_20sdp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="--"
+                                        android:textAlignment="center"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="12sp" />
+
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/commentBtnReview"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:layout_marginStart="@dimen/_8sdp"
+                                    android:background="@drawable/background_with_blue_stroke"
+                                    android:orientation="horizontal"
+                                    android:padding="@dimen/_4sdp"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintStart_toEndOf="@+id/likeBtnReview"
+                                    app:layout_constraintTop_toTopOf="parent">
+
+                                    <ImageView
+                                        android:layout_marginStart="@dimen/_2sdp"
+                                        android:id="@+id/commentIvReview"
+                                        android:layout_width="@dimen/_16sdp"
+                                        android:layout_height="@dimen/_16sdp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_comment_icon" />
+
+                                    <TextView
+                                        android:id="@+id/commentTvReview"
+                                        android:layout_width="@dimen/_20sdp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="--"
+                                        android:textAlignment="center"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="12sp" />
+
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:id="@+id/shareBtnReview"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:layout_marginStart="@dimen/_8sdp"
+                                    android:background="@drawable/background_with_blue_stroke"
+                                    android:orientation="horizontal"
+                                    android:padding="@dimen/_4sdp"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintStart_toEndOf="@+id/commentBtnReview"
+                                    app:layout_constraintTop_toTopOf="parent">
+
+                                    <ImageView
+                                        android:layout_marginStart="@dimen/_2sdp"
+                                        android:id="@+id/shareIvReview"
+                                        android:layout_width="@dimen/_16sdp"
+                                        android:layout_height="@dimen/_16sdp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_share_icon" />
+
+                                    <TextView
+                                        android:id="@+id/shareTvReview"
+                                        android:layout_width="@dimen/_20sdp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="--"
+                                        android:textAlignment="center"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="12sp" />
+
+                                </LinearLayout>
+
+
+                                <LinearLayout
+                                    android:visibility="gone"
+                                    android:layout_marginStart="@dimen/_8sdp"
+                                    android:id="@+id/reviewsViewsBtn"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center"
+                                    android:background="@drawable/background_with_blue_stroke"
+                                    android:orientation="horizontal"
+                                    android:padding="@dimen/_4sdp"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintStart_toEndOf="@+id/shareBtnReview"
+                                    app:layout_constraintTop_toTopOf="parent">
+
+                                    <ImageView
+                                        android:layout_marginStart="@dimen/_2sdp"
+                                        android:id="@+id/reviewsViewsIv"
+                                        android:layout_width="@dimen/_16sdp"
+                                        android:layout_height="@dimen/_16sdp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_views" />
+
+                                    <TextView
+                                        android:id="@+id/reviewsViewsTv"
+                                        android:layout_width="@dimen/_20sdp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_gravity="center"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="--"
+                                        android:textAlignment="center"
+                                        android:textColor="@color/text_color"
+                                        android:textSize="12sp" />
+
+                                </LinearLayout>
+
+
+                                <ImageView
+                                    android:id="@+id/saveIvReview"
+                                    android:layout_width="@dimen/_20sdp"
+                                    android:layout_height="@dimen/_20sdp"
+                                    android:src="@drawable/ic_unsave_icon"
+                                    app:layout_constraintBottom_toBottomOf="parent"
+                                    app:layout_constraintEnd_toEndOf="parent"
+                                    app:layout_constraintTop_toTopOf="parent" />
+
+
+                            </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+                        </LinearLayout>
+
+
+                        <ImageView
+                            android:id="@+id/menuBtnReview"
+                            android:layout_width="@dimen/_20sdp"
+                            android:layout_height="@dimen/_20sdp"
+                            android:layout_gravity="end"
+                            android:layout_margin="8dp"
+                            android:src="@drawable/ic_post_menu_blue"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:strokeColor="@color/transparent" />
+
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/commentsRv"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                        tools:listitem="@layout/comments_item" />
+
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:id="@+id/noDataFoundLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="300dp"
+                        android:orientation="vertical">
+
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:id="@+id/appCompatImageView"
+                            android:layout_width="@dimen/_60sdp"
+                            android:layout_height="@dimen/_60sdp"
+                            android:src="@drawable/ic_no_comment_icon"
+                            app:layout_constraintBottom_toTopOf="@+id/textView13"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintHorizontal_bias="0.5"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintVertical_chainStyle="packed" />
+
+                        <TextView
+                            android:id="@+id/textView13"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp"
+                            android:fontFamily="@font/comic_regular"
+                            android:textColor="@color/text_color_60"
+                            android:text="@string/no_comments_yet"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintHorizontal_bias="0.5"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@+id/appCompatImageView" />
+
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_40sdp"/>
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            </androidx.core.widget.NestedScrollView>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:elevation="@dimen/_5sdp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/replyLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="@dimen/_4sdp"
+                android:background="@drawable/background_24_grey"
+                android:padding="@dimen/_6sdp">
+
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/replyingIv"
+                    android:layout_width="@dimen/_24sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:background="@color/white_60"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+                <TextView
+                    android:id="@+id/replyingTv"
+                    android:layout_marginStart="@dimen/_6sdp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_gravity="center"
+                    android:text="Replying to @demo"
+                    android:textColor="@color/white_60"
+                    android:fontFamily="@font/comic_regular"
+                    android:textSize="14sp"/>
+
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/cancelReplyingBtn"
+                    android:layout_width="@dimen/_24sdp"
+                    android:layout_height="@dimen/_24sdp"
+                    android:src="@drawable/ic_cancel_white60"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                android:background="@color/background_color"
+                android:orientation="horizontal">
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/commentEt"
+                    android:layout_gravity="center_vertical"
+                    android:layout_weight="1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:drawablePadding="@dimen/_2sdp"
+                    android:hint="@string/add_comment"
+                    android:padding="15dp"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_hint_color"
+                    android:textSize="14sp"
+                    android:scrollHorizontally="false"
+                    android:overScrollMode="never"
+                    android:maxLines="5"
+                    android:scrollbars="vertical" />
+
+
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/sendCommentBtn"
+                    android:layout_marginStart="@dimen/_12sdp"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="@dimen/_36sdp"
+                    android:layout_height="@dimen/_36sdp"
+                    android:background="@color/blue"
+                    android:src="@drawable/ic_send_arrow"
+                    app:contentPadding="@dimen/_8sdp"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

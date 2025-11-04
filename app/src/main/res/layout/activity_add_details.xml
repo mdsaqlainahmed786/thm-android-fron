@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/background_color"
+        tools:context=".activity.booking.AddDetailsActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/backBtn"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_back_arrow"/>
+
+            <TextView
+                android:id="@+id/titleTv"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/add_details"
+                android:textColor="@color/text_color"
+                android:textSize="18sp"
+                android:fontFamily="@font/comic_bold"/>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="12dp"
+            android:orientation="horizontal"
+            android:background="@drawable/booking_rounded_bg">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/hotelCv"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:layout_width="@dimen/_40sdp"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_gravity="center"
+                app:cardBackgroundColor="@color/transparent"
+                app:cardCornerRadius="@dimen/_50sdp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:strokeColor="@color/post_stroke"
+                app:strokeWidth="1.6dp">
+
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/hotelProfileIv"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_margin="3.6dp"
+                    android:background="@color/grey"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_gravity="center"
+                android:layout_margin="8dp">
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_weight="1"
+                        android:id="@+id/hotelNameTv"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="Grand Imperial"
+                        android:textColor="@color/white"
+                        android:ellipsize="end"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/businessTypeTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="Hotel -"
+                        android:textColor="@color/white_40"
+                        android:textSize="11sp" />
+                    <ImageView
+                        android:layout_gravity="center_vertical"
+                        android:id="@+id/businessIconIv"
+                        android:layout_marginStart="4dp"
+                        android:scaleType="center"
+                        android:src="@drawable/ic_hotel"
+                        android:layout_width="@dimen/_16sdp"
+                        android:layout_height="@dimen/_16sdp" />
+                    <TextView
+                        android:id="@+id/averageRatingTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="( 3 star)"
+                        android:textColor="@color/white_40"
+                        android:textSize="11sp" />
+
+
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <TextView
+                    android:layout_weight="1"
+                    android:id="@+id/addressTv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/comic_regular"
+                    android:text="Landran, Kharar - Landran Rd, Sector 116, Sahibzada Ajit Singh Nagar, Punjab 140308"
+                    android:textColor="@color/white_80"
+                    android:maxLines="3"
+                    android:ellipsize="end"
+                    android:textSize="11sp" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/comic_regular"
+                    android:text="@string/check_in_"
+                    android:textColor="@color/text_color_80"
+                    android:textSize="14sp"/>
+                <TextView
+                    android:id="@+id/checkInBtn"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:drawablePadding="@dimen/_6sdp"
+                    android:drawableStart="@drawable/ic_date_icon"
+                    android:paddingStart="12dp"
+                    android:hint="@string/from"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_hint_color"
+                    android:textSize="14sp"
+                    android:gravity="center_vertical|start" />
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="12dp"/>
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/comic_regular"
+                    android:text="@string/check_out"
+                    android:textColor="@color/text_color_80"
+                    android:textSize="14sp"/>
+                <TextView
+                    android:id="@+id/checkOutBtn"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:drawablePadding="@dimen/_6sdp"
+                    android:drawableStart="@drawable/ic_date_icon"
+                    android:paddingStart="12dp"
+                    android:hint="@string/to"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_hint_color"
+                    android:textSize="14sp"
+                    android:gravity="center_vertical|start" />
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <TextView
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="12dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/comic_regular"
+            android:text="@string/guest"
+            android:textColor="@color/text_color_80"
+            android:textSize="14sp"/>
+
+
+        <TextView
+            android:id="@+id/guestBtn"
+            android:layout_marginTop="@dimen/_4sdp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_40sdp"
+            android:background="@drawable/rounded_edit_text_background_selector"
+            android:drawablePadding="@dimen/_6sdp"
+            android:drawableStart="@drawable/ic_name"
+            android:paddingStart="12dp"
+            android:hint="@string/guest"
+            android:textColor="@color/text_color"
+            android:textColorHint="@color/text_hint_color"
+            android:textSize="14sp"
+            android:gravity="center_vertical|start" />
+
+
+
+
+
+
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+</layout>

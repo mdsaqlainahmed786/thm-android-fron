@@ -1,0 +1,188 @@
+package com.thehotelmedia.android.activity.stories
+
+import android.content.Intent
+import android.os.Bundle
+import android.view.View
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
+import androidx.lifecycle.ViewModelProvider
+import androidx.viewpager2.widget.ViewPager2
+import com.google.gson.Gson
+import com.thehotelmedia.android.Socket.SocketViewModel
+import com.thehotelmedia.android.ViewModelFactory
+import com.thehotelmedia.android.activity.BaseActivity
+import com.thehotelmedia.android.activity.userTypes.business.bottomNavigation.BottomNavigationBusinessMainActivity
+import com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity
+import com.thehotelmedia.android.adapters.NotificationAdapter
+import com.thehotelmedia.android.customClasses.Constants.business_type_individual
+import com.thehotelmedia.android.customClasses.CustomProgressBar
+import com.thehotelmedia.android.customClasses.CustomSnackBar
+import com.thehotelmedia.android.customClasses.PreferenceManager
+import com.thehotelmedia.android.databinding.ActivityViewStoriesBinding
+import com.thehotelmedia.android.modals.Stories.Stories
+import com.thehotelmedia.android.repository.IndividualRepo
+import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
+
+class ViewStoriesActivity : BaseActivity() {
+
+    private lateinit var binding : ActivityViewStoriesBinding
+
+    private lateinit var progressBar : CustomProgressBar
+    private lateinit var individualViewModal: IndividualViewModal
+    private lateinit var preferenceManager : PreferenceManager
+    private lateinit var storyPagerAdapter: StoryPagerAdapter
+    private val socketViewModel: SocketViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityViewStoriesBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        initUi()
+
+        // Handle back button with OnBackPressedDispatcher
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                storyPagerAdapter.moveToMainScreen()
+                // You can perform additional actions here if needed.
+                // Call finish() if you want to close the activity:
+                // finish()
+            }
+        })
+    }
+
+
+
+    private fun initUi() {
+
+
+
+        preferenceManager = PreferenceManager.getInstance(this)
+        val individualRepo = IndividualRepo(this)
+        individualViewModal = ViewModelProvider(this, ViewModelFactory(null,individualRepo,null))[IndividualViewModal::class.java]
+        progressBar = CustomProgressBar(this)
+        val businessType = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "").toString()
+// Convert JSON string back to list
+        val jsonString = intent.getStringExtra("StoriesJson")
+        val myUserName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
+
+        socketViewModel.connectSocket(myUserName)
+        // Check if the JSON string exists
+        if (jsonString != null) {
+            // Convert the JSON string back to a Stories object
+//            val story = Gson().fromJson(jsonString, Stories::class.java)
+            val storiesList = Gson().fromJson(jsonString, Array<Stories>::class.java).toList()
+            println("sadjfgajsg  Retrieved storiesList: $storiesList")
+
+            setViewPager(storiesList)
+            // Now, you can access the story object data and bind it to your views
+            // Example: binding.textViewStoryName.text = story.name
+        } else {
+            println("sadjfgajsg  No StoriesJson found in the intent")
+
+        }
+
+
+
+        individualViewModal.deleteStoryResult.observe(this){result->
+            if (result.status == true){
+                val msg = result.message.toString()
+                CustomSnackBar.showSnackBar(binding.root,msg)
+                storyPagerAdapter.moveToMainScreen()
+            }else{
+                val msg = result.message.toString()
+                CustomSnackBar.showSnackBar(binding.root,msg)
+            }
+        }
+
+        individualViewModal.blockUserResult.observe(this){result->
+            if (result.status == true){
+                val msg = result.message.toString()
+                CustomSnackBar.showSnackBar(binding.root,msg)
+
+                storyPagerAdapter.moveToMainScreen()
+//               onBackPressedDispatcher.onBackPressed()
+//                moveToMainScreen(businessType)
+
+
+            }else{
+                val msg = result.message.toString()
+                CustomSnackBar.showSnackBar(binding.root,msg)
+            }
+        }
+
+
+        individualViewModal.loading.observe(this){
+            if (it == true){
+                progressBar.show() // To show the giff progress bar
+            }else{
+                progressBar.hide() // To hide the giff progress bar
+            }
+        }
+
+        individualViewModal.toast.observe(this){
+//            Toast.makeText(activity,it, Toast.LENGTH_SHORT).show()
+            CustomSnackBar.showSnackBar(binding.root,it)
+        }
+
+
+    }
+
+    private fun moveToMainScreen(businessType: String) {
+        if (businessType == business_type_individual) {
+            val intent = Intent(this, BottomNavigationIndividualMainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+//                    finish()
+        } else {
+            val intent = Intent(this, BottomNavigationBusinessMainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+//                    finish()
+        }
+    }
+
+    private fun setViewPager(storiesList: List<Stories>) {
+        // Set up the adapter with the list of images
+        storyPagerAdapter = StoryPagerAdapter(this,storiesList,binding.viewPager,preferenceManager,individualViewModal,supportFragmentManager,::hideNameLayout,socketViewModel)
+//        binding.viewPager.setPageTransformer(YAxisRotationPageTransformer()) // Optional for custom animation
+        binding.viewPager.setPageTransformer(RotateDownTransformer()) // Optional for custom animation
+//        binding.viewPager.offscreenPageLimit = 1 // Set how many pages to load offscreen (for performance)
+        binding.viewPager.adapter = storyPagerAdapter
+
+        binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                if (position>0){
+//                    storyPagerAdapter.onPageChanged(position)
+                }
+
+            }
+        })
+    }
+
+    private fun hideNameLayout(action: Boolean) {
+        if (action){
+
+        }else{
+
+        }
+
+
+    }
+
+
+}
+class RotateDownTransformer : ViewPager2.PageTransformer {
+    override fun transformPage(view: View, position: Float) {
+        val rotation = 10f * position // Rotate the view down based on position
+
+        view.pivotX = view.width * 0.5f
+        view.pivotY = view.height.toFloat() // Rotate from the bottom of the view
+
+        view.rotation = rotation
+    }
+}
+
+
+
+

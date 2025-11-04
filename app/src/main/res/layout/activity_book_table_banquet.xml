@@ -1,0 +1,787 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/background_color"
+        tools:context=".activity.userTypes.individual.BookTableBanquetActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/linearLayoutCompat6"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            tools:layout_editor_absoluteX="0dp"
+            tools:layout_editor_absoluteY="-252dp">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:id="@+id/backBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_back_arrow" />
+
+                <TextView
+                    android:id="@+id/titleTv"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/comic_bold"
+                    android:text="@string/booking_summary"
+                    android:textColor="@color/text_color"
+                    android:textSize="18sp" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/hasDataLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="none">
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/statusLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:visibility="gone"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp"
+                        android:layout_marginBottom="12dp"
+                        android:padding="@dimen/_4sdp"
+                        android:background="@drawable/background_6_red">
+
+
+
+                        <TextView
+                            android:id="@+id/statusTv"
+                            android:layout_marginStart="@dimen/_3sdp"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_weight="1"
+                            android:textColor="@color/white"
+                            android:textSize="18sp"
+                            android:text="Booking canceled"/>
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp"
+                        android:background="@drawable/booking_rounded_bg"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/hotelCv"
+                            android:layout_width="@dimen/_40sdp"
+                            android:layout_height="@dimen/_40sdp"
+                            android:layout_gravity="center"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"
+                            app:cardBackgroundColor="@color/transparent"
+                            app:cardCornerRadius="@dimen/_50sdp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:strokeColor="@color/post_stroke"
+                            app:strokeWidth="1.6dp">
+
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/hotelProfileIv"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_margin="3.6dp"
+                                android:background="@color/grey"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_margin="8dp"
+                            android:orientation="vertical">
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/hotelNameTv"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="Grand Imperial"
+                                    android:textColor="@color/white"
+                                    android:textSize="16sp" />
+
+                                <TextView
+                                    android:id="@+id/businessTypeTv"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="Hotel -"
+                                    android:textColor="@color/white_40"
+                                    android:textSize="11sp" />
+
+                                <ImageView
+                                    android:id="@+id/businessIconIv"
+                                    android:layout_width="@dimen/_16sdp"
+                                    android:layout_height="@dimen/_16sdp"
+                                    android:layout_gravity="center_vertical"
+                                    android:layout_marginStart="4dp"
+                                    android:scaleType="center"
+                                    android:src="@drawable/ic_hotel" />
+
+                                <TextView
+                                    android:id="@+id/averageRatingTv"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="( 3 star)"
+                                    android:textColor="@color/white_40"
+                                    android:textSize="11sp" />
+
+
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+                            <TextView
+                                android:id="@+id/addressTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/comic_regular"
+                                android:maxLines="3"
+                                android:text="Landran, Kharar - Landran Rd, Sector 116, Sahibzada Ajit Singh Nagar, Punjab 140308"
+                                android:textColor="@color/white_80"
+                                android:textSize="11sp" />
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="@dimen/_12sdp"
+                        android:layout_marginEnd="12dp"
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:layout_width="@dimen/_20sdp"
+                            android:layout_height="@dimen/_20sdp"
+                            android:src="@drawable/ic_guest_details_blue" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/_2sdp"
+                            android:layout_weight="1"
+                            android:fontFamily="@font/comic_regular"
+                            android:text="@string/booking_details"
+                            android:textColor="@color/text_color"
+                            android:textSize="16sp" />
+
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/normalInfoLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginTop="@dimen/_6sdp"
+                        android:layout_marginEnd="12dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/setting_background_normal_14"
+                        android:orientation="vertical"
+                        android:padding="@dimen/_8sdp">
+
+
+
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/nameLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/_2sdp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/name_dots"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/nameTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.7"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="First Last Name"
+                                android:textAlignment="textEnd"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/emailLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/_2sdp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/email_dot"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/emailTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.7"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="-----------@gmail.com"
+                                android:textAlignment="textEnd"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/numberLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/_2sdp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/phone_number_dots"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/phoneNumberTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.7"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="------------"
+                                android:textAlignment="textEnd"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/bookingDateLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/_2sdp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/booking_date_dots"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/bookingDateTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.7"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="April 7, 2025 | 11:19Am"
+                                android:textAlignment="textEnd"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/eventGuestLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/_2sdp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/number_of_guests_dots"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/eventGuestTv"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="0.7"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="12"
+                                android:textAlignment="textEnd"
+                                android:textColor="@color/text_color"
+                                android:textSize="13sp" />
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/tableBookingDetailsLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="@dimen/_12sdp"
+                            android:layout_marginEnd="12dp"
+                            android:orientation="horizontal">
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:layout_width="@dimen/_20sdp"
+                                android:layout_height="@dimen/_20sdp"
+                                android:src="@drawable/ic_table_booking_details_blue" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/_2sdp"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/table_booking_details"
+                                android:textColor="@color/text_color"
+                                android:textSize="16sp" />
+
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/tableTypeLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_40sdp"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="@dimen/_6sdp"
+                            android:layout_marginEnd="12dp"
+                            android:background="@drawable/setting_background_normal_14"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp">
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/tableTypeIv"
+                                android:layout_width="@dimen/_28sdp"
+                                android:layout_height="@dimen/_28sdp"
+                                android:layout_gravity="center_vertical"
+                                android:padding="1dp"
+                                android:src="@drawable/ic_hotel"
+                                app:contentPadding="@dimen/_5sdp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"
+                                app:strokeColor="@color/et_stroke"
+                                app:strokeWidth="1dp" />
+
+                            <TextView
+                                android:id="@+id/tableTypeTv"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:layout_marginStart="@dimen/_2sdp"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="Deluxe Room"
+                                android:textColor="@color/text_color"
+                                android:textSize="16sp" />
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="@dimen/_6sdp"
+                            android:layout_marginEnd="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:background="@drawable/setting_background_normal_14"
+                            android:orientation="vertical"
+                            android:padding="@dimen/_8sdp">
+
+
+
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:id="@+id/bookingForLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_2sdp"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="@string/booking_for_dots"
+                                    android:textColor="@color/text_color"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:id="@+id/bookingForTv"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="0.7"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="April 7, 2025 | 11:19Am"
+                                    android:textAlignment="textEnd"
+                                    android:textColor="@color/text_color"
+                                    android:textSize="13sp" />
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:id="@+id/tableGuestLayout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/_2sdp"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="@string/number_of_guests_dots"
+                                    android:textColor="@color/text_color"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:id="@+id/tableGuestTv"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="0.7"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="00"
+                                    android:textAlignment="textEnd"
+                                    android:textColor="@color/text_color"
+                                    android:textSize="13sp" />
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:id="@+id/eventBookingDetailsLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="@dimen/_12sdp"
+                            android:layout_marginEnd="12dp"
+                            android:orientation="horizontal">
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:layout_width="@dimen/_20sdp"
+                                android:layout_height="@dimen/_20sdp"
+                                android:src="@drawable/ic_type_of_event_blue" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/_2sdp"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="@string/type_of_event"
+                                android:textColor="@color/text_color"
+                                android:textSize="16sp" />
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:id="@+id/eventTypeLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_40sdp"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="@dimen/_6sdp"
+                            android:layout_marginEnd="12dp"
+                            android:background="@drawable/setting_background_normal_14"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp">
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/eventTypeIv"
+                                android:layout_width="@dimen/_28sdp"
+                                android:layout_height="@dimen/_28sdp"
+                                android:layout_gravity="center_vertical"
+                                android:padding="1dp"
+                                android:src="@drawable/ic_hotel"
+                                app:contentPadding="@dimen/_5sdp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"
+                                app:strokeColor="@color/et_stroke"
+                                app:strokeWidth="1dp" />
+
+                            <TextView
+                                android:id="@+id/eventTypeTv"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:layout_marginStart="@dimen/_2sdp"
+                                android:layout_weight="1"
+                                android:fontFamily="@font/comic_regular"
+                                android:text="Deluxe Room"
+                                android:textColor="@color/text_color"
+                                android:textSize="16sp" />
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/_46sdp"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="@dimen/_6sdp"
+                            android:layout_marginEnd="12dp"
+                            android:background="@drawable/setting_background_normal_14"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp">
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:layout_weight="1"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:id="@+id/cardView"
+                                    android:layout_width="@dimen/_30sdp"
+                                    android:layout_height="@dimen/_30sdp"
+                                    app:cardBackgroundColor="@color/amenities_background"
+                                    app:cardCornerRadius="@dimen/_50sdp"
+                                    app:layout_constraintBottom_toTopOf="@+id/titleTv"
+                                    app:layout_constraintEnd_toEndOf="parent"
+                                    app:layout_constraintStart_toStartOf="parent"
+                                    app:layout_constraintTop_toTopOf="parent"
+                                    app:layout_constraintVertical_chainStyle="packed"
+                                    app:strokeColor="@color/et_round_stroke"
+                                    app:strokeWidth="1dp">
+
+                                    <androidx.appcompat.widget.AppCompatImageView
+                                        android:id="@+id/imageView"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="match_parent"
+                                        android:layout_gravity="center"
+                                        android:layout_margin="@dimen/_4sdp"
+                                        android:src="@drawable/ic_check_in_icon" />
+
+                                </com.google.android.material.card.MaterialCardView>
+
+                                <androidx.appcompat.widget.LinearLayoutCompat
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center_vertical"
+                                    android:layout_marginStart="4dp"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="@string/check_in_"
+                                        android:textColor="@color/text_color_60"
+                                        android:textSize="14sp" />
+
+                                    <TextView
+                                        android:id="@+id/checkInDateTv"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="30,Nov"
+                                        android:textColor="@color/blue"
+                                        android:textSize="14sp" />
+
+                                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+                            <androidx.appcompat.widget.LinearLayoutCompat
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="center_vertical"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:orientation="horizontal">
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:layout_width="@dimen/_30sdp"
+                                    android:layout_height="@dimen/_30sdp"
+                                    app:cardBackgroundColor="@color/amenities_background"
+                                    app:cardCornerRadius="@dimen/_50sdp"
+                                    app:layout_constraintBottom_toTopOf="@+id/titleTv"
+                                    app:layout_constraintEnd_toEndOf="parent"
+                                    app:layout_constraintStart_toStartOf="parent"
+                                    app:layout_constraintTop_toTopOf="parent"
+                                    app:layout_constraintVertical_chainStyle="packed"
+                                    app:strokeColor="@color/et_round_stroke"
+                                    app:strokeWidth="1dp">
+
+                                    <androidx.appcompat.widget.AppCompatImageView
+                                        android:layout_width="match_parent"
+                                        android:layout_height="28dp"
+                                        android:layout_gravity="center"
+                                        android:layout_margin="@dimen/_4sdp"
+                                        android:src="@drawable/ic_check_in_icon" />
+
+                                </com.google.android.material.card.MaterialCardView>
+
+                                <androidx.appcompat.widget.LinearLayoutCompat
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_gravity="center_vertical"
+                                    android:layout_marginStart="4dp"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="@string/check_out"
+                                        android:textColor="@color/text_color_60"
+                                        android:textSize="14sp" />
+
+                                    <TextView
+                                        android:id="@+id/checkOutDateTv"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:fontFamily="@font/comic_regular"
+                                        android:text="01,Dec"
+                                        android:textColor="@color/blue"
+                                        android:textSize="14sp" />
+
+
+                                </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    <View
+                        android:layout_width="wrap_content"
+                        android:layout_height="@dimen/_80sdp" />
+
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+            </androidx.core.widget.NestedScrollView>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:visibility="gone"
+            android:id="@+id/bookingStatusLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/transparent"
+            android:elevation="@dimen/_4sdp"
+            android:padding="@dimen/_8sdp"
+            app:layout_constraintBottom_toBottomOf="@+id/linearLayoutCompat6"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+
+            <Button
+                android:id="@+id/btn_reject"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/reject"
+                android:textColor="@color/white"
+                android:fontFamily="@font/comic_regular"
+                android:backgroundTint="@color/red"
+                android:textSize="14sp"
+                android:layout_marginStart="@dimen/_4sdp"
+                android:layout_marginEnd="@dimen/_4sdp" />
+
+            <Button
+                android:id="@+id/btn_accept"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/accept"
+                android:fontFamily="@font/comic_regular"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:backgroundTint="@color/blue"/>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

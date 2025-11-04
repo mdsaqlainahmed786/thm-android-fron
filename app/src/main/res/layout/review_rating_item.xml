@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/QuestionsTv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_14sdp"
+            android:fontFamily="@font/comic_regular"
+            android:text="Questions under development"
+            android:textColor="@color/text_color_60"
+            android:textSize="14sp"/>
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_marginTop="@dimen/_6sdp"
+            android:layout_width="match_parent"
+            android:orientation="horizontal"
+            android:background="@drawable/background_14"
+            android:layout_height="50dp">
+
+<!--            <RatingBar-->
+<!--                android:layout_marginStart="@dimen/_8sdp"-->
+<!--                android:id="@+id/ratingBar"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:background="@android:color/transparent"-->
+<!--                android:numStars="5"-->
+<!--                android:rating="3.0"-->
+<!--                android:stepSize="1.0"-->
+<!--                android:theme="@style/CustomRatingBar"-->
+<!--                app:layout_constraintBottom_toBottomOf="parent"-->
+<!--                app:layout_constraintStart_toStartOf="parent"-->
+<!--                app:layout_constraintTop_toTopOf="parent"-->
+<!--                tools:layout_constraintLeft_creator="1"-->
+<!--                tools:layout_constraintRight_creator="1"-->
+<!--                tools:layout_constraintTop_creator="1"/>-->
+<!--            <RatingBar-->
+<!--                android:id="@+id/ratingBar"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:numStars="5"-->
+<!--                android:rating="0"-->
+<!--                android:stepSize="1"-->
+<!--                android:progressBackgroundTint="@color/grey"-->
+<!--                android:progressTint="@color/yellow"-->
+<!--                android:scaleX="0.8"-->
+<!--                android:scaleY="0.8"-->
+<!--                app:layout_constraintBottom_toBottomOf="parent"-->
+<!--                app:layout_constraintStart_toStartOf="parent"-->
+<!--                app:layout_constraintTop_toTopOf="parent"/>-->
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_gravity="center_vertical"
+                android:orientation="horizontal">
+
+
+                <com.airbnb.lottie.LottieAnimationView
+                    android:id="@+id/firstStar"
+                    android:layout_marginStart="6dp"
+                    android:layout_width="@dimen/_30sdp"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="@drawable/ic_unselecetd_star"
+                    app:lottie_autoPlay="true"
+                    app:lottie_loop="false"/>
+                <com.airbnb.lottie.LottieAnimationView
+                    android:id="@+id/secondStar"
+                    android:layout_marginStart="3dp"
+                    android:layout_width="@dimen/_30sdp"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="@drawable/ic_unselecetd_star"/>
+                <com.airbnb.lottie.LottieAnimationView
+                    android:id="@+id/thirdStar"
+                    android:layout_marginStart="3dp"
+                    android:layout_width="@dimen/_30sdp"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="@drawable/ic_unselecetd_star"/>
+                <com.airbnb.lottie.LottieAnimationView
+                    android:id="@+id/fourthStar"
+                    android:layout_marginStart="3dp"
+                    android:layout_width="@dimen/_30sdp"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="@drawable/ic_unselecetd_star"/>
+                <com.airbnb.lottie.LottieAnimationView
+                    android:id="@+id/fifthStar"
+                    android:layout_marginStart="3dp"
+                    android:layout_width="@dimen/_30sdp"
+                    android:layout_height="@dimen/_30sdp"
+                    android:background="@drawable/ic_unselecetd_star"/>
+
+
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+            <TextView
+                android:id="@+id/ratingTv"
+                android:layout_marginEnd="@dimen/_8sdp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:text="Rating"
+                android:fontFamily="@font/comic_regular"
+                android:textSize="14sp"
+                android:textColor="@color/text_color_60"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+</layout>

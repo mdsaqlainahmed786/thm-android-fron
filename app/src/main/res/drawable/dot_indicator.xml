@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Add transparent background to avoid blocking other items -->
+    <item android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent"/>
+        </shape>
+    </item>
+
+    <!-- The blue dot at the bottom -->
+    <item
+        android:gravity="bottom|center_horizontal"
+        android:bottom="6dp"> <!-- Adjust this value to position the dot -->
+        <shape android:shape="oval">
+            <solid android:color="@color/blue"/>
+            <size
+                android:width="2dp"
+                android:height="2dp"/>
+        </shape>
+    </item>
+</layer-list>

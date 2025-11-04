@@ -1,0 +1,101 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.apk
+*.aab
+*.apk
+*.aab
+
+
+# Gradle
+.gradle/
+build/
+*/build/
+!gradle-wrapper.jar
+
+# Local configuration
+local.properties
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# User-specific files
+*.jks
+*.keystore
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Generated files
+captures/
+output.json
+
+# Kotlin specific
+*.ktlint*
+*.kotlin_module
+
+# Android Profiling
+*.hprof
+
+# Google Services
+google-services.json
+
+# Firebase crashlytics
+crashlytics-build.properties
+
+# NDK / CMake
+.cxx/
+.externalNativeBuild/
+
+# Gradle Caches
+.gradle/
+!gradle-wrapper.jar
+gradle-app.setting
+
+# Jetpack Compose
+.compose-cache/
+compose-metrics/
+compose-reports/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# APK / AAB / IPA files
+*.apk
+*.ap_
+*.aab
+*.ipa
+
+# Signing keys and secrets
+signing/
+*.keystore
+*.jks
+
+# Android Test
+androidTest-results/
+outputs/
+coverage/
+jacocoTestReport/
+

@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+<!--        <ImageView-->
+<!--            android:id="@+id/imageView"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="match_parent"-->
+<!--            android:scaleType="centerCrop" />-->
+
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter" />
+
+        <VideoView
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:id="@+id/videoView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:layout_marginTop="12dp"
+            android:id="@+id/storyProgressContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/btnPrevious"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"/>
+            <View
+                android:id="@+id/btnNext"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"/>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/topLayout"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@+id/storyProgressContainer">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/backBtn"
+                android:layout_gravity="center_vertical"
+                android:layout_width="@dimen/_26sdp"
+                android:layout_height="@dimen/_26sdp"
+                android:background="@color/blue_70"
+                android:src="@drawable/ic_small_back_white"
+                app:contentPadding="@dimen/_7sdp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/profilePic"
+                android:layout_marginStart="10dp"
+                android:layout_gravity="center_vertical"
+                android:layout_width="@dimen/_36sdp"
+                android:layout_height="@dimen/_36sdp"
+                android:background="@color/grey"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_marginStart="10dp"
+                android:layout_width="0dp"
+                android:layout_gravity="center_vertical"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/nameTv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Name"
+                    android:fontFamily="@font/comic_regular"
+                    android:textSize="14sp"
+                    android:textColor="@color/grey"/>
+                <TextView
+                    android:id="@+id/timingTv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2h"
+                    android:fontFamily="@font/comic_regular"
+                    android:textSize="11sp"
+                    android:textColor="@color/grey"/>
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/menuBtn"
+                android:layout_gravity="center_vertical"
+                android:layout_width="@dimen/_26sdp"
+                android:layout_height="@dimen/_26sdp"
+                android:background="@color/blue_70"
+                android:src="@drawable/ic_three_dot_small"
+                app:contentPadding="@dimen/_7sdp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/deleteBtn"
+                android:layout_gravity="center_vertical"
+                android:layout_width="@dimen/_26sdp"
+                android:layout_height="@dimen/_26sdp"
+                android:background="@color/blue_70"
+                android:src="@drawable/ic_delete_white"
+                app:contentPadding="@dimen/_6sdp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/bottomLayout"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginBottom="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/viewerLayout"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+
+                <ImageView
+                    android:layout_gravity="center"
+                    android:layout_width="@dimen/_30sdp"
+                    android:layout_height="@dimen/_30sdp"
+                    android:padding="4dp"
+                    android:layout_marginBottom="-4dp"
+                    android:src="@drawable/ic_upper_arrow_white"/>
+
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/likedLayout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/_40sdp"
+                    app:cardCornerRadius="24dp"
+                    app:strokeColor="@color/blue_50"
+                    app:cardBackgroundColor="@color/transparent"
+                    app:strokeWidth="1dp">
+                    <eightbitlab.com.blurview.BlurView
+                        android:id="@+id/viewerBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/blue_30">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView1"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:background="@color/grey"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView2"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:layout_marginStart="-12dp"
+                                android:background="@color/red"
+                                android:elevation="1dp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/imageView3"
+                                android:layout_width="@dimen/_24sdp"
+                                android:layout_height="@dimen/_24sdp"
+                                android:layout_marginStart="-12dp"
+                                android:background="@color/grey"
+                                android:elevation="1dp"
+                                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+
+                        </LinearLayout>
+
+                    </eightbitlab.com.blurview.BlurView>
+
+
+                </com.google.android.material.card.MaterialCardView>
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/otherUserCommentLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="@color/transparent"
+                    app:strokeColor="@color/blue_50"
+                    app:strokeWidth="1dp">
+
+                    <eightbitlab.com.blurview.BlurView
+                        android:id="@+id/commentBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/blue_30">
+
+                        <androidx.appcompat.widget.AppCompatEditText
+                            android:id="@+id/commentEt"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@null"
+                            android:imeOptions="actionSend"
+                            android:inputType="textCapWords"
+                            android:drawablePadding="@dimen/_2sdp"
+                            android:hint="@string/add_comment"
+                            android:paddingStart="12dp"
+                            android:textColor="@color/text_color"
+                            android:textColorHint="@color/text_hint_color"
+                            android:textSize="14sp"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+                    </eightbitlab.com.blurview.BlurView>
+
+
+
+                </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_marginStart="12dp"
+                    android:layout_width="@dimen/_40sdp"
+                    android:layout_height="@dimen/_40sdp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="@color/transparent"
+                    app:strokeColor="@color/blue_50"
+                    app:strokeWidth="1dp">
+
+                    <eightbitlab.com.blurview.BlurView
+                        android:id="@+id/likeBtn"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/blue_30">
+
+                        <ImageView
+                            android:id="@+id/likeIv"
+                            android:layout_gravity="center"
+                            android:layout_width="@dimen/_24sdp"
+                            android:layout_height="@dimen/_24sdp"
+                            android:src="@drawable/ic_unlike_icon"/>
+
+
+                    </eightbitlab.com.blurview.BlurView>
+
+
+
+                </com.google.android.material.card.MaterialCardView>
+
+
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</layout>

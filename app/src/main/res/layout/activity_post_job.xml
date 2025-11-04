@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:background="@color/background_color"
+        android:orientation="vertical"
+        tools:context=".activity.userTypes.individual.settingsScreen.PostJobActivity">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/backBtn"
+                android:layout_gravity="center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_back_arrow"/>
+
+            <TextView
+                android:id="@+id/titleTv"
+                android:layout_weight="1"
+                android:layout_gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="@string/post_job"
+                android:textColor="@color/text_color"
+                android:textSize="18sp"
+                android:fontFamily="@font/comic_bold"/>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/hasDataLayout"
+            android:visibility="visible"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginBottom="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/job_title"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color_60"/>
+
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/jobTitleEt"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:drawablePadding="@dimen/_2sdp"
+                    android:hint="@string/enter_job_title"
+                    android:inputType="textCapCharacters"
+                    android:paddingStart="12dp"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_color_60"
+                    android:paddingEnd="12dp"
+                    android:textSize="14sp"/>
+
+
+                <TextView
+                    android:layout_marginTop="@dimen/_10sdp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/designation"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color_60"/>
+                <RelativeLayout
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_width="match_parent"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:layout_height="50dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/textInputCategory11"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_centerInParent="true"
+                        android:background="@color/transparent"
+                        app:boxStrokeWidth="0dp"
+                        app:endIconDrawable="@drawable/toggle_dropdown"
+                        app:boxStrokeWidthFocused="0dp"
+                        app:endIconTint="@color/grey">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/designationTv"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginBottom="@dimen/_4sdp"
+                            android:fontFamily="@font/comic_regular"
+                            android:inputType="none"
+                            android:background="@color/transparent"
+                            android:padding="@dimen/_6sdp"
+                            android:text="Select Designation"
+                            android:textColor="@color/text_color_50"
+                            android:textSize="14sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </RelativeLayout>
+
+                <TextView
+                    android:layout_marginTop="@dimen/_10sdp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/job_description"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color_60"/>
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/jobDescriptionEt"
+                    android:padding="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_140sdp"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:gravity="top|start"
+                    android:drawablePadding="@dimen/_2sdp"
+                    android:hint="@string/job_description"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_hint_color"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:layout_marginTop="@dimen/_10sdp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/job_type"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color_60"/>
+                <RelativeLayout
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_width="match_parent"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:layout_height="50dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/textInputCategory2"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_centerInParent="true"
+                        android:background="@color/transparent"
+                        app:boxStrokeWidth="0dp"
+                        app:endIconDrawable="@drawable/toggle_dropdown"
+                        app:boxStrokeWidthFocused="0dp"
+                        app:endIconTint="@color/grey">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/jobTypeTv"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginBottom="@dimen/_4sdp"
+                            android:fontFamily="@font/comic_regular"
+                            android:inputType="none"
+                            android:background="@color/transparent"
+                            android:padding="@dimen/_6sdp"
+                            android:text="@string/select_job_type"
+                            android:textColor="@color/text_color_50"
+                            android:textSize="14sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </RelativeLayout>
+
+                <TextView
+                    android:layout_marginTop="@dimen/_10sdp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/experience"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color_60"/>
+                <RelativeLayout
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_width="match_parent"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:layout_height="50dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/textInputCategory3"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_centerInParent="true"
+                        android:background="@color/transparent"
+                        app:boxStrokeWidth="0dp"
+                        app:endIconDrawable="@drawable/toggle_dropdown"
+                        app:boxStrokeWidthFocused="0dp"
+                        app:endIconTint="@color/grey">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/experienceTv"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginBottom="@dimen/_4sdp"
+                            android:fontFamily="@font/comic_regular"
+                            android:inputType="none"
+                            android:background="@color/transparent"
+                            android:padding="@dimen/_6sdp"
+                            android:text="@string/select_experience"
+                            android:textColor="@color/text_color_50"
+                            android:textSize="14sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </RelativeLayout>
+
+                <TextView
+                    android:layout_marginTop="@dimen/_10sdp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/salary_offer"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color_60"/>
+                <RelativeLayout
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_width="match_parent"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:layout_height="50dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/textInputCategory4"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_centerInParent="true"
+                        android:background="@color/transparent"
+                        app:boxStrokeWidth="0dp"
+                        app:endIconDrawable="@drawable/toggle_dropdown"
+                        app:boxStrokeWidthFocused="0dp"
+                        app:endIconTint="@color/grey">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/salaryOfferTv"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginBottom="@dimen/_4sdp"
+                            android:fontFamily="@font/comic_regular"
+                            android:inputType="none"
+                            android:background="@color/transparent"
+                            android:padding="@dimen/_6sdp"
+                            android:text="@string/select_salary"
+                            android:textColor="@color/text_color_50"
+                            android:textSize="14sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </RelativeLayout>
+
+                <TextView
+                    android:layout_marginTop="@dimen/_10sdp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/number_of_vacancies"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color_60"/>
+                <RelativeLayout
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:layout_width="match_parent"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:layout_height="50dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/textInputCategory5"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_centerInParent="true"
+                        android:background="@color/transparent"
+                        app:boxStrokeWidth="0dp"
+                        app:endIconDrawable="@drawable/toggle_dropdown"
+                        app:boxStrokeWidthFocused="0dp"
+                        app:endIconTint="@color/grey">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/vacancyTv"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginBottom="@dimen/_4sdp"
+                            android:fontFamily="@font/comic_regular"
+                            android:inputType="none"
+                            android:background="@color/transparent"
+                            android:padding="@dimen/_6sdp"
+                            android:text="@string/select_vacancies"
+                            android:textColor="@color/text_color_50"
+                            android:textSize="14sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </RelativeLayout>
+
+                <TextView
+                    android:layout_marginTop="@dimen/_10sdp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/joining_date"
+                    android:fontFamily="@font/comic_regular"
+                    android:textColor="@color/text_color_60"/>
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/joiningDateEt"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_40sdp"
+                    android:layout_marginTop="@dimen/_4sdp"
+                    android:background="@drawable/rounded_edit_text_background_selector"
+                    android:drawablePadding="@dimen/_2sdp"
+                    android:hint="@string/select_joining_date"
+                    android:inputType="none"
+                    android:focusable="false"
+                    android:cursorVisible="false"
+                    android:paddingStart="12dp"
+                    android:textColor="@color/text_color"
+                    android:textColorHint="@color/text_color_60"
+                    android:drawableEnd="@drawable/ic_calender"
+                    android:paddingEnd="12dp"
+                    android:textSize="14sp"/>
+
+                <TextView
+                    android:id="@+id/submitBtn"
+                    android:layout_marginTop="@dimen/_16sdp"
+                    android:layout_marginBottom="12dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/_32sdp"
+                    android:background="@drawable/rounded_edit_text_background_blue"
+                    android:fontFamily="@font/comic_regular"
+                    android:gravity="center"
+                    android:text="@string/submit"
+                    android:textColor="@color/selected_text_color"
+                    android:textSize="15sp"
+                    app:layout_constraintBottom_toBottomOf="@+id/linearLayoutCompat7"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+        </androidx.core.widget.NestedScrollView>
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+
+</layout>

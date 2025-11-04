@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="ShapeAppearanceOverlay.App.CornerSize6Percent" parent="">
+        <item name="cornerSize">6%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.App.CornerSize4Percent" parent="">
+        <item name="cornerSize">4%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.App.CornerSize10Percent" parent="">
+        <item name="cornerSize">10%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.App.CornerSize14Percent" parent="">
+        <item name="cornerSize">14%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.App.CornerSize15Percent" parent="">
+        <item name="cornerSize">15%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.App.CornerSize30Percent" parent="">
+        <item name="cornerSize">30%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.App.CornerSize20Percent" parent="">
+        <item name="cornerSize">20%</item>
+    </style>
+    <style name="ShapeAppearanceOverlay.App.CornerSize22Percent" parent="">
+    <item name="cornerSize">22%</item>
+</style>
+    <style name="ShapeAppearanceOverlay.App.CornerSize50Percent" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="CustomBottomSheetDialogTheme" parent="Theme.Design.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/CustomBottomSheetStyle</item>
+    </style>
+    <style name="CustomBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+        <!-- To make sure the bottom sheet wraps content -->
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+    <style name="BottomSheetAnimation" parent="Theme.Design.BottomSheetDialog">
+        <item name="android:windowEnterAnimation">@anim/slide_in_bottom</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_bottom</item>
+    </style>
+
+
+<!--    &lt;!&ndash; Custom DatePickerDialog Theme &ndash;&gt;-->
+<!--    <style name="BlueDatePickerDialog" parent="Theme.MaterialComponents.Light.Dialog">-->
+<!--        <item name="colorAccent">@color/blue</item> &lt;!&ndash; Blue shade &ndash;&gt;-->
+<!--        <item name="android:buttonBarPositiveButtonStyle">@style/BlueDialogButton</item>-->
+<!--        <item name="android:buttonBarNegativeButtonStyle">@style/BlueDialogButton</item>-->
+<!--    </style>-->
+
+<!--    <style name="BlueDialogButton" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">-->
+<!--        <item name="android:textColor">@color/blue</item> &lt;!&ndash; Blue button text &ndash;&gt;-->
+<!--    </style>-->
+
+
+    <!-- Full custom DatePickerDialog theme with black background and blue buttons -->
+    <style name="BlackDatePickerDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="colorAccent">@color/blue</item>
+        <item name="android:background">@color/dialog_background</item> <!-- Black background -->
+
+        <!-- Text Colors -->
+        <item name="android:textColorPrimary">@color/text_color_80</item> <!-- White text -->
+        <item name="android:textColorSecondary">@color/text_color_70</item> <!-- Light gray -->
+
+        <!-- Button styles -->
+        <item name="android:buttonBarPositiveButtonStyle">@style/BlueDialogButton</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/BlueDialogButton</item>
+    </style>
+
+    <!-- Blue buttons -->
+    <style name="BlueDialogButton" parent="Widget.AppCompat.Button.ButtonBar.AlertDialog">
+        <item name="android:textColor">@color/blue</item> <!-- Blue -->
+    </style>
+
+
+
+
+</resources>

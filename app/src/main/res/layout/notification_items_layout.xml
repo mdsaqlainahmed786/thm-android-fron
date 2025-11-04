@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_marginBottom="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/et_background"
+            app:cardCornerRadius="20dp"
+            app:strokeColor="@color/grey"
+            app:strokeWidth="1dp">
+
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_gravity="center"
+                    android:id="@+id/profileCardView"
+                    android:layout_margin="8dp"
+                    android:layout_width="@dimen/_44sdp"
+                    android:layout_height="@dimen/_44sdp"
+                    app:cardCornerRadius="@dimen/_50sdp"
+                    app:strokeWidth="1.6dp"
+                    app:strokeColor="@color/post_stroke"
+                    app:cardBackgroundColor="@color/transparent">
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/profilePic"
+                        android:layout_margin="3.6dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/background_color"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+                </com.google.android.material.card.MaterialCardView>
+
+<!--                <com.google.android.material.imageview.ShapeableImageView-->
+<!--                    android:id="@+id/priofilePic"-->
+<!--                    android:layout_margin="12dp"-->
+<!--                    android:layout_width="@dimen/_44sdp"-->
+<!--                    android:layout_height="@dimen/_44sdp"-->
+<!--                    android:background="@color/white"-->
+<!--                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>-->
+
+                <TextView
+                    android:layout_marginEnd="12dp"
+                    android:id="@+id/descriptionTv"
+                    android:layout_gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:maxLines="3"
+                    android:ellipsize="end"
+                    android:text="Grand Imperial, Sonam Kapoor and others liked your post."
+                    android:textColor="@color/text_color"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/comic_regular"/>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:id="@+id/acceptDeclineLayout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_gravity="center_vertical">
+
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/declineBtn"
+                        android:layout_marginEnd="12dp"
+                        android:layout_gravity="center"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="@color/notification_background"
+                        app:cardElevation="10dp"
+                        app:cardCornerRadius="@dimen/_20sdp"
+                        app:strokeColor="@color/transparent">
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_marginStart="@dimen/_8sdp"
+                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_marginTop="@dimen/_4sdp"
+                            android:layout_marginBottom="@dimen/_4sdp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:layout_gravity="center"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_cancel_white"/>
+
+                            <TextView
+                                android:layout_marginStart="3dp"
+                                android:layout_gravity="center"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/decline"
+                                android:textColor="@color/white"
+                                android:textSize="10sp"
+                                android:fontFamily="@font/comic_regular"/>
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+
+                        android:id="@+id/acceptBtn"
+                        android:layout_marginEnd="12dp"
+                        android:layout_gravity="center"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="@color/selected_business"
+                        app:cardElevation="10dp"
+                        app:cardCornerRadius="@dimen/_20sdp"
+                        app:strokeColor="@color/transparent">
+
+                        <androidx.appcompat.widget.LinearLayoutCompat
+                            android:layout_marginStart="@dimen/_8sdp"
+                            android:layout_marginEnd="@dimen/_8sdp"
+                            android:layout_marginTop="@dimen/_4sdp"
+                            android:layout_marginBottom="@dimen/_4sdp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <androidx.appcompat.widget.AppCompatImageView
+                                android:layout_gravity="center"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_accept_white"/>
+
+                            <TextView
+                                android:layout_marginStart="3dp"
+                                android:layout_gravity="center"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/accept"
+                                android:textColor="@color/white"
+                                android:textSize="10sp"
+                                android:fontFamily="@font/comic_regular"/>
+                        </androidx.appcompat.widget.LinearLayoutCompat>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/followBtn"
+                    android:layout_marginEnd="12dp"
+                    android:layout_gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/selected_business"
+                    app:cardElevation="10dp"
+                    app:cardCornerRadius="@dimen/_20sdp"
+                    app:strokeColor="@color/transparent">
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:layout_marginEnd="@dimen/_8sdp"
+                        android:layout_marginTop="@dimen/_4sdp"
+                        android:layout_marginBottom="@dimen/_4sdp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:layout_gravity="center"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_follow"/>
+
+                        <TextView
+                            android:layout_marginStart="3dp"
+                            android:layout_gravity="center"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/follow"
+                            android:textColor="@color/white"
+                            android:textSize="10sp"
+                            android:fontFamily="@font/comic_regular"/>
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+                </com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/followingBtn"
+                    android:layout_marginEnd="12dp"
+                    android:layout_gravity="center"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/notification_background"
+                    app:cardElevation="10dp"
+                    app:cardCornerRadius="@dimen/_20sdp"
+                    app:strokeColor="@color/transparent">
+
+                    <androidx.appcompat.widget.LinearLayoutCompat
+                        android:layout_marginStart="@dimen/_8sdp"
+                        android:layout_marginEnd="@dimen/_8sdp"
+                        android:layout_marginTop="@dimen/_4sdp"
+                        android:layout_marginBottom="@dimen/_4sdp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.AppCompatImageView
+                            android:layout_gravity="center"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_following_icon"/>
+
+                        <TextView
+                            android:id="@+id/followingTv"
+                            android:layout_marginStart="3dp"
+                            android:layout_gravity="center"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/following"
+                            android:textColor="@color/white"
+                            android:textSize="10sp"
+                            android:fontFamily="@font/comic_regular"/>
+                    </androidx.appcompat.widget.LinearLayoutCompat>
+
+                </com.google.android.material.card.MaterialCardView>
+
+
+
+
+
+
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+</layout>

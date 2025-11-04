@@ -1,0 +1,25 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.thehotelmedia.android",
+    "sha256_cert_fingerprints":
+    ["E9:02:0D:EF:E7:7C:BF:17:E6:B8:B0:16:9F:AC:A3:99:C1:1A:59:95:B1:BC:B2:09:1F:93:A1:FB:61:44:D4:84"]
+  }
+},
+{
+  "relation": ["delegate_permission/common.get_login_creds"],
+  "target": {
+    "namespace": "web",
+    "site": "https://thehotelmedia.com"
+  }
+},
+{
+  "relation": ["delegate_permission/common.get_login_creds"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.thehotelmedia.android",
+    "sha256_cert_fingerprints":
+    ["E9:02:0D:EF:E7:7C:BF:17:E6:B8:B0:16:9F:AC:A3:99:C1:1A:59:95:B1:BC:B2:09:1F:93:A1:FB:61:44:D4:84"]
+  }
+}]

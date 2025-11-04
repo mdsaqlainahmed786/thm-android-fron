@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:background="@drawable/otp_dialog_background"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Your Phone !"
+            android:textColor="@color/text_color"
+            android:fontFamily="@font/comic_regular"
+            android:textSize="16sp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Phone Number"
+            android:layout_marginTop="@dimen/_24sdp"
+            android:textColor="@color/text_color"
+            android:fontFamily="@font/comic_regular"
+            android:textSize="14sp" />
+
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/contactLayout"
+            android:layout_marginTop="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_36sdp"
+            android:background="@drawable/rounded_edit_text_background_normal">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="4dp">
+
+                <com.hbb20.CountryCodePicker
+                    android:id="@+id/countryCodePicker"
+                    android:layout_width="57dp"
+                    android:layout_height="36dp"
+                    android:layout_centerInParent="true"
+                    android:layout_gravity="center_vertical"
+                    app:ccpDialog_backgroundColor="@color/msg_background"
+                    app:ccpDialog_cornerRadius="@dimen/_12sdp"
+                    app:ccpDialog_textColor="@color/text_color_60"
+                    app:ccp_contentColor="@color/text_color"
+                    app:ccpDialog_background="@color/dialog_background"
+                    app:ccp_defaultNameCode="IN"
+                    app:ccp_showFlag="true"
+                    app:ccp_showFullName="false"
+                    app:ccp_showNameCode="false"
+                    app:ccp_showPhoneCode="false"
+                    app:ccp_textSize="14sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/countryFlagImageView"
+                    android:layout_width="@dimen/_22sdp"
+                    android:layout_height="@dimen/_22sdp"
+                    android:elevation="4dp"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/india_flag"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.20"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/contactEt"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@color/transparent"
+                android:hint="@string/contact_number_small"
+                android:paddingStart="1dp"
+                android:paddingEnd="10dp"
+                android:inputType="phone"
+                android:maxLength="10"
+                android:textColor="@color/text_color"
+                android:textColorHint="@color/text_hint_color"
+                android:textSize="12sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/textView3" />
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+
+
+        <TextView
+            android:layout_marginTop="4dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="A 5 digit OTP will be sent via SMS to verify your mobile number"
+            android:textColor="@color/text_color_60"
+            android:fontFamily="@font/comic_regular"
+            android:textSize="11sp" />
+
+
+        <TextView
+            android:id="@+id/proceedBtn"
+            android:layout_marginTop="@dimen/_20sdp"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_32sdp"
+            android:text="@string/proceed"
+            android:gravity="center"
+            android:textSize="15sp"
+            android:background="@drawable/rounded_edit_text_background_blue"
+            android:fontFamily="@font/comic_regular"
+            android:textColor="@color/selected_text_color"/>
+
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+
+    </LinearLayout>
+</layout>

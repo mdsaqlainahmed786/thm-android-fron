@@ -1,0 +1,620 @@
+<resources>
+
+    <string name="default_web_client_id">156125638721-8pgj2054svmllf7301tk85vau993ujkb.apps.googleusercontent.com</string>
+    <string name="asset_statements" translatable="false">[{ \"include\": \"https://thehotelmedia.com/.well-known/assetlinks.json\" }]</string>
+    <string name="degree_celsius" translatable="false">\u00B0C</string>
+
+    <string name="english" translatable="false">English</string>
+    <string name="hindi" translatable="false">हिन्दी</string>
+    <string name="marathi" translatable="false">मराठी</string>
+    <string name="gujarati" translatable="false">ગુજરાતી</string>
+    <string name="telugu" translatable="false">తెలుగు</string>
+    <string name="kannada" translatable="false">కన్నడ</string>
+
+
+    <string-array name="feelings_list">
+        <item>😊 Feeling Happy</item>
+        <item>😢 Feeling Sad</item>
+        <item>😡 Feeling Angry</item>
+        <item>😃 Feeling Excited</item>
+        <item>😲 Feeling Surprised</item>
+        <item>😱 Feeling Scared</item>
+        <item>😕 Feeling Confused</item>
+        <item>😴 Feeling Tired</item>
+        <item>😬 Feeling Nervous</item>
+        <item>😐 Feeling Bored</item>
+        <item>😟 Feeling Anxious</item>
+        <item>😳 Feeling Embarrassed</item>
+        <item>🙏 Feeling Grateful</item>
+        <item>😌 Feeling Proud</item>
+        <item>😞 Feeling Lonely</item>
+        <item>🤞 Feeling Hopeful</item>
+        <item>❤️ Feeling Love</item>
+        <item>😒 Feeling Jealous</item>
+        <item>🤔 Feeling Curious</item>
+        <item>😔 Feeling Ashamed</item>
+        <item>😣 Feeling Guilty</item>
+        <item>💪 Feeling Determined</item>
+        <item>😌 Feeling Relieved</item>
+        <item>😲 Feeling Shocked</item>
+        <item>😞 Feeling Disappointed</item>
+        <item>😤 Feeling Frustrated</item>
+        <item>😯 Feeling Amazed</item>
+        <item>😎 Feeling Confident</item>
+        <item>😐 Feeling Indifferent</item>
+        <item>😂 Feeling Hilarious</item>
+        <item>🤣 Feeling Rolling with Laughter</item>
+        <item>🥰 Feeling Loved</item>
+        <item>🤗 Feeling Caring</item>
+        <item>😖 Feeling Miserable</item>
+        <item>😩 Feeling Exhausted</item>
+        <item>😵 Feeling Overwhelmed</item>
+        <item>🥳 Feeling Celebratory</item>
+        <item>🤯 Feeling Mind-Blown</item>
+        <item>😥 Feeling Worried</item>
+        <item>🤤 Feeling Hungry</item>
+        <item>🤢 Feeling Disgusted</item>
+        <item>🤧 Feeling Sick</item>
+        <item>😇 Feeling Blessed</item>
+        <item>🥺 Feeling Emotional</item>
+        <item>😵‍💫 Feeling Dizzy</item>
+    </string-array>
+
+
+    <!-- User Reasons -->
+    <string-array name="user_reasons">
+        <item>I just don\'t like it</item>
+        <item>Bullying or unwanted contact</item>
+        <item>Suicide, self-injury or eating disorder</item>
+        <item>Violence, hate or exploitation</item>
+        <item>Selling or promoting restricted items</item>
+        <item>Nudity or sexual activity</item>
+        <item>Scam, fraud or spam</item>
+        <item>False information</item>
+    </string-array>
+
+    <!-- Post Reasons -->
+    <string-array name="post_reasons">
+        <item>Inappropriate Content</item>
+        <item>Spam</item>
+        <item>Hate Speech</item>
+        <item>Violence</item>
+        <item>Misinformation</item>
+        <item>Harassment</item>
+        <item>Bullying</item>
+        <item>Sexual Content</item>
+        <item>Nudity</item>
+        <item>Graphic Content</item>
+        <item>Self-harm or Suicide</item>
+        <item>Promoting Harmful Behavior</item>
+        <item>Impersonation</item>
+        <item>False Information</item>
+        <item>Scam or Fraud</item>
+    </string-array>
+
+    <!-- Comment Reasons -->
+    <string-array name="comment_reasons">
+        <item>Offensive Language</item>
+        <item>Spam</item>
+        <item>Hate Speech</item>
+        <item>Harassment</item>
+        <item>Bullying</item>
+        <item>Personal Attacks</item>
+        <item>False Information</item>
+        <item>Misinformation</item>
+        <item>Promoting Violence</item>
+        <item>Inappropriate Content</item>
+        <item>Self-harm or Suicide</item>
+        <item>Scam or Fraud</item>
+        <item>Irrelevant Content</item>
+        <item>Threatening Behavior</item>
+        <item>Graphic Content</item>
+    </string-array>
+
+
+    <string name="app_name" translatable="false">THM</string>
+    <string name="onboard_heading_one">Find the Best\nHotels</string>
+    <string name="onboard_heading_two">Rate and Review\nHotels</string>
+    <string name="onboard_heading_three">Share Your\nMoments</string>
+    <string name="onboard_heading_four">Connect with\nFriends</string>
+    <string name="onboard_desc_one">Search and discover top-rated hotels around the world.</string>
+    <string name="onboard_desc_two">Share your experiences and help others choose the best hotels.</string>
+    <string name="onboard_desc_three">Upload photos and videos of your hotel stays.</string>
+    <string name="onboard_desc_four">Follow friends and see their hotel reviews and photos.</string>
+    <string name="skip">Skip</string>
+    <string name="sign_in">Sign in</string>
+    <string name="email">Email</string>
+    <string name="enter_your_email">Enter your email</string>
+    <string name="password">Password</string>
+    <string name="enter_your_password">Enter your password</string>
+    <string name="remember_me">Remember Me</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="or">OR</string>
+    <string name="if_you_don_t_have_account">If you don’t have account</string>
+    <string name="sign_up">Sign up</string>
+    <string name="select_type">Select Type</string>
+    <string name="individual">Individual</string>
+    <string name="business">Business</string>
+    <string name="individual_sign_up">Individual Sign up</string>
+    <string name="name">Name</string>
+    <string name="type">type</string>
+    <string name="logo">Logo</string>
+    <string name="full_name">Full name</string>
+    <string name="contact_info">Contact Info</string>
+    <string name="camera">Camera</string>
+    <string name="gallery">Gallery</string>
+    <string name="upload_from">Upload From</string>
+    <string name="select_business_type">Select Business type</string>
+    <string name="business_type">Business type</string>
+    <string name="select_business">Select Business</string>
+    <string name="hotel">Hotel</string>
+    <string name="bars_clubs">Bars / Clubs</string>
+    <string name="home_stays">Home Stays</string>
+    <string name="marriage_banquets">Marriage Banquets</string>
+    <string name="restaurant">Restaurant</string>
+    <string name="address">Address</string>
+    <string name="contact_information">Contact information</string>
+    <string name="website_link">Website Link</string>
+    <string name="gstn">GSTIN</string>
+    <string name="description">Description</string>
+    <string name="amenities">Amenities</string>
+    <string name="property_pictures">Property Pictures</string>
+    <string name="manager_information">Manager Information</string>
+    <string name="business_registration">Business Registration</string>
+    <string name="gst_pan_documents">(i.e. GST Certificate, Incorporation Certificate, Proprietorship, Business PAN or any relevant document)</string>
+    <string name="address_proof">Address Proof</string>
+    <string name="address_doc_string">(i.e. Electricity Bill, Rent Agreement, Property Ownership etc.)</string>
+    <string name="terms_and_conditions">Terms and conditions</string>
+
+
+    <string name="terms_demo" translatable="false">Hotel Media ("we," "our," "us") respects your privacy and is committed to protecting your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application (the "App").Please read this Privacy Policy carefully. If you do not agree with the terms of this Privacy Policy, please do not access the App.</string>
+
+
+    <string name="select_your_plan">Select Your Plan</string>
+    <string name="review_summery">Review Summery</string>
+    <string name="billing_address">Billing Address</string>
+    <string name="your_plan">Your plan</string>
+    <string name="promo_code">Promo Code</string>
+    <string name="bill_details">Bill Details</string>
+    <string name="name_dots">Name:</string>
+    <string name="address_dots">Address:</string>
+    <string name="phone_number_dots">Phone number:</string>
+    <string name="gstn_dots">GSTIN NUMBER:</string>
+    <string name="plan_charges">Plan charges</string>
+    <string name="gst">GST</string>
+    <string name="total">Total</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="create_story">Create story</string>
+    <string name="review">Review</string>
+    <string name="create_post">Create Post</string>
+    <string name="hotel_media">Hotel Media</string>
+    <string name="post">Post</string>
+    <string name="follower">Follower</string>
+    <string name="following">Following</string>
+    <string name="dot">•</string>
+    <string name="demo">Hotel Media is a mobile app that combines hotel reviews with social media features. Users can rate hotels, bars, pubs, nightclubs, restaurants, cafes, homestays, and marriage banquets, share feedback, post photos, and engage with other travelers. The app offers hotel search, event creation, and personalized tailored experience. It\'s designed to help users make informed decisions for their trips.</string>
+    <string name="edit_profile">Edit profile</string>
+    <string name="share_profile">Share profile</string>
+    <string name="recent_chat">Recent chat</string>
+    <string name="contact_number">Contact Number</string>
+    <string name="enter_verification_code">Enter Verification Code</string>
+    <string name="confirm_your_email">Confirm Your Email</string>
+    <string name="code_sent_text">We’ve sent 5 digits verification code to</string>
+    <string name="resend_otp">Resend OTP</string>
+    <string name="business_related_question">Business Related Question</string>
+    <string name="select_answer">Select Answer</string>
+    <string name="search">Search</string>
+    <string name="looking_for">Looking For</string>
+    <string name="mostly_searched">Mostly Searched</string>
+    <string name="location">Location</string>
+    <string name="joining">Joining ?</string>
+    <string name="about_me">About me</string>
+    <string name="bio">Bio</string>
+    <string name="change_password">Change Password</string>
+    <string name="settings">Settings</string>
+
+
+    <string name="general">General</string>
+    <string name="language">Language</string>
+    <string name="saved_post">Saved Post</string>
+    <string name="blocked_user">Blocked User</string>
+    <string name="private_account">Private account</string>
+    <string name="more">More</string>
+    <string name="notification">Notification</string>
+    <string name="subscription">Subscription</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="about_us">About Us</string>
+    <string name="terms_conditions">Terms and Conditions</string>
+    <string name="help_and_support">Help and support</string>
+    <string name="account_deactivate">Account Deactivate</string>
+    <string name="log_out">Log Out</string>
+    <string name="blocked">Blocked</string>
+    <string name="no">No</string>
+    <string name="yes">Yes</string>
+    <string name="logout_text">Are you really want to Log out your account?</string>
+    <string name="deactivate_text">Are you really want to Deactivate your account?</string>
+    <string name="unblock_text">Are you really want to unblock this user?</string>
+    <string name="block_text">Are you really want to block this user?</string>
+    <string name="photo_video">Photo/video</string>
+    <string name="tag_people">Tag people</string>
+    <string name="feeling_activity">Feeling/activity</string>
+    <string name="check_in">Check in</string>
+    <string name="tags">Tags :</string>
+    <string name="what_s_in_your_mind">What’s in your mind ?</string>
+    <string name="radius">Radius</string>
+    <string name="tag_people_cap">Tag People</string>
+    <string name="feeling_activity_cap">Feeling/Activity</string>
+    <string name="follow">Follow</string>
+    <string name="message">Message</string>
+    <string name="interested_people">people interested in this event</string>
+
+
+    <string name="write_a_review">Write a Review</string>
+    <string name="create_event">Create Event</string>
+    <string name="documents">Documents</string>
+    <string name="transactions">Transactions</string>
+    <string name="delete_account">Delete Account</string>
+    <string name="delete_account_text">Are you really want to Permanent Delete your account?</string>
+    <string name="category">Category</string>
+    <string name="notifications">Notifications</string>
+    <string name="total_followers">Total Followers</string>
+    <string name="account_reached">Account reached</string>
+    <string name="engaged">Engaged</string>
+    <string name="website_redirection">Website Redirection</string>
+    <string name="overview">Overview</string>
+    <string name="content_you_shared">Content you shared</string>
+    <string name="stories">Stories</string>
+    <string name="posts">Posts</string>
+    <string name="supporting_documents">Supporting Documents</string>
+    <string name="agree_to_terms_and_conditions">Yes, I have read and agree to the Terms and Conditions.</string>
+    <string name="business_logo">Business Logo</string>
+    <string name="contact_number_small">Contact number</string>
+    <string name="enter_verification_code_small">Enter verification code</string>
+    <string name="website_link_optional">Website Link (Optional)</string>
+    <string name="website_link_small">Website link</string>
+    <string name="gstn_optional">GSTIN Number (Optional)</string>
+    <string name="contact_email_small">Contact email</string>
+    <string name="contact_email">Contact Email</string>
+    <string name="edit_image">Edit image</string>
+    <string name="text">Text</string>
+    <string name="emoji">Emoji</string>
+    <string name="filter">Filter</string>
+    <string name="crop">Crop</string>
+
+
+    <string name="create_story_large">Create Story</string>
+    <string name="reset_your_password">Reset Your Password</string>
+    <string name="enter_your_email_adress_below_and_we_ll_send_you_a_link_with_instructions">Enter your email address below and we’ll send you a link with instructions</string>
+    <string name="email_address">Email Address</string>
+    <string name="enter_new_password">Enter New Password</string>
+    <string name="different_password_text">Your password must be different from previous used password.</string>
+    <string name="re_type_password">Re-Type Password</string>
+    <string name="completed">completed</string>
+    <string name="no_photo_uploaded_yet">No photo uploaded yet</string>
+    <string name="no_post_uploaded_yet">No post uploaded yet</string>
+    <string name="no_review_yet">No review yet</string>
+    <string name="no_video_uploaded_yet">No video uploaded yet</string>
+    <string name="no_blocked_profiles">No blocked profiles</string>
+    <string name="no_saved_post_yet">No saved post yet</string>
+    <string name="no_transactions_done_yet">No transactions done yet</string>
+    <string name="your_inbox_is_empty">Your inbox is empty</string>
+    <string name="no_one_send_a_message_to_you_yet">No one send a message to you yet.</string>
+    <string name="edit_category_text">Choose the category that best describes your preferences or needs from the options below.</string>
+    <string name="suggested_nearby_places">Suggested Nearby Places</string>
+    <string name="add_comment">Add comment</string>
+    <string name="event_name">Event Name</string>
+    <string name="enter_event_name">Enter event name</string>
+    <string name="add_streaming_link">Add streaming link</string>
+    <string name="event_venue">Event venue</string>
+    <string name="event_format">Event format</string>
+    <string name="offline">Offline</string>
+    <string name="online">Online</string>
+    <string name="time">Time</string>
+    <string name="date">Date</string>
+    <string name="follow_this_account_to_see_their_photos_and_videos">Follow this account to see their photos and videos</string>
+
+
+    <string name="this_account_is_private">This account is Private</string>
+    <string name="decline">Decline</string>
+    <string name="accept">Accept</string>
+    <string name="unfollow">Unfollow</string>
+    <string name="no_user_found">No user found</string>
+    <string name="visit">Visit</string>
+    <string name="apply">Apply</string>
+    <string name="remove">Remove</string>
+    <string name="no_result_found">No result found</string>
+    <string name="no_data_found">No data found</string>
+    <string name="no_comments_yet">No Comments Yet</string>
+    <string name="faqs">FAQS</string>
+    <string name="contact_us">Contact us</string>
+    <string name="whatsapp">WhatsApp</string>
+    <string name="active_subscription">Active Subscription</string>
+    <string name="cancel_subscription">Cancel subscription</string>
+    <string name="current_subscription">Current Subscription</string>
+    <string name="start_date">Start Date</string>
+    <string name="start_time">Start Time</string>
+    <string name="end_date">End Date</string>
+    <string name="end_time">End Time</string>
+    <string name="about_the_event_venue">About the event venue</string>
+    <string name="streaming_link">Streaming link</string>
+    <string name="joining_">Joining ?</string>
+    <string name="no_views_yet">No Views yet</string>
+    <string name="no_likes_yet">No Likes Yet</string>
+    <string name="block">Block</string>
+    <string name="view_profile">View Profile</string>
+    <string name="send">Send</string>
+    <string name="scroll_down">Scroll down</string>
+    <string name="report">Report</string>
+    <string name="report_description">Your report is anonymous if someone is in immediate danger. call the local emergency services - don\'t wait.</string>
+    <string name="cancel_subscription_text">Sure you want to Cancel Subscription?</string>
+    <string name="no_cancel">No, Cancel</string>
+    <string name="yes_confirm">Yes, Confirm</string>
+
+
+    <string name="something_went_wrong">Something went wrong</string>
+    <string name="google_login_failed">Google Login Failed</string>
+    <string name="please_select_type_first">Please select type first</string>
+    <string name="enter_full_name">Enter your full name</string>
+    <string name="enter_email_address">Enter email address</string>
+    <string name="enter_valid_email_address">Enter valid email address</string>
+    <string name="do_you_really_want_to_block">Do you really want to block</string>
+    <string name="do_you_really_want_to_unfollow">Do you really want to unfollow</string>
+    <string name="week">Week</string>
+    <string name="month">Month</string>
+    <string name="year">Year</string>
+    <string name="unblock">Unblock</string>
+    <string name="types">Types</string>
+    <string name="comments">Comments</string>
+    <string name="replying_to">Replying to</string>
+    <string name="photos">Photos</string>
+    <string name="videos">Videos</string>
+    <string name="reviews">Reviews</string>
+    <string name="events">Events</string>
+    <string name="users">Users</string>
+    <string name="profiles">Profiles</string>
+
+
+    <string name="please_enter">Please enter</string>
+    <string name="please_select">Please select</string>
+    <string name="enter_password">Enter password</string>
+    <string name="password_at_least_8_characters">Password must be at least 8 characters</string>
+    <string name="password_one_uppercase">Password must contain at least one uppercase letter</string>
+    <string name="password_one_lowercase">Password must contain at least one lowercase letter</string>
+    <string name="password_one_number">Password must contain at least one number</string>
+    <string name="password_one_special_character">Password must contain at least one special character</string>
+    <string name="enter_contact_number">Enter contact number</string>
+    <string name="contact_should_be_10_digits">Contact number should be 10 digits</string>
+    <string name="enter_valid_contact_number">Enter a valid contact number</string>
+    <string name="no_image_selected">No image selected</string>
+    <string name="camera_permission_denied">Camera permission denied</string>
+    <string name="gallery_permission_denied">Gallery permission denied</string>
+    <string name="please_enter_your_password">Please enter your password</string>
+    <string name="password_not_strong_enough">Password is not strong enough</string>
+    <string name="please_confirm_your_password">Please confirm your password</string>
+    <string name="password_dont_match">Passwords do not match. Please confirm your password</string>
+    <string name="please_enter_verification_code">Please enter verification code</string>
+    <string name="please_answer_all_questions">Please answer all questions before proceeding</string>
+    <string name="error_fetching_address">Error fetching address</string>
+    <string name="please_select_address">Please select address</string>
+    <string name="please_enter_contact_number">Please enter contact number</string>
+    <string name="enter_valid_10_digit_number">Please enter a valid 10-digit contact number</string>
+    <string name="please_enter_valid_website_link">Please enter a valid website link</string>
+    <string name="please_enter_your_email">Please enter your email</string>
+    <string name="please_enter_valid_email">Please enter valid email address</string>
+    <string name="please_enter_gstin_number">Please enter valid GSTIN number</string>
+    <string name="please_enter_description">Please enter description</string>
+    <string name="please_select_logo">Please select your logo</string>
+    <string name="please_select_property_picture">Please select property picture</string>
+    <string name="camera_permission_required">Camera permission is required</string>
+    <string name="storage_permission_required">Storage permission is required</string>
+    <string name="permission_denied_cannot_access_file">Permission denied. Can\'t access files</string>
+    <string name="file_not_supported">This file type is not supported</string>
+    <string name="location_permission_denied">Location permission denied</string>
+    <string name="press_back_again_to_exit">Press back again to exit</string>
+    <string name="please_select_business_type">Please select a business type</string>
+    <string name="please_select_sub_business_type">Please select a sub business type</string>
+    <string name="please_add_billing_address">Please add billing address first</string>
+    <string name="free_subscription">This is free subscription</string>
+    <string name="please_enter_your_name">Please enter your name</string>
+    <string name="please_enter_your_bio">Please enter your bio</string>
+    <string name="video_file_not_exist">Video file does not exist!</string>
+    <string name="permission_required_to_save_video">Permission is required to save videos</string>
+    <string name="failed_to_save_image">Failed to save image</string>
+    <string name="please_add_media">Please add media</string>
+    <string name="rate_all_questions">Please rate all questions before proceeding</string>
+    <string name="description_before_proceeding">Please enter description before proceeding</string>
+    <string name="select_image">Please select image</string>
+    <string name="select_start_date">Please select a start date</string>
+    <string name="select_start_time">Please select a start time</string>
+    <string name="select_end_date">Please select an end date</string>
+    <string name="select_end_time">Please select an end time</string>
+    <string name="select_event_format">Please select event format</string>
+    <string name="enter_stream_link">Please enter stream link</string>
+    <string name="select_venue">Please select venue</string>
+    <string name="why_reporting_user">Why are you reporting this user?</string>
+    <string name="why_reporting_post">Why are you reporting this post?</string>
+    <string name="why_reporting_comment">Why are you reporting this comment?</string>
+    <string name="pick_color">Pick Color</string>
+    <string name="enter_your_message">Please enter your message</string>
+    <string name="device_no_whatsapp">Your device does not have WhatsApp installed</string>
+    <string name="hello_hotel_media_team">Hello \nThe Hotel Media Team</string>
+    <string name="no_stories_available">No stories available</string>
+    <string name="do_you_want_to_block">Do you really want to block</string>
+
+
+    <string name="title_activity_main">MainActivity</string>
+    <string name="requested">Requested</string>
+    <string name="share">Share</string>
+    <string name="block_user">Block User</string>
+    <string name="sure_want_to_delete_story">Are you really want to Delete your story?</string>
+    <string name="sure_want_to_delete_post">Are you really want to Delete your post?</string>
+    <string name="no_notification_description">You have no notifications right now. Come back later</string>
+    <string name="no_notification_yet">No notification yet</string>
+    <string name="save">SAVE</string>
+    <string name="max_tagged_people_message">You can tag up to %d people.</string>
+    <string name="profession">Profession</string>
+    <string name="enter_profession">Please enter your profession.</string>
+    <string name="select_profession">Please select your profession.</string>
+    <string name="optional">(Optional)</string>
+    <string name="people_are_joined">People are joined:</string>
+    <string name="km_distance_form_your_location">km Distance form your location</string>
+    <string name="delete">Delete</string>
+    <string name="max_media_selection_error">You can\'t select more than %1$d media</string>
+    <string name="download_failed">Download Failed</string>
+    <string name="file_download">File Downloaded</string>
+    <string name="tap_to_open">Tap to open</string>
+    <string name="delete_chat">Delete Chat</string>
+    <string name="export_chat">Export Chat</string>
+    <string name="pdf_limit_in_mb">PDF file size exceeds %d MB limit</string>
+    <string name="downloading_file">Downloading…</string>
+    <string name="download_complete">Download Complete</string>
+    <string name="sure_want_to_export_chat">Are you really want to export chat?</string>
+    <string name="sure_want_to_delete_chat">Are you really want to delete your chat?</string>
+    <string name="sure_want_to_download_media">Are you really want to download media?</string>
+    <string name="nearby">Nearby</string>
+    <string name="suggested_for_you">Suggested for You</string>
+    <string name="cant_select_past_time">You cannot select past time</string>
+    <string name="attachment">Attachment</string>
+    <string name="profile_not_associated_thm">This profile not associated with THM</string>
+
+    <string name="just_now">Just now</string>
+    <string name="days_ago">days ago</string>
+    <string name="hours_ago">hours ago</string>
+    <string name="minutes_ago">minutes ago</string>
+
+    <string name="post_uploaded_will_be_live_shortly">Your post has been successfully submitted and is being uploaded in the background. Keep an eye on the notification bar for real-time updates!</string>
+    <string name="uploading_post">Uploading Post</string>
+    <string name="uploading_your_post">Uploading your post…</string>
+    <string name="post_uploaded">Post Uploaded</string>
+    <string name="post_uploaded_successfully">Your post has been uploaded successfully.</string>
+    <string name="post_upload_failed">Post Upload Failed</string>
+    <string name="error_uploading_post">There was an error uploading your post.</string>
+    <string name="dark_theme">Dark Theme</string>
+    <string name="theme">Theme</string>
+    <string name="post_failed">⚠️ Post Failed</string>
+    <string name="invalid_url">Incorrect URL for the webpage</string>
+
+
+    <string name="book_now">Book now</string>
+    <string name="add_details">Add details</string>
+    <string name="check_out">Check-out</string>
+    <string name="to">To</string>
+    <string name="check_in_">Check-in</string>
+    <string name="from">From</string>
+    <string name="guest">Guest</string>
+    <string name="guest_and_room">Guest and room</string>
+    <string name="traveling_with_pet">Traveling with pet</string>
+    <string name="children">Children</string>
+    <string name="select_age">Select Age</string>
+    <string name="proceed">Proceed</string>
+    <string name="next">Next</string>
+    <string name="plan_details">Plan Details</string>
+    <string name="available_room">Available Room</string>
+    <string name="room_details">Room Details</string>
+    <string name="property_images">Property Images</string>
+    <string name="some_helpful_facts">Some helpful facts</string>
+    <string name="see_all">See all</string>
+    <string name="check_in_check_out">Check-in/Check-out</string>
+    <string name="dot_check_in_from">• Check-in from:</string>
+    <string name="dot_check_out_from">• Check-out from:</string>
+    <string name="languages_spoken">Languages spoken</string>
+    <string name="booking_confirmation">Booking Confirmation</string>
+    <string name="convince_charges">Convince Charges</string>
+    <string name="room_type">Room type</string>
+    <string name="change_room">Change Room</string>
+    <string name="guest_details">Guest Details</string>
+    <string name="email_dot">Email:</string>
+    <string name="change">Change</string>
+    <string name="title">Title</string>
+    <string name="my_self">My self</string>
+    <string name="someone_else">Someone Else</string>
+    <string name="select_all_children_ages">Please select all children ages</string>
+    <string name="child_age_with_index">Child %1$d Age</string>
+
+
+    <string name="adult_with_pets">Adult with pet</string>
+    <string name="adult">Adult</string>
+    <string name="children_with_pets">Children with pet</string>
+    <string name="the_price_includes_the_gst">*The price includes the GST.</string>
+    <string name="payable_amount">Payable amount</string>
+    <string name="including_applicable_taxes">(Including applicable taxes)</string>
+    <string name="booking_history">Booking History</string>
+    <string name="booking_summary">Booking Summary</string>
+    <string name="booking_details">Booking Details</string>
+    <string name="date_amp_time_dots"><![CDATA[Date & time:]]></string>
+    <string name="payment_method_dots">Payment Method:</string>
+    <string name="booking_id_dots">Booking ID:</string>
+    <string name="download_invoice">Download Invoice</string>
+    <string name="cancel_booking">Cancel Booking</string>
+    <string name="nights">Nights</string>
+    <string name="night">Night</string>
+    <string name="booked_on">Booked on</string>
+    <string name="room">Room</string>
+    <string name="image_limit_with_number">You can only add up to %d property images.</string>
+    <string name="really_want_to_cancel_booking">Are you sure you want to cancel the booking?</string>
+    <string name="want_to_download_invoice">Are you sure you want to download the invoice?</string>
+    <string name="free_cancellation_till">Free Cancellation till</string>
+    <string name="no_booking_history">No booking history</string>
+    <string name="book_a_table">Book a table</string>
+    <string name="enter_time">Enter Time</string>
+    <string name="number_of_guest">Number of guest</string>
+    <string name="submit">Submit</string>
+    <string name="hour">Hour</string>
+    <string name="minute">Minute</string>
+    <string name="resend_otp_in">Resend OTP in</string>
+    <string name="sec">sec</string>
+    <string name="time_slot">Time slot</string>
+    <string name="type_of_event">Type of Event</string>
+    <string name="number_of_guests">Number of Guests</string>
+    <string name="no_of_guests">No. of guests</string>
+    <string name="other_occasion">Other Occasion</string>
+    <string name="enter_occasion_type">Please enter occasion type</string>
+    <string name="select_event_type">Please select type of event</string>
+    <string name="select_checkin_date">Please select check-in date</string>
+    <string name="select_checkout_date">Please select check-out date</string>
+    <string name="select_no_of_guest">Please select number of guests</string>
+    <string name="select_checkin_date_first">Please select Check-in date first!</string>
+    <string name="select_date_message">Please select date</string>
+    <string name="select_time_slot_message">Please select time slot</string>
+    <string name="book_a_banquet">Book a banquet</string>
+    <string name="post_job">Post Job</string>
+    <string name="job_title">Job Title</string>
+    <string name="select_job_title">Select job title</string>
+    <string name="experience">Experience</string>
+    <string name="select_experience">Select Experience</string>
+    <string name="select_job_type">Select job type</string>
+    <string name="job_type">Job Type</string>
+    <string name="select_salary">Select salary</string>
+    <string name="salary_offer">Salary Offer</string>
+    <string name="number_of_vacancies">Number of Vacancies</string>
+    <string name="job_description">Job Description</string>
+    <string name="joining_date">Joining Date</string>
+    <string name="select_category">Select Category</string>
+    <string name="select_joining_date">Select joining date</string>
+    <string name="job_details">Job Details</string>
+    <string name="please_select_job_type">Please select a job type.</string>
+    <string name="please_select_experience">Please select experience level.</string>
+    <string name="please_select_salary_offer">Please select a salary offer.</string>
+    <string name="please_select_vacancy">Please select number of vacancies.</string>
+    <string name="please_select_joining_date">Please select a joining date.</string>
+    <string name="enter_job_title">Enter job title</string>
+    <string name="designation">Designation</string>
+    <string name="please_enter_job_title">Please enter job title.</string>
+    <string name="please_select_designation">Please select a designation.</string>
+    <string name="booking_date_dots">Booking Date:</string>
+    <string name="number_of_guests_dots">Number of guests:</string>
+    <string name="table_booking_details">Table Booking Details</string>
+    <string name="booking_for_dots">Booking For:</string>
+    <string name="change_location">Change Location</string>
+    <string name="job_application_message">Hi, I’d like to apply for the job you shared. Let me know the next steps!</string>
+    <string name="select_vacancies">Select vacancies</string>
+    <string name="sure_want_to_post_job">Are you really want to post job?</string>
+    <string name="login_with_social">Login with social</string>
+    <string name="add_profession">Add Profession</string>
+    <string name="try_changing_location">Try changing location!</string>
+    <string name="book_table">Book Table</string>
+    <string name="book_banquet">Book Banquet</string>
+    <string name="no_room_available">No room available</string>
+    <string name="reject">Reject</string>
+
+</resources>

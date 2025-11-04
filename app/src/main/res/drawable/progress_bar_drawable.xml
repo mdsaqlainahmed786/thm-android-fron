@@ -1,0 +1,21 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background (Unfilled part) -->
+    <item android:id="@android:id/background"
+        android:height="4dp">
+        <shape>
+            <solid android:color="@color/white_25" /> <!-- White color for unfilled part -->
+            <corners android:radius="4dp" />   <!-- Rounded corners, optional -->
+        </shape>
+    </item>
+
+    <!-- Progress (Filled part) -->
+    <item android:id="@android:id/progress"
+        android:height="4dp">
+        <clip>
+            <shape>
+                <solid android:color="@color/blue" /> <!-- Blue color for filled part -->
+                <corners android:radius="4dp" />   <!-- Rounded corners, optional -->
+            </shape>
+        </clip>
+    </item>
+</layer-list>

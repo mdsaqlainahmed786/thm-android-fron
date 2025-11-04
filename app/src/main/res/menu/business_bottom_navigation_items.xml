@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/homeFrag"
+        android:title="\u2022"
+        android:icon="@drawable/toggle_home"/>
+    <item
+        android:id="@+id/insiteFrag"
+        android:title="\u2022"
+        android:icon="@drawable/toggle_insite"/>
+    <item
+        android:id="@+id/addPlus"
+        android:title=""/>
+    <item
+        android:id="@+id/chatFrag"
+        android:title="\u2022"
+        android:icon="@drawable/toggle_chat"/>
+    <item
+        android:id="@+id/profileFrag"
+        android:title="\u2022"
+        android:icon="@drawable/toggle_profile"/>
+</menu>

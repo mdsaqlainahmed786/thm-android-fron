@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <!-- Define any data variables here if needed -->
+    </data>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+<!--        <com.google.android.exoplayer2.ui.PlayerView-->
+<!--            android:id="@+id/playerView"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="match_parent"-->
+<!--            android:visibility="gone"-->
+<!--            app:use_controller="false"-->
+<!--            app:resize_mode="zoom"/>-->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/videoLayout"
+            android:layout_gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/white_5"
+            app:cardElevation="0dp"
+            android:visibility="visible"
+            android:clipChildren="true"
+            android:clipToPadding="true">
+
+            <com.google.android.exoplayer2.ui.PlayerView
+                android:id="@+id/playerView"
+                android:layout_gravity="center"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:resize_mode="fixed_width"
+                app:use_controller="false" />
+
+
+            <!-- Mute/Unmute Icon -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/muteIcon"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="end|bottom"
+                android:layout_margin="16dp"
+                android:padding="4dp"
+                android:background="@color/white_20"
+                app:contentPadding="@dimen/_4sdp"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"
+                android:src="@drawable/ic_volume_up" />
+
+
+        </androidx.cardview.widget.CardView>
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize4Percent"/>
+
+
+
+
+
+
+    </FrameLayout>
+</layout>

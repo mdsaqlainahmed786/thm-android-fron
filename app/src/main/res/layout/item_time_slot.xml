@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+
+    </data>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardTimeSlot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="4dp"
+        android:padding="16dp"
+        app:strokeColor="@color/transparent"
+        app:cardCornerRadius="12dp">
+
+        <TextView
+            android:padding="@dimen/_10sdp"
+            android:id="@+id/txtTimeSlot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:text="Demo Time"
+            android:fontFamily="@font/comic_regular"
+            android:textColor="@color/text_color"/>
+    </com.google.android.material.card.MaterialCardView>
+</layout>
