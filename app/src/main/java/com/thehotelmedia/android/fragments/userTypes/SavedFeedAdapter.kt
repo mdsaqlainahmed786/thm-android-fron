@@ -374,9 +374,10 @@ class SavedFeedAdapter(
             context.sharePostWithDeepLink(postId,ownerUserId)
         }
 
-        // Show edit button only for the owner of the post
+        // Show edit and delete buttons only for the owner of the post
         val isOwner = (post.userID ?: "") == ownerUserId
         binding.editBtn.visibility = if (isOwner) View.VISIBLE else View.GONE
+        binding.deleteBtn.visibility = if (isOwner) View.VISIBLE else View.GONE
 
         binding.editBtn.setOnClickListener {
             val currentContent = post.content.orEmpty()
@@ -393,6 +394,20 @@ class SavedFeedAdapter(
                     currentMedia
                 )
             }
+        }
+
+        binding.deleteBtn.setOnClickListener {
+            val bottomSheet = YesOrNoBottomSheetFragment.newInstance(MessageStore.sureWantToDeletePost(context))
+            bottomSheet.onYesClicked = {
+                if (itemData != null) {
+                    removeItem(itemData)
+                    individualViewModal.deletePost(postId)
+                }
+            }
+            bottomSheet.onNoClicked = {
+                // User cancelled, do nothing
+            }
+            bottomSheet.show(parentFragmentManager, "YesOrNoBottomSheet")
         }
 
         binding.menuBtn.setOnClickListener { view ->

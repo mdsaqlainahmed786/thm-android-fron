@@ -349,6 +349,15 @@
                     android:src="@drawable/ic_edit" />
 
                 <ImageView
+                    android:id="@+id/deleteBtn"
+                    android:layout_width="@dimen/_20sdp"
+                    android:layout_height="@dimen/_20sdp"
+                    android:layout_marginEnd="8dp"
+                    android:visibility="gone"
+                    android:contentDescription="@string/delete"
+                    android:src="@drawable/ic_delete" />
+
+                <ImageView
                     android:id="@+id/menuBtn"
                     app:strokeColor="@color/transparent"
                     android:layout_width="@dimen/_20sdp"

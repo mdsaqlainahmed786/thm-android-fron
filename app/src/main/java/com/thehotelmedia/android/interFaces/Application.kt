@@ -110,7 +110,7 @@ interface Application {
         @Path(value = "id",encoded = true) userId: String,
     ): Call<DeleteModal>
 
-    @DELETE("posts"+"/{id}"+"/soft")
+    @DELETE("posts"+"/{id}")
     fun deletePost(
         @Header("x-access-token") token: String,
         @Path(value = "id",encoded = true) postId: String,
