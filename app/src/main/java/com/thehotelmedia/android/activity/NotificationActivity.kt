@@ -79,6 +79,15 @@ class NotificationActivity : BaseActivity() {
             }
         }
 
+        individualViewModal.collaborationRespondResult.observe(this){result->
+            if (result.status == true){
+                loadNotificationData()
+            }else{
+                val msg = result.message.toString()
+                CustomSnackBar.showSnackBar(binding.root,msg)
+            }
+        }
+
         individualViewModal.loading.observe(this){
             if (it == true){
                 progressBar.show()
@@ -105,6 +114,8 @@ class NotificationActivity : BaseActivity() {
             ::onDeclineClick,
             ::onAcceptClick,
             ::onFollowClick,
+            ::onCollaborationAcceptClick,
+            ::onCollaborationDeclineClick,
             ownerUserId
         )
         binding.notificationRv.adapter = notificationAdapter
@@ -139,6 +150,18 @@ class NotificationActivity : BaseActivity() {
     private fun onFollowClick(connectionId: String?) {
         if (!connectionId.isNullOrEmpty()){
             individualViewModal.followBack(connectionId)
+        }
+    }
+
+    private fun onCollaborationAcceptClick(postID: String, notificationId: String) {
+        if (postID.isNotEmpty() && postID != "null") {
+            individualViewModal.collaborationRespond(postID, "accept")
+        }
+    }
+
+    private fun onCollaborationDeclineClick(postID: String, notificationId: String) {
+        if (postID.isNotEmpty() && postID != "null") {
+            individualViewModal.collaborationRespond(postID, "reject")
         }
     }
 

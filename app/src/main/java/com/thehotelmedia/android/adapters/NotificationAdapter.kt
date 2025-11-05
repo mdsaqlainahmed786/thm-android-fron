@@ -32,9 +32,27 @@ class NotificationAdapter(
     private val onDeclineClick: (String, Int) -> Unit,
     private val onAcceptClick: (String?) -> Unit,
     private val onFollowClick: (String?) -> Unit,
+    private val onCollaborationAcceptClick: (String, String) -> Unit,
+    private val onCollaborationDeclineClick: (String, String) -> Unit,
     private val ownerUserId: String
 ) : PagingDataAdapter<NotificationData, NotificationAdapter.ViewHolder>(NotificationDiffCallback())   {
 
+    companion object {
+        // Track collaboration responses locally (notificationId -> "accepted" or "rejected")
+        private val collaborationResponses = mutableMapOf<String, String>()
+        
+        fun markCollaborationResponded(notificationId: String, action: String) {
+            collaborationResponses[notificationId] = action
+        }
+        
+        fun getCollaborationResponse(notificationId: String): String? {
+            return collaborationResponses[notificationId]
+        }
+        
+        fun clearCollaborationResponses() {
+            collaborationResponses.clear()
+        }
+    }
 
     private val notifications = mutableListOf<NotificationData>()
 
@@ -85,6 +103,20 @@ class NotificationAdapter(
             val isRequested = it.isRequested ?: false
             val isConnected = it.isConnected ?: false
 
+            // Check if this is a collaboration notification (case-insensitive)
+            val isCollaborationNotification = type.contains("collaboration", ignoreCase = true) || 
+                                               type == "collaboration-invite" || 
+                                               type == "collaboration"
+            
+            // Check if collaboration is accepted or rejected (from backend or local tracking)
+            val localResponse = getCollaborationResponse(id)
+            val isCollaborationAccepted = type.contains("collaboration-accepted", ignoreCase = true) || 
+                                         type == "collaboration-accepted" ||
+                                         localResponse == "accept"
+            val isCollaborationRejected = type.contains("collaboration-rejected", ignoreCase = true) || 
+                                         type == "collaboration-rejected" ||
+                                         type.contains("collaboration-declined", ignoreCase = true) ||
+                                         localResponse == "reject"
 
             if (type == "follow-request"){
                 binding.followBtn.visibility = View.GONE
@@ -114,6 +146,23 @@ class NotificationAdapter(
 //                binding.followBtn.visibility = View.VISIBLE
 //                binding.acceptDeclineLayout.visibility = View.GONE
 //                binding.followingBtn.visibility = View.GONE
+            }else if(isCollaborationAccepted){
+                // Show "Accepted" status for accepted collaboration
+                binding.followBtn.visibility = View.GONE
+                binding.acceptDeclineLayout.visibility = View.GONE
+                binding.followingBtn.visibility = View.VISIBLE
+                binding.followingTv.text = context.getString(R.string.accepted)
+            }else if(isCollaborationRejected){
+                // Show "Rejected" status for rejected collaboration
+                binding.followBtn.visibility = View.GONE
+                binding.acceptDeclineLayout.visibility = View.GONE
+                binding.followingBtn.visibility = View.VISIBLE
+                binding.followingTv.text = context.getString(R.string.rejected)
+            }else if(isCollaborationNotification){
+                // Show accept/reject buttons for pending collaboration invitations (same UI as follow request)
+                binding.followBtn.visibility = View.GONE
+                binding.acceptDeclineLayout.visibility = View.VISIBLE
+                binding.followingBtn.visibility = View.GONE
             }else{
                 binding.followBtn.visibility = View.GONE
                 binding.acceptDeclineLayout.visibility = View.GONE
@@ -121,11 +170,35 @@ class NotificationAdapter(
             }
 
             // Handle button clicks using lambda functions
-            binding.declineBtn.setOnClickListener {
-                onDeclineClick(connectionId, position)
-            }
-            binding.acceptBtn.setOnClickListener {
-                onAcceptClick(connectionId)
+            // Only show buttons if collaboration is pending (not accepted/rejected)
+            if (isCollaborationNotification && !isCollaborationAccepted && !isCollaborationRejected && postId.isNotEmpty() && postId != "null") {
+                // Use collaboration-specific handlers
+                binding.declineBtn.setOnClickListener {
+                    // Mark as responded locally before API call
+                    markCollaborationResponded(id, "reject")
+                    // Update UI immediately
+                    notifyItemChanged(position)
+                    onCollaborationDeclineClick(postId, id)
+                }
+                binding.acceptBtn.setOnClickListener {
+                    // Mark as responded locally before API call
+                    markCollaborationResponded(id, "accept")
+                    // Update UI immediately
+                    notifyItemChanged(position)
+                    onCollaborationAcceptClick(postId, id)
+                }
+            } else if (!isCollaborationNotification) {
+                // Use regular follow request handlers (only for non-collaboration notifications)
+                binding.declineBtn.setOnClickListener {
+                    onDeclineClick(connectionId, position)
+                }
+                binding.acceptBtn.setOnClickListener {
+                    onAcceptClick(connectionId)
+                }
+            } else {
+                // For accepted/rejected collaborations, remove button listeners
+                binding.declineBtn.setOnClickListener(null)
+                binding.acceptBtn.setOnClickListener(null)
             }
             binding.followBtn.setOnClickListener {
                 onFollowClick(connectionId)
@@ -172,7 +245,13 @@ class NotificationAdapter(
 
 
             binding.root.setOnClickListener {
-                when (type) {
+                // Check for collaboration type first (case-insensitive)
+                if (type.contains("collaboration", ignoreCase = true)) {
+                    if (postId.isNotEmpty() && postId != "null") {
+                        moveToPostPreviewScreen(postId)
+                    }
+                } else {
+                    when (type) {
                         "comment" -> {
                             if (metaDataPostType == "event"){
                                 moveToEventDetailsActivity(postId)
@@ -208,6 +287,11 @@ class NotificationAdapter(
                         "like-a-story" -> {
                             moveToBusinessProfileDetailsActivity(userID)
                         }
+                        "collaboration-invite", "collaboration" -> {
+                            if (postId.isNotEmpty() && postId != "null") {
+                                moveToPostPreviewScreen(postId)
+                            }
+                        }
                         "job" -> {
                             val intent = Intent(context, JobDetailActivity::class.java)
                             intent.putExtra("JOB_ID", jobId)
@@ -238,6 +322,7 @@ class NotificationAdapter(
                             }
                         }
                     }
+                }
 //            val intent = Intent(this, JobDetailActivity::class.java)
 //                startActivity(intent)
 
@@ -251,8 +336,6 @@ class NotificationAdapter(
             }
 
         }
-
-
 
     }
 
