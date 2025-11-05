@@ -927,6 +927,10 @@ class SavedFeedAdapter(
                 val currentContent = post?.content.orEmpty()
                 val currentFeeling = post?.feelings
                 val currentMedia = post?.mediaRef ?: emptyList()
+                val location = post?.location
+                val placeName = location?.placeName
+                val lat = location?.lat
+                val lng = location?.lng
                 
                 if (postId.isNotEmpty()) {
                     com.thehotelmedia.android.activity.userTypes.forms.EditPostActivity.start(
@@ -934,7 +938,10 @@ class SavedFeedAdapter(
                         postId,
                         currentContent,
                         currentFeeling,
-                        currentMedia
+                        currentMedia,
+                        placeName,
+                        lat,
+                        lng
                     )
                 }
                 popupWindow.dismiss()

@@ -326,7 +326,10 @@ interface Application {
         @Part("content") content: RequestBody,
         @Part("feelings") feelings: RequestBody,
         @Part("deletedMedia") deletedMedia: RequestBody?,
-        @Part media: List<MultipartBody.Part>
+        @Part media: List<MultipartBody.Part>,
+        @Part("placeName") placeName: RequestBody?,
+        @Part("lat") lat: RequestBody?,
+        @Part("lng") lng: RequestBody?
     ): Call<DeleteModal>
 
     @POST("posts/comments/likes"+"/{id}")
