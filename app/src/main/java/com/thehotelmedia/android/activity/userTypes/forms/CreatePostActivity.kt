@@ -276,6 +276,7 @@ class CreatePostActivity : BaseActivity() {
         binding.collaboratorLayout.setOnClickListener {
             val intent = Intent(this, TagPeopleActivity::class.java)
             intent.putExtra("selectedTagPeopleList", selectedCollaborators)
+            intent.putExtra("isCollaboration", true)
             collaboratorLauncher.launch(intent)
         }
 
@@ -322,6 +323,13 @@ class CreatePostActivity : BaseActivity() {
 //            }
             val selectedTagIdList = selectedTagPeopleList.map { it.id }.toMutableList()
             val collaboratorIds = selectedCollaborators.map { it.id }
+            
+            Log.d("CreatePostActivity", "=== POST CREATION DEBUG ===")
+            Log.d("CreatePostActivity", "selectedCollaborators size: ${selectedCollaborators.size}")
+            Log.d("CreatePostActivity", "selectedCollaborators details: ${selectedCollaborators.map { "${it.name} (id: ${it.id})" }}")
+            Log.d("CreatePostActivity", "collaboratorIds extracted: ${collaboratorIds.size} items")
+            Log.d("CreatePostActivity", "collaboratorIds values: $collaboratorIds")
+            Log.d("CreatePostActivity", "========================")
 
             val content = binding.contentEt.text.toString().trim()
             if(mediaList.isNotEmpty()){
@@ -381,7 +389,12 @@ class CreatePostActivity : BaseActivity() {
             val selectedPeopleList = bundle?.getSerializable("selectedPeopleList") as? ArrayList<TagPeople>
             if (selectedPeopleList != null) {
                 selectedCollaborators = selectedPeopleList
+                Log.d("CreatePostActivity", "Selected ${selectedCollaborators.size} collaborators: ${selectedCollaborators.map { "${it.name} (${it.id})" }}")
+            } else {
+                Log.e("CreatePostActivity", "handleSelectedCollaborators: selectedPeopleList is null")
             }
+        } else {
+            Log.e("CreatePostActivity", "handleSelectedCollaborators: resultCode is not RESULT_OK, code: ${result.resultCode}")
         }
     }
 

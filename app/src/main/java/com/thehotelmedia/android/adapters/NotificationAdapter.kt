@@ -62,7 +62,7 @@ class NotificationAdapter(
             val jobId = it.metadata?.jobID ?: ""
             val bookingID = it.metadata?.bookingID ?: ""
             val bookingType = it.metadata?.type ?: ""
-            val postId = it.metadata?.postID.toString()
+            val postId = it.metadata?.postID ?: ""
             val metaDataPostType = it.metadata?.postType ?: ""
             val userID = it.userID.toString()
             val title = it.description.toString()
@@ -173,76 +173,71 @@ class NotificationAdapter(
 
             binding.root.setOnClickListener {
                 when (type) {
-                    "comment" -> {
-                        if (metaDataPostType == "event"){
-                            moveToEventDetailsActivity(postId)
-                        }else{
+                        "comment" -> {
+                            if (metaDataPostType == "event"){
+                                moveToEventDetailsActivity(postId)
+                            }else{
+                                moveToPostPreviewScreen(postId)
+                            }
+//                        moveToPostPreviewScreen(postId)
+                        }
+                        "like-post" -> {
                             moveToPostPreviewScreen(postId)
                         }
-//                        moveToPostPreviewScreen(postId)
-                    }
-                    "like-post" -> {
-                        moveToPostPreviewScreen(postId)
-                    }
-                    "reply" -> {
-                        moveToPostPreviewScreen(postId)
-                    }
-                    "like-comment" -> {
-                        moveToBusinessProfileDetailsActivity(userID)
-                    }
-                    "follow-request" -> {
-                        moveToBusinessProfileDetailsActivity(userID)
-                    }
-                    "accept-follow-request" -> {
-                        moveToBusinessProfileDetailsActivity(userID)
-                    }
-                    "following" -> {
-                        moveToBusinessProfileDetailsActivity(userID)
-                    }
-                    "tagged" -> {
-                        moveToPostPreviewScreen(postId)
-                    }
-                    "event-join" -> {
-                        moveToEventDetailsActivity(postId)
-                    }
-                    "like-a-story" -> {
-                        moveToBusinessProfileDetailsActivity(userID)
-                    }
-                    "job" -> {
-                        val intent = Intent(context, JobDetailActivity::class.java)
-                        intent.putExtra("JOB_ID", jobId)
-                        context.startActivity(intent)
-                    }
-                    "booking" -> {
-
-                        when (bookingType) {
-                            "book-banquet" -> {
-                                val intent = Intent(context, BookTableBanquetActivity::class.java)
-                                intent.putExtra("BOOKING_ID", bookingID)
-                                intent.putExtra("BOOKING_TYPE", bookingType)
-                                intent.putExtra("FROM", "NOTIFICATION")
-                                context.startActivity(intent)
-                            }
-                            "book-table" -> {
-                                val intent = Intent(context, BookTableBanquetActivity::class.java)
-                                intent.putExtra("BOOKING_ID", bookingID)
-                                intent.putExtra("BOOKING_TYPE", bookingType)
-                                intent.putExtra("FROM", "NOTIFICATION")
-                                context.startActivity(intent)
-                            }
-                            else -> {
-                                val intent = Intent(context, BookingSummaryActivity::class.java)
-                                intent.putExtra("BOOKING_ID", bookingID)
-                                intent.putExtra("FROM", "NOTIFICATION")
-                                context.startActivity(intent)
+                        "reply" -> {
+                            moveToPostPreviewScreen(postId)
+                        }
+                        "like-comment" -> {
+                            moveToBusinessProfileDetailsActivity(userID)
+                        }
+                        "follow-request" -> {
+                            moveToBusinessProfileDetailsActivity(userID)
+                        }
+                        "accept-follow-request" -> {
+                            moveToBusinessProfileDetailsActivity(userID)
+                        }
+                        "following" -> {
+                            moveToBusinessProfileDetailsActivity(userID)
+                        }
+                        "tagged" -> {
+                            moveToPostPreviewScreen(postId)
+                        }
+                        "event-join" -> {
+                            moveToEventDetailsActivity(postId)
+                        }
+                        "like-a-story" -> {
+                            moveToBusinessProfileDetailsActivity(userID)
+                        }
+                        "job" -> {
+                            val intent = Intent(context, JobDetailActivity::class.java)
+                            intent.putExtra("JOB_ID", jobId)
+                            context.startActivity(intent)
+                        }
+                        "booking" -> {
+                            when (bookingType) {
+                                "book-banquet" -> {
+                                    val intent = Intent(context, BookTableBanquetActivity::class.java)
+                                    intent.putExtra("BOOKING_ID", bookingID)
+                                    intent.putExtra("BOOKING_TYPE", bookingType)
+                                    intent.putExtra("FROM", "NOTIFICATION")
+                                    context.startActivity(intent)
+                                }
+                                "book-table" -> {
+                                    val intent = Intent(context, BookTableBanquetActivity::class.java)
+                                    intent.putExtra("BOOKING_ID", bookingID)
+                                    intent.putExtra("BOOKING_TYPE", bookingType)
+                                    intent.putExtra("FROM", "NOTIFICATION")
+                                    context.startActivity(intent)
+                                }
+                                else -> {
+                                    val intent = Intent(context, BookingSummaryActivity::class.java)
+                                    intent.putExtra("BOOKING_ID", bookingID)
+                                    intent.putExtra("FROM", "NOTIFICATION")
+                                    context.startActivity(intent)
+                                }
                             }
                         }
-
-
-
-
                     }
-                }
 //            val intent = Intent(this, JobDetailActivity::class.java)
 //                startActivity(intent)
 

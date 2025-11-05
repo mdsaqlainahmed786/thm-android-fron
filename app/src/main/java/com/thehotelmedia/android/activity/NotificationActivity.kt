@@ -100,7 +100,13 @@ class NotificationActivity : BaseActivity() {
     }
 
     private fun getNotificationData() {
-        notificationAdapter = NotificationAdapter(this,::onDeclineClick,::onAcceptClick,::onFollowClick,ownerUserId)
+        notificationAdapter = NotificationAdapter(
+            this,
+            ::onDeclineClick,
+            ::onAcceptClick,
+            ::onFollowClick,
+            ownerUserId
+        )
         binding.notificationRv.adapter = notificationAdapter
 
         binding.notificationRv.adapter = notificationAdapter

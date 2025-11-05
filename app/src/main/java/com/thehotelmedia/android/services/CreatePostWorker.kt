@@ -26,6 +26,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.Executors
 
 class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worker(context, workerParams) {
 
@@ -50,6 +51,12 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
         val selectedLng = inputData.getDouble("selectedLng", 0.0)
         val selectedFeeling = inputData.getString("selectedFeeling") ?: ""
         val collaboratorUserIDs = inputData.getStringArray("collaboratorUserIDs")?.toList() ?: emptyList()
+        
+        Log.d("CreatePostWorker", "=== WORKER START DEBUG ===")
+        Log.d("CreatePostWorker", "collaboratorUserIDs from inputData: ${collaboratorUserIDs.size} items")
+        Log.d("CreatePostWorker", "collaboratorUserIDs values: $collaboratorUserIDs")
+        Log.d("CreatePostWorker", "Raw inputData keys: ${inputData.keyValueMap.keys}")
+        Log.d("CreatePostWorker", "==========================")
 
         createNotificationChannel()
         showNotification("Uploading Post...")
@@ -152,20 +159,69 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
                 val msg = response.body()?.message ?: "Something went wrong!"
                 if (status == true){
                     val postId = response.body()?.data?.id ?: ""
+                    Log.d("CreatePostWorker", "=== POST CREATED DEBUG ===")
+                    Log.d("CreatePostWorker", "Post created successfully. postId: $postId")
+                    Log.d("CreatePostWorker", "collaboratorUserIDs at invite time: ${collaboratorUserIDs.size} items")
+                    Log.d("CreatePostWorker", "collaboratorUserIDs values: $collaboratorUserIDs")
+                    Log.d("CreatePostWorker", "==========================")
+                    
                     if (postId.isNotEmpty()) {
-                        // Send collaboration invites sequentially
-                        try {
-                            val token = preferenceManager.getString(PreferenceManager.Keys.ACCESS_TOKEN, "") ?: ""
-                            collaboratorUserIDs.forEach { invitedUserId ->
+                        // Send collaboration invites sequentially on background thread
+                        Log.d("CreatePostWorker", "Sending collaboration invites for postId: $postId, collaborators: ${collaboratorUserIDs.size}")
+                        if (collaboratorUserIDs.isNotEmpty()) {
+                            // Run on background thread to avoid NetworkOnMainThreadException
+                            val executor = Executors.newSingleThreadExecutor()
+                            executor.execute {
                                 try {
-                                    apiService.collaborationInvite(token, postId, invitedUserId).execute()
+                                    val token = preferenceManager.getString(PreferenceManager.Keys.ACCESS_TOKEN, "") ?: ""
+                                    collaboratorUserIDs.forEach { invitedUserId ->
+                                        try {
+                                            // Validate userId before sending
+                                            if (invitedUserId.isNullOrEmpty() || invitedUserId == "null") {
+                                                Log.e("CreatePostWorker", "Skipping invalid userId: '$invitedUserId'")
+                                                return@forEach
+                                            }
+                                            
+                                            Log.d("CreatePostWorker", "=== INVITING COLLABORATOR ===")
+                                            Log.d("CreatePostWorker", "postId: $postId")
+                                            Log.d("CreatePostWorker", "invitedUserId: $invitedUserId")
+                                            Log.d("CreatePostWorker", "token length: ${token.length}")
+                                            
+                                            val inviteResponse = apiService.collaborationInvite(token, postId, invitedUserId).execute()
+                                            
+                                            Log.d("CreatePostWorker", "Response code: ${inviteResponse.code()}")
+                                            Log.d("CreatePostWorker", "Response isSuccessful: ${inviteResponse.isSuccessful}")
+                                            
+                                            if (inviteResponse.isSuccessful) {
+                                                val inviteBody = inviteResponse.body()
+                                                Log.d("CreatePostWorker", "✅ Collaboration invite successful!")
+                                                Log.d("CreatePostWorker", "Response message: ${inviteBody?.message}")
+                                                Log.d("CreatePostWorker", "Response status: ${inviteBody?.status}")
+                                            } else {
+                                                val errorBody = inviteResponse.errorBody()?.string()
+                                                Log.e("CreatePostWorker", "❌ Collaboration invite failed!")
+                                                Log.e("CreatePostWorker", "Error code: ${inviteResponse.code()}")
+                                                Log.e("CreatePostWorker", "Error message: ${inviteResponse.message()}")
+                                                Log.e("CreatePostWorker", "Error body: $errorBody")
+                                            }
+                                            Log.d("CreatePostWorker", "============================")
+                                        } catch (e: Exception) {
+                                            Log.e("CreatePostWorker", "❌ Exception sending invite for userId: $invitedUserId", e)
+                                            Log.e("CreatePostWorker", "Exception message: ${e.message}")
+                                            Log.e("CreatePostWorker", "Exception stack trace: ${e.stackTraceToString()}")
+                                        }
+                                    }
                                 } catch (e: Exception) {
-                                    Log.e("CreatePostWorker", "Collab invite failed for $invitedUserId", e)
+                                    Log.e("CreatePostWorker", "Failed sending collaboration invites", e)
+                                } finally {
+                                    executor.shutdown()
                                 }
                             }
-                        } catch (e: Exception) {
-                            Log.e("CreatePostWorker", "Failed sending collaboration invites", e)
+                        } else {
+                            Log.d("CreatePostWorker", "No collaborators to invite")
                         }
+                    } else {
+                        Log.e("CreatePostWorker", "PostId is empty, cannot send collaboration invites")
                     }
                     showFinalNotification("Post Uploaded Successfully ✅", "Your post has been uploaded!")
                 }else{
