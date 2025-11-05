@@ -1,5 +1,7 @@
 package com.thehotelmedia.android.modals.collaboration
 
+import com.google.gson.annotations.SerializedName
+
 
 data class CollaborationActionModal(
     val status: Boolean = false,
@@ -7,10 +9,17 @@ data class CollaborationActionModal(
 )
 
 
+data class CollaborationProfilePic(
+    @SerializedName("small") var small: String? = null,
+    @SerializedName("medium") var medium: String? = null,
+    @SerializedName("large") var large: String? = null
+)
+
+
 data class CollaborationUser(
-    val _id: String? = null,
-    val name: String? = null,
-    val profilePic: String? = null
+    @SerializedName("_id") val _id: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("profilePic") val profilePic: CollaborationProfilePic? = null
 )
 
 

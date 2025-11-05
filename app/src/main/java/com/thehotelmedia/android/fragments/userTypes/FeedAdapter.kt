@@ -59,6 +59,7 @@ import com.thehotelmedia.android.extensions.sharePostWithDeepLink
 import com.thehotelmedia.android.extensions.updateTextWithAnimation
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.modals.feeds.feed.TaggedRef
+import com.thehotelmedia.android.modals.collaboration.CollaborationUser
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -116,6 +117,13 @@ class FeedAdapter(
 
     private val selectedIds = mutableListOf<String>()
     private val handlerMap = mutableMapOf<String, Job>()
+    
+    // Cache for collaborators to avoid redundant API calls
+    private val collaboratorsCache = mutableMapOf<String, List<com.thehotelmedia.android.modals.collaboration.CollaborationUser>>()
+    // Track pending collaborator requests and their bindings
+    private val pendingCollaboratorRequests = mutableMapOf<String, PostItemsLayoutBinding>()
+    // Store original names to restore them if no collaborators
+    private val originalNamesCache = mutableMapOf<String, String>()
 
 
 
@@ -411,9 +419,23 @@ class FeedAdapter(
 
         // Set user name and profile picture
         binding.nameTv.text = name
+        // Store post owner ID in tag for later use
+        binding.nameTv.tag = userId
+        // Store original name in cache
+        originalNamesCache[postId] = name
         Glide.with(context).load(profilePic).placeholder(R.drawable.ic_profile_placeholder).error(R.drawable.ic_profile_placeholder).into(binding.profileIv)
 
 //        binding.profileIv.loadImageInBackground(context, profilePic, R.drawable.ic_profile_placeholder)
+
+        // Initially hide collaborators profile container - it will only show if there are actual collaborators
+        binding.collaboratorsProfileContainer.visibility = View.GONE
+        // Hide all collaborator profile images
+        binding.collaboratorProfileIv1.visibility = View.GONE
+        binding.collaboratorProfileIv2.visibility = View.GONE
+        binding.collaboratorProfileIv3.visibility = View.GONE
+        
+        // Fetch and display collaborators only if post might have collaborators
+        loadCollaborators(postId, binding, userId, name)
 
 
         // Post content
@@ -1079,6 +1101,183 @@ class FeedAdapter(
         }
         bottomSheetFragment.show(parentFragmentManager, bottomSheetFragment.tag)
 
+    }
+
+    // Initialize collaborator observer once
+    private var collaboratorObserverInitialized = false
+    
+    // Load and display collaborators for a post
+    private fun loadCollaborators(postId: String, binding: PostItemsLayoutBinding, postOwnerId: String, mainUserName: String) {
+        // Check cache first
+        if (collaboratorsCache.containsKey(postId)) {
+            val collaborators = collaboratorsCache[postId]!!
+            // Double-check: filter out post owner
+            val validCollaborators = collaborators.filter { 
+                !it.name.isNullOrEmpty() && it._id != postOwnerId 
+            }
+            if (validCollaborators.isNotEmpty()) {
+                displayCollaborators(validCollaborators, binding, postOwnerId, mainUserName)
+            } else {
+                // No valid collaborators in cache, hide UI
+                binding.collaboratorsProfileContainer.visibility = View.GONE
+                binding.collaboratorProfileIv1.visibility = View.GONE
+                binding.collaboratorProfileIv2.visibility = View.GONE
+                binding.collaboratorProfileIv3.visibility = View.GONE
+            }
+            return
+        }
+
+        // Initialize observer once if not already done
+        if (!collaboratorObserverInitialized) {
+            collaboratorObserverInitialized = true
+            individualViewModal.postCollaboratorsResult.observe(viewLifecycleOwner) { result ->
+                if (result.status == true) {
+                    // Find the first pending request and update it
+                    // Note: In practice, responses come sequentially, so this should work
+                    val pendingEntry = pendingCollaboratorRequests.entries.firstOrNull()
+                    if (pendingEntry != null) {
+                        val (pendingPostId, pendingBinding) = pendingEntry
+                        pendingCollaboratorRequests.remove(pendingPostId)
+                        // Get post owner ID from binding
+                        val postOwnerId = pendingBinding.nameTv.tag as? String ?: ""
+                        val originalName = originalNamesCache[pendingPostId] ?: pendingBinding.nameTv.text.toString()
+                        
+                        if (result.data.isNotEmpty()) {
+                            // Check if there are valid collaborators (excluding post owner)
+                            val validCollaborators = result.data.filter { 
+                                !it.name.isNullOrEmpty() && it._id != postOwnerId 
+                            }
+                            if (validCollaborators.isNotEmpty()) {
+                                // Only cache and display if there are valid collaborators
+                                collaboratorsCache[pendingPostId] = validCollaborators
+                                displayCollaborators(validCollaborators, pendingBinding, postOwnerId, originalName)
+                            } else {
+                            // No valid collaborators, hide UI and restore original name
+                            pendingBinding.collaboratorsProfileContainer.visibility = View.GONE
+                            pendingBinding.collaboratorProfileIv1.visibility = View.GONE
+                            pendingBinding.collaboratorProfileIv2.visibility = View.GONE
+                            pendingBinding.collaboratorProfileIv3.visibility = View.GONE
+                            pendingBinding.nameTv.text = originalName
+                            }
+                        } else {
+                            // Empty result - no collaborators
+                            pendingBinding.collaboratorsProfileContainer.visibility = View.GONE
+                            pendingBinding.collaboratorProfileIv1.visibility = View.GONE
+                            pendingBinding.collaboratorProfileIv2.visibility = View.GONE
+                            pendingBinding.collaboratorProfileIv3.visibility = View.GONE
+                            pendingBinding.nameTv.text = originalName
+                        }
+                    }
+                } else {
+                    // Handle error - hide for all pending requests
+                    pendingCollaboratorRequests.values.forEach { pendingBinding ->
+                        pendingBinding.collaboratorsProfileContainer.visibility = View.GONE
+                    }
+                    pendingCollaboratorRequests.clear()
+                }
+            }
+        }
+
+        // Check if already pending for this postId
+        if (pendingCollaboratorRequests.containsKey(postId)) {
+            // Already requested, just update the binding reference
+            pendingCollaboratorRequests[postId] = binding
+            return
+        }
+
+        // Store binding for this postId and fetch from API
+        pendingCollaboratorRequests[postId] = binding
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                individualViewModal.getPostCollaborators(postId)
+            } catch (e: Exception) {
+                // Error fetching collaborators, hide the layout
+                pendingCollaboratorRequests.remove(postId)
+                binding.collaboratorsProfileContainer.visibility = View.GONE
+            }
+        }
+    }
+
+    // Format and display collaborators like Instagram: main user avatar + overlapping collaborator avatars + "mainUser and collaborator" text
+    private fun displayCollaborators(collaborators: List<CollaborationUser>, binding: PostItemsLayoutBinding, postOwnerId: String, mainUserName: String) {
+        // Double-check: Filter out the post owner and empty names
+        val validCollaborators = collaborators.filter { 
+            !it.name.isNullOrEmpty() && it._id != postOwnerId 
+        }
+        
+        if (validCollaborators.isEmpty()) {
+            // No valid collaborators - hide UI and restore original name
+            binding.collaboratorsProfileContainer.visibility = View.GONE
+            binding.collaboratorProfileIv1.visibility = View.GONE
+            binding.collaboratorProfileIv2.visibility = View.GONE
+            binding.collaboratorProfileIv3.visibility = View.GONE
+            // Restore original name
+            binding.nameTv.text = mainUserName
+            return
+        }
+
+        // Show overlapping collaborator profile pictures (up to 2-3, overlapping)
+        val profilePicsToShow = validCollaborators.take(2) // Show max 2 overlapping avatars
+        
+        // Show first collaborator profile picture
+        if (profilePicsToShow.isNotEmpty()) {
+            val firstCollaborator = profilePicsToShow[0]
+            val profilePicUrl1 = firstCollaborator.profilePic?.large ?: firstCollaborator.profilePic?.medium ?: firstCollaborator.profilePic?.small
+            if (!profilePicUrl1.isNullOrEmpty()) {
+                Glide.with(context)
+                    .load(profilePicUrl1)
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .error(R.drawable.ic_profile_placeholder)
+                    .circleCrop()
+                    .into(binding.collaboratorProfileImage1)
+                binding.collaboratorProfileIv1.visibility = View.VISIBLE
+            } else {
+                binding.collaboratorProfileIv1.visibility = View.GONE
+            }
+        } else {
+            binding.collaboratorProfileIv1.visibility = View.GONE
+        }
+        
+        // Show second collaborator profile picture (overlapping)
+        if (profilePicsToShow.size >= 2) {
+            val secondCollaborator = profilePicsToShow[1]
+            val profilePicUrl2 = secondCollaborator.profilePic?.large ?: secondCollaborator.profilePic?.medium ?: secondCollaborator.profilePic?.small
+            if (!profilePicUrl2.isNullOrEmpty()) {
+                Glide.with(context)
+                    .load(profilePicUrl2)
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .error(R.drawable.ic_profile_placeholder)
+                    .circleCrop()
+                    .into(binding.collaboratorProfileImage2)
+                binding.collaboratorProfileIv2.visibility = View.VISIBLE
+            } else {
+                binding.collaboratorProfileIv2.visibility = View.GONE
+            }
+        } else {
+            binding.collaboratorProfileIv2.visibility = View.GONE
+        }
+        
+        // Hide third profile picture (we'll show max 2)
+        binding.collaboratorProfileIv3.visibility = View.GONE
+
+        // Format text: "mainUserName and collaboratorName" or "mainUserName and X others"
+        val collaborationText = when {
+            validCollaborators.size == 1 -> {
+                val collaboratorName = validCollaborators[0].name ?: ""
+                "$mainUserName and $collaboratorName"
+            }
+            validCollaborators.size == 2 -> {
+                val collaboratorName = validCollaborators[0].name ?: ""
+                "$mainUserName and $collaboratorName"
+            }
+            else -> {
+                val remaining = validCollaborators.size
+                "$mainUserName and $remaining others"
+            }
+        }
+
+        binding.nameTv.text = collaborationText
+        binding.collaboratorsProfileContainer.visibility = View.VISIBLE
     }
 
     fun setActivePosition(position: Int) {
