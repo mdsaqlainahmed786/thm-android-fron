@@ -91,6 +91,30 @@ class AttachedMediaAdapter(
             binding.editBtn.visibility = if (onEditClick != null) View.VISIBLE else View.GONE
         }
 
+        // Handle image click for pinch-to-zoom (for images only)
+        if (!fileName.startsWith("video", true) && !fileName.endsWith(".mp4", true)) {
+            binding.mediaImageView.setOnClickListener {
+                // Open image in zoom dialog
+                val dialog = android.app.Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+                dialog.setContentView(R.layout.dialog_image_view)
+                val zoomImageView = dialog.findViewById<com.thehotelmedia.android.customDialog.ZoomClass>(R.id.dialogCircularImageView)
+                
+                // Load image into zoom view
+                Glide.with(context)
+                    .load(mediaUri)
+                    .placeholder(R.drawable.ic_image_placeholder_image)
+                    .error(R.drawable.ic_image_placeholder_image)
+                    .into(zoomImageView)
+                
+                // Dismiss dialog on image click
+                zoomImageView.setOnClickListener {
+                    dialog.dismiss()
+                }
+                
+                dialog.show()
+            }
+        }
+
         // Handle edit button click (for images)
         binding.editBtn.setOnClickListener {
             onEditClick?.invoke(mediaList[position], position)

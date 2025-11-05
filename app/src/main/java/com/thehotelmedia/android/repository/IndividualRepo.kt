@@ -164,7 +164,7 @@ class IndividualRepo (private val context: Context){
         }
     }
 
-    suspend fun updatePost(postID: String, content: String, feelings: String, media: List<String>, deletedMedia: List<String>): Response<DeleteModal> {
+    suspend fun updatePost(postID: String, content: String, feelings: String, media: List<String>, deletedMedia: List<String>, placeName: String = "", lat: Double = 0.0, lng: Double = 0.0): Response<DeleteModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
             throw IllegalStateException("Access token is null or empty")
@@ -175,6 +175,23 @@ class IndividualRepo (private val context: Context){
             // Convert strings to RequestBody
             val contentBody = content.toRequestBody("text/plain".toMediaTypeOrNull())
             val feelingsBody = feelings.toRequestBody("text/plain".toMediaTypeOrNull())
+            
+            // Create location RequestBody if provided
+            val placeNameBody = if (placeName.isNotEmpty()) {
+                placeName.toRequestBody("text/plain".toMediaTypeOrNull())
+            } else {
+                null
+            }
+            val latBody = if (lat != 0.0) {
+                lat.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            } else {
+                null
+            }
+            val lngBody = if (lng != 0.0) {
+                lng.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            } else {
+                null
+            }
             
             // Create deletedMedia JSON array as RequestBody
             val deletedMediaJson = if (deletedMedia.isNotEmpty()) {
@@ -204,7 +221,7 @@ class IndividualRepo (private val context: Context){
                 MultipartBody.Part.createFormData("media", file.name, requestBody)
             }
             
-            return@withContext call.updatePost(accessToken, postID, contentBody, feelingsBody, deletedMediaJson, mediaParts).execute()
+            return@withContext call.updatePost(accessToken, postID, contentBody, feelingsBody, deletedMediaJson, mediaParts, placeNameBody, latBody, lngBody).execute()
         }
     }
 

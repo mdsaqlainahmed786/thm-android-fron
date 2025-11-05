@@ -12,6 +12,7 @@ import com.bumptech.glide.Glide
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.activity.BaseActivity
 import com.thehotelmedia.android.activity.userTypes.forms.createPost.FeelingActivity
+import com.thehotelmedia.android.activity.userTypes.forms.CheckInActivity
 import com.thehotelmedia.android.adapters.userTypes.individual.forms.AttachedMediaAdapter
 import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.customClasses.CustomSnackBar
@@ -50,12 +51,55 @@ class EditPostActivity : BaseActivity() {
     private var initialMedia: List<MediaRef> = emptyList()
     private var editingImagePosition: Int = -1 // Track which image is being edited
     private var isDataLoaded: Boolean = false // Flag to prevent duplicate loading
+    
+    // Location/Check-in fields
+    private var selectedPlaceName: String = ""
+    private var selectedLat: Double = 0.0
+    private var selectedLng: Double = 0.0
+    private var initialPlaceName: String? = null
+    private var initialLat: Double? = null
+    private var initialLng: Double? = null
 
     private val feelingLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val bundle = result.data?.extras
             val feeling = bundle?.getSerializable("selectedFeeling") as? String ?: ""
             updateFeeling(feeling)
+        }
+    }
+
+    private val checkInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        progressBar.hide()
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Get the data from the intent
+            val placeAddress = result.data?.getStringExtra("PLACE_ADDRESS") ?: ""
+            val placeName = result.data?.getStringExtra("PLACE_NAME") ?: ""
+            val placeID = result.data?.getStringExtra("PLACE_ID") ?: ""
+            val street = result.data?.getStringExtra("STREET") ?: ""
+            val city = result.data?.getStringExtra("CITY") ?: ""
+            val state = result.data?.getStringExtra("STATE") ?: ""
+            val zipcode = result.data?.getStringExtra("ZIPCODE") ?: ""
+            val country = result.data?.getStringExtra("COUNTRY") ?: ""
+
+            val lat = result.data?.getDoubleExtra("LAT", 0.0) ?: 0.0
+            val lng = result.data?.getDoubleExtra("LNG", 0.0) ?: 0.0
+            val coverImage = result.data?.getStringExtra("COVER_IMAGE") ?: ""
+            val profileImage = result.data?.getStringExtra("PROFILE_PIC") ?: ""
+            
+            if (placeAddress.isNotBlank()) {
+                binding.hotelDetailsCv.visibility = View.VISIBLE
+                binding.hotelNameTv.text = placeName
+                binding.hotelAddressTv.text = placeAddress
+
+                Glide.with(this).load(profileImage).placeholder(R.drawable.ic_profile_placeholder).error(R.drawable.ic_profile_placeholder).into(binding.hotelProfileIv)
+                Glide.with(this).load(coverImage).placeholder(R.drawable.ic_image_placeholder_image).error(R.drawable.ic_image_placeholder_image).into(binding.imageView)
+
+                selectedPlaceName = "$placeName, $state"
+                selectedLat = lat
+                selectedLng = lng
+            } else {
+                binding.hotelDetailsCv.visibility = View.GONE
+            }
         }
     }
 
@@ -125,6 +169,11 @@ class EditPostActivity : BaseActivity() {
         initialFeeling = intent.getStringExtra("FEELING")
         initialMedia = intent.getParcelableArrayListExtra<MediaRef>("MEDIA") ?: emptyList()
         
+        // Get location data from intent
+        initialPlaceName = intent.getStringExtra("PLACE_NAME")
+        initialLat = intent.getDoubleExtra("LAT", Double.NaN).takeIf { !it.isNaN() }
+        initialLng = intent.getDoubleExtra("LNG", Double.NaN).takeIf { !it.isNaN() }
+        
         initUI()
         loadInitialData()
     }
@@ -140,6 +189,13 @@ class EditPostActivity : BaseActivity() {
 
         binding.doneBtn.setOnClickListener {
             savePost()
+        }
+
+        // Setup check-in click
+        binding.checkInLayout.setOnClickListener {
+            progressBar.show()
+            val intent = Intent(this, CheckInActivity::class.java)
+            checkInLauncher.launch(intent)
         }
 
         // Setup feeling click
@@ -170,6 +226,16 @@ class EditPostActivity : BaseActivity() {
 
         // Set feeling
         updateFeeling(initialFeeling ?: "")
+
+        // Set location/check-in data
+        if (initialPlaceName != null && initialLat != null && initialLng != null) {
+            selectedPlaceName = initialPlaceName ?: ""
+            selectedLat = initialLat ?: 0.0
+            selectedLng = initialLng ?: 0.0
+            binding.checkInTv.text = selectedPlaceName
+            // Note: We don't have hotel details in the initial data, so hotelDetailsCv stays hidden
+            // User can update check-in if needed
+        }
 
         // Clear all media tracking data before loading
         mediaList.clear()
@@ -432,16 +498,19 @@ class EditPostActivity : BaseActivity() {
             individualViewModal.updatePostResult.removeObservers(this)
         }
         
-        individualViewModal.updatePost(postId, content, feeling, newMediaFiles, deletedMediaIds.toList())
+        individualViewModal.updatePost(postId, content, feeling, newMediaFiles, deletedMediaIds.toList(), selectedPlaceName, selectedLat, selectedLng)
     }
 
     companion object {
-        fun start(context: android.content.Context, postId: String, content: String, feeling: String?, media: List<MediaRef>) {
+        fun start(context: android.content.Context, postId: String, content: String, feeling: String?, media: List<MediaRef>, placeName: String? = null, lat: Double? = null, lng: Double? = null) {
             val intent = Intent(context, EditPostActivity::class.java).apply {
                 putExtra("POST_ID", postId)
                 putExtra("CONTENT", content)
                 putExtra("FEELING", feeling)
                 putParcelableArrayListExtra("MEDIA", ArrayList(media))
+                placeName?.let { putExtra("PLACE_NAME", it) }
+                lat?.let { putExtra("LAT", it) }
+                lng?.let { putExtra("LNG", it) }
             }
             context.startActivity(intent)
         }

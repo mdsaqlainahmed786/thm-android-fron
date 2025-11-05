@@ -356,11 +356,11 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     // Update Post
     private val _updatePostResult = MutableLiveData<DeleteModal>()
     val updatePostResult: LiveData<DeleteModal> = _updatePostResult
-    fun updatePost(postID: String, content: String, feelings: String, media: List<String>, deletedMedia: List<String>) {
+    fun updatePost(postID: String, content: String, feelings: String, media: List<String>, deletedMedia: List<String>, placeName: String = "", lat: Double = 0.0, lng: Double = 0.0) {
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
-                val response = individualRepo.updatePost(postID, content, feelings, media, deletedMedia)
+                val response = individualRepo.updatePost(postID, content, feelings, media, deletedMedia, placeName, lat, lng)
                 if (response.isSuccessful) {
                     try {
                         val res = response.body()
