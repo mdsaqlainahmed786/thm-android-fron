@@ -374,44 +374,12 @@ class SavedFeedAdapter(
             context.sharePostWithDeepLink(postId,ownerUserId)
         }
 
-        // Show edit and delete buttons only for the owner of the post
-        val isOwner = (post.userID ?: "") == ownerUserId
-        binding.editBtn.visibility = if (isOwner) View.VISIBLE else View.GONE
-        binding.deleteBtn.visibility = if (isOwner) View.VISIBLE else View.GONE
-
-        binding.editBtn.setOnClickListener {
-            val currentContent = post.content.orEmpty()
-            val currentFeeling = post.feelings
-            val currentMedia = post.mediaRef
-            val postId = post.Id ?: ""
-            
-            if (postId.isNotEmpty()) {
-                com.thehotelmedia.android.activity.userTypes.forms.EditPostActivity.start(
-                    context,
-                    postId,
-                    currentContent,
-                    currentFeeling,
-                    currentMedia
-                )
-            }
-        }
-
-        binding.deleteBtn.setOnClickListener {
-            val bottomSheet = YesOrNoBottomSheetFragment.newInstance(MessageStore.sureWantToDeletePost(context))
-            bottomSheet.onYesClicked = {
-                if (itemData != null) {
-                    removeItem(itemData)
-                    individualViewModal.deletePost(postId)
-                }
-            }
-            bottomSheet.onNoClicked = {
-                // User cancelled, do nothing
-            }
-            bottomSheet.show(parentFragmentManager, "YesOrNoBottomSheet")
-        }
+        // Hide edit and delete buttons - they are now in the menu
+        binding.editBtn.visibility = View.GONE
+        binding.deleteBtn.visibility = View.GONE
 
         binding.menuBtn.setOnClickListener { view ->
-            showMenuDialog(view, postId, itemData)
+            showMenuDialog(view, postId, itemData, post)
         }
     }
 
@@ -561,7 +529,7 @@ class SavedFeedAdapter(
         }
 
         binding.menuBtn.setOnClickListener { view ->
-            showMenuDialog(view, postId, itemData)
+            showMenuDialog(view, postId, itemData, review)
         }
     }
 
@@ -692,7 +660,7 @@ class SavedFeedAdapter(
         }
 
         binding.menuBtn.setOnClickListener { view ->
-            showMenuDialog(view,postId,itemData)
+            showMenuDialog(view, postId, itemData, event)
         }
 
 
@@ -923,8 +891,11 @@ class SavedFeedAdapter(
 //    }
 
 
-    private fun showMenuDialog(view: View?, postId: String, itemData: Data?) {
+    private fun showMenuDialog(view: View?, postId: String, itemData: Data?, post: Data?) {
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+
+        // Check if user is the owner of the post
+        val isOwner = post?.let { (it.userID ?: "") == ownerUserId } ?: false
 
         // Decide which layout to use based on the value of `from`
         val dropdownView = if (from == "Profile") {
@@ -943,18 +914,34 @@ class SavedFeedAdapter(
 
         // Find TextViews and set click listeners
         if (from == "Profile") {
-            val reportBtn: TextView = dropdownView.findViewById(R.id.reportBtn)
-            val deleteBtn: TextView = dropdownView.findViewById(R.id.deleteBtn)
+            val editBtn: TextView? = dropdownView.findViewById(R.id.editBtn)
+            val deleteBtn: TextView? = dropdownView.findViewById(R.id.deleteBtn)
+            val reportBtn: TextView? = dropdownView.findViewById(R.id.reportBtn)
 
-            reportBtn.setOnClickListener {
-                reportPost(postId)
+            // Show/hide edit and delete buttons based on ownership
+            editBtn?.visibility = if (isOwner) View.VISIBLE else View.GONE
+            deleteBtn?.visibility = if (isOwner) View.VISIBLE else View.GONE
+
+            // Edit button click listener
+            editBtn?.setOnClickListener {
+                val currentContent = post?.content.orEmpty()
+                val currentFeeling = post?.feelings
+                val currentMedia = post?.mediaRef ?: emptyList()
+                
+                if (postId.isNotEmpty()) {
+                    com.thehotelmedia.android.activity.userTypes.forms.EditPostActivity.start(
+                        context,
+                        postId,
+                        currentContent,
+                        currentFeeling,
+                        currentMedia
+                    )
+                }
                 popupWindow.dismiss()
             }
 
-            deleteBtn.setOnClickListener {
-
-
-
+            // Delete button click listener
+            deleteBtn?.setOnClickListener {
                 val bottomSheet = YesOrNoBottomSheetFragment.newInstance(MessageStore.sureWantToDeletePost(context))
                 bottomSheet.onYesClicked = {
                     if (itemData != null) {
@@ -963,13 +950,15 @@ class SavedFeedAdapter(
                     }
                 }
                 bottomSheet.onNoClicked = {
-
+                    // User cancelled, do nothing
                 }
                 bottomSheet.show(parentFragmentManager, "YesOrNoBottomSheet")
+                popupWindow.dismiss()
+            }
 
-
-
-
+            // Report button click listener
+            reportBtn?.setOnClickListener {
+                reportPost(postId)
                 popupWindow.dismiss()
             }
         } else {

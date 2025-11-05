@@ -28,14 +28,14 @@
         <!--            android:text="Block"-->
         <!--            android:background="@drawable/text_popup_background_unselected"/>-->
         <TextView
-            android:id="@+id/reportBtn"
+            android:id="@+id/editBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="10sp"
             android:textAlignment="center"
             android:textColor="@color/text_color"
             android:fontFamily="@font/comic_regular"
-            android:text="@string/report"
+            android:text="@string/edit"
             android:background="@drawable/text_popup_background_unselected"/>
 
         <TextView
@@ -48,6 +48,18 @@
             android:textColor="@color/text_color"
             android:fontFamily="@font/comic_regular"
             android:text="@string/delete"
+            android:background="@drawable/text_popup_background_unselected"/>
+
+        <TextView
+            android:id="@+id/reportBtn"
+            android:layout_marginTop="6dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:textAlignment="center"
+            android:textColor="@color/text_color"
+            android:fontFamily="@font/comic_regular"
+            android:text="@string/report"
             android:background="@drawable/text_popup_background_unselected"/>
 
 
