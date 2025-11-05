@@ -24,9 +24,11 @@ import com.thehotelmedia.android.modals.forms.taggedPeople.ProfilePic
 
 class TagPeopleListAdapter(
     private val context: Context,
-    private val onItemSelected: (ArrayList<TagPeople>) -> Unit
+    private val onItemSelected: (ArrayList<TagPeople>) -> Unit,
+    private val isCollaboration: Boolean = false
 ) : PagingDataAdapter<TaggedData, TagPeopleListAdapter.ViewHolder>(TagPeopleDiffCallback()) {
     private val MAX_TAGGED_PEOPLE = 30
+    private val MAX_COLLABORATORS = 1 // Only one collaborator allowed
     // List to keep track of selected items
     private val selectedItems = ArrayList<TaggedData>()
 
@@ -85,14 +87,27 @@ class TagPeopleListAdapter(
                 if (isSelected) {
                     selectedItems.removeAll { selectedItem -> selectedItem.Id == it.Id }
                 } else {
-//                    selectedItems.add(it)
-                    // Check if limit is reached
-                    if (selectedItems.size >= MAX_TAGGED_PEOPLE) {
-                        Toast.makeText(context, context.getString(R.string.max_tagged_people_message, MAX_TAGGED_PEOPLE), Toast.LENGTH_SHORT).show()
-                        view.isEnabled = true // Re-enable the item click
-                        return@setOnClickListener
+                    // For collaboration, only allow one selection - replace existing selection
+                    if (isCollaboration) {
+                        if (selectedItems.isNotEmpty()) {
+                            // Clear the previous selection first
+                            val previousPosition = selectedItems.firstOrNull()?.let { prevItem ->
+                                // Find the position of the previously selected item
+                                // We'll need to notify all items to update their checkmarks
+                                notifyDataSetChanged()
+                            }
+                            selectedItems.clear()
+                        }
+                        selectedItems.add(it)
+                    } else {
+                        // For tag people, check if limit is reached
+                        if (selectedItems.size >= MAX_TAGGED_PEOPLE) {
+                            Toast.makeText(context, context.getString(R.string.max_tagged_people_message, MAX_TAGGED_PEOPLE), Toast.LENGTH_SHORT).show()
+                            view.isEnabled = true // Re-enable the item click
+                            return@setOnClickListener
+                        }
+                        selectedItems.add(it)
                     }
-                    selectedItems.add(it)
                 }
 
                 notifyItemChanged(position)
@@ -111,6 +126,7 @@ class TagPeopleListAdapter(
                     )
                 } as ArrayList<TagPeople>
 
+                android.util.Log.d("TagPeopleListAdapter", "Selected ${selectedTagPeopleList.size} people: ${selectedTagPeopleList.map { it.name }}")
                 // Call the lambda function with the updated list of TagPeople
                 onItemSelected(selectedTagPeopleList)
 
@@ -139,8 +155,14 @@ class TagPeopleListAdapter(
 
     fun setSelectedItems(selectedTagPeopleList: ArrayList<TagPeople>) {
         selectedItems.clear()
+        // For collaboration, only keep the first item if multiple are provided
+        val itemsToProcess = if (isCollaboration && selectedTagPeopleList.size > 1) {
+            arrayListOf(selectedTagPeopleList.first())
+        } else {
+            selectedTagPeopleList
+        }
         // Convert TagPeople back to TaggedData
-        val convertedItems = selectedTagPeopleList.map { tagPeople ->
+        val convertedItems = itemsToProcess.map { tagPeople ->
             // Check the account type
             if (tagPeople.accountType == "individual") {
                 TaggedData(
@@ -169,6 +191,7 @@ class TagPeopleListAdapter(
         }
 
         selectedItems.addAll(convertedItems)
+        android.util.Log.d("TagPeopleListAdapter", "Restored ${selectedItems.size} selected items: ${selectedItems.map { it.Id }}")
         println("Converted TaggedData: $selectedItems")
         notifyDataSetChanged()
     }

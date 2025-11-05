@@ -5,11 +5,13 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.paging.LoadState
+import com.thehotelmedia.android.R
 import com.thehotelmedia.android.modals.forms.taggedPeople.TaggedData
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
@@ -43,6 +45,7 @@ class TagPeopleActivity : BaseActivity() {
     private lateinit var individualViewModal: IndividualViewModal
     private var selectedTagPeopleList: ArrayList<TagPeople>? = null
     private lateinit var progressBar : CustomProgressBar
+    private var isCollaboration: Boolean = false
 //    private lateinit var profilePhotosAdapter : ProfilePhotosAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +61,14 @@ class TagPeopleActivity : BaseActivity() {
         progressBar = CustomProgressBar(this)
 
         selectedTagPeopleList = intent.getSerializableExtra("selectedTagPeopleList") as? ArrayList<TagPeople>
+        isCollaboration = intent.getBooleanExtra("isCollaboration", false)
+        
+        // Update title based on whether it's for collaboration or tagging
+        if (isCollaboration) {
+            binding.titleTv.text = getString(R.string.collaborate_cap)
+        } else {
+            binding.titleTv.text = getString(R.string.tag_people_cap)
+        }
 
 
         println("asfjdksakfhaskdf    $selectedTagPeopleList")
@@ -85,6 +96,7 @@ class TagPeopleActivity : BaseActivity() {
             onBackPressedDispatcher.onBackPressed()
         }
         binding.doneBtn.setOnClickListener {
+            Log.d("TagPeopleActivity", "Done clicked. Returning ${finalSelectedPeopleList.size} selected people: ${finalSelectedPeopleList.map { it.name }}")
             println("asfjkskfa    $finalSelectedPeopleList")
 
 
@@ -123,7 +135,8 @@ class TagPeopleActivity : BaseActivity() {
         // Hide the progress bar when starting a new search
         progressBar.hide()
 
-        tagPeopleListAdapter = TagPeopleListAdapter(this,::onPeopleSelected)
+        // Pass isCollaboration flag to adapter to limit selection to 1 for collaboration
+        tagPeopleListAdapter = TagPeopleListAdapter(this,::onPeopleSelected, isCollaboration)
 
         binding.tagPeopleRv.adapter = tagPeopleListAdapter
             .withLoadStateFooter(footer = LoaderAdapter())
@@ -135,9 +148,26 @@ class TagPeopleActivity : BaseActivity() {
                 tagPeopleListAdapter.submitData(it)
             }
         }
-        if (selectedTagPeopleList != null && selectedTagPeopleList!!.isNotEmpty()) {
-            setRecentChatProfileAdapter(selectedTagPeopleList!!)
-            tagPeopleListAdapter.setSelectedItems(selectedTagPeopleList!!)
+        
+        // Restore selected items - use finalSelectedPeopleList if available, otherwise use selectedTagPeopleList from intent
+        val itemsToRestore = if (finalSelectedPeopleList.isNotEmpty()) {
+            finalSelectedPeopleList
+        } else if (selectedTagPeopleList != null && selectedTagPeopleList!!.isNotEmpty()) {
+            selectedTagPeopleList!!
+        } else {
+            emptyList()
+        }
+        
+        // For collaboration, only allow one selection - take the first item if multiple exist
+        val itemsToRestoreFiltered = if (isCollaboration && itemsToRestore.size > 1) {
+            arrayListOf(itemsToRestore.first())
+        } else {
+            itemsToRestore
+        }
+        
+        if (itemsToRestoreFiltered.isNotEmpty()) {
+            setRecentChatProfileAdapter(itemsToRestoreFiltered as ArrayList<TagPeople>)
+            tagPeopleListAdapter.setSelectedItems(itemsToRestoreFiltered as ArrayList<TagPeople>)
         }
 
     }

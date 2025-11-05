@@ -1117,6 +1117,12 @@ fun formatBookingDates(checkInDate: String?, checkOutDate: String?): Triple<Stri
 
 
 fun startCreatePostWorker(context: Context, mediaList: List<String>, selectedTagIdList: List<String>, content: String, selectedPlaceName: String, selectedLat: Double, selectedLng: Double, selectedFeeling: String, collaboratorIds: List<String>) {
+    android.util.Log.d("startCreatePostWorker", "=== WORKER DATA DEBUG ===")
+    android.util.Log.d("startCreatePostWorker", "collaboratorIds received: ${collaboratorIds.size} items")
+    android.util.Log.d("startCreatePostWorker", "collaboratorIds values: $collaboratorIds")
+    android.util.Log.d("startCreatePostWorker", "collaboratorIds.toTypedArray() size: ${collaboratorIds.toTypedArray().size}")
+    android.util.Log.d("startCreatePostWorker", "==========================")
+    
     val data = workDataOf(
         "mediaList" to mediaList.toTypedArray(),
         "selectedTagIdList" to selectedTagIdList.toTypedArray(),
