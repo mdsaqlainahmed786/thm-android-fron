@@ -1052,6 +1052,14 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         ).liveData.cachedIn(viewModelScope)
     }
 
+    // Get all users for collaboration (searches all users in database, not just followers)
+    fun getCollaborationUsers(search: String): LiveData<PagingData<TaggedData>> {
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { com.thehotelmedia.android.pagination.collaboration.CollaborationUsersPagingSource(search, individualRepo) }
+        ).liveData.cachedIn(viewModelScope)
+    }
+
 
     //LikeComments
     private val _userProfileByIdResult = MutableLiveData<UserProfileModel>()
