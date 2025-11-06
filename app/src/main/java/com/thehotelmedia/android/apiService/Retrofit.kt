@@ -1,8 +1,13 @@
 package com.thehotelmedia.android.apiService
 
 import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import com.thehotelmedia.android.BuildConfig
 import com.thehotelmedia.android.interFaces.Application
+import com.thehotelmedia.android.modals.feeds.feed.Collaborator
+import com.thehotelmedia.android.modals.feeds.feed.CollaboratorListTypeAdapter
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -13,10 +18,21 @@ object Retrofit {
     private const val BASE_URL = BuildConfig.BASE_URL
 
 
+    private val gson: Gson by lazy {
+        GsonBuilder()
+            .setLenient()
+            .serializeNulls()
+            .registerTypeAdapter(
+                object : TypeToken<ArrayList<Collaborator>?>() {}.type,
+                CollaboratorListTypeAdapter()
+            )
+            .create()
+    }
+
     private val googleApiServices by lazy {
         Retrofit.Builder()
             .baseUrl("https://maps.googleapis.com/maps/api/")
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
@@ -30,7 +46,7 @@ object Retrofit {
     val weatherApiService: Application by lazy {
         Retrofit.Builder()
             .baseUrl(WEATHER_BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
             .create(Application::class.java)
     }
@@ -56,7 +72,7 @@ object Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(httpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
@@ -75,7 +91,7 @@ object Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(httpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 

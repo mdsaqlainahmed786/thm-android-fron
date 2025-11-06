@@ -1,5 +1,6 @@
 package com.thehotelmedia.android.modals.feeds.feed
 
+import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
 
 
@@ -38,6 +39,7 @@ data class Data (
     @SerializedName("interestedPeople"           ) var interestedPeople           : Int?                        = null,
     @SerializedName("likedByMe"                  ) var likedByMe                  : Boolean?                    = null,
     @SerializedName("savedByMe"                  ) var savedByMe                  : Boolean?                    = null,
-    @SerializedName("imJoining"                  ) var imJoining                  : Boolean?                    = null
+    @SerializedName("imJoining"                  ) var imJoining                  : Boolean?                    = null,
+    @SerializedName("collaborators"              ) var collaborators              : ArrayList<Collaborator>?    = null
 
 )

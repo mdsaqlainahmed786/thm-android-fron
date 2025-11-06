@@ -338,7 +338,8 @@ class IndividualHomeFragment : Fragment() {
         if (binding.postRecyclerView.adapter == null) {
             binding.postRecyclerView.adapter = feedAdapter.withLoadStateFooter(footer = LoaderAdapter())
             binding.postRecyclerView.isNestedScrollingEnabled = false
-            binding.postRecyclerView.setItemViewCacheSize(5)
+            binding.postRecyclerView.setItemViewCacheSize(10) // Increased cache size for smoother scrolling
+            binding.postRecyclerView.setHasFixedSize(false) // Allow RecyclerView to optimize layout
             binding.postRecyclerView.itemAnimator = null
         }
 
@@ -362,7 +363,7 @@ class IndividualHomeFragment : Fragment() {
 
                 isLoading(refresh)
                 feedAdapter.submitData(data)
-                feedAdapter.notifyDataSetChanged()
+                // Remove notifyDataSetChanged() - PagingDataAdapter handles updates automatically via DiffUtil
             }
         }
     }
