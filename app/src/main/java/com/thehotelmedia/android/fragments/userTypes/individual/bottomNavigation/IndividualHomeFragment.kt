@@ -194,6 +194,8 @@ class IndividualHomeFragment : Fragment() {
         binding.swipeRefreshLayout.setOnRefreshListener {
 //            getStoryData()
 //            refreshHandler.removeCallbacksAndMessages(null)
+            // Scroll to top immediately when refresh starts
+            binding.postRecyclerView.scrollToPosition(0)
             getFeedData("refresh")
 //            binding.postRecyclerView.adapter?.notifyItemChanged(0)
         }
@@ -357,12 +359,16 @@ class IndividualHomeFragment : Fragment() {
 
         individualViewModal.getFeeds(currentLat,currentLng).observe(viewLifecycleOwner) { data ->
             lifecycleScope.launch {
-                if (refresh.isNotEmpty()){
-                    binding.postRecyclerView.scrollToPosition(0)
-                }
-
                 isLoading(refresh)
                 feedAdapter.submitData(data)
+                
+                // Scroll to top after data is submitted, especially on refresh
+                if (refresh.isNotEmpty()){
+                    // Post to ensure layout is complete before scrolling
+                    binding.postRecyclerView.post {
+                        binding.postRecyclerView.scrollToPosition(0)
+                    }
+                }
                 // Remove notifyDataSetChanged() - PagingDataAdapter handles updates automatically via DiffUtil
             }
         }
@@ -398,6 +404,13 @@ class IndividualHomeFragment : Fragment() {
                 Handler(Looper.getMainLooper()).post {
                     progressBar.hide()
                     binding.swipeRefreshLayout.isRefreshing = false
+                    
+                    // Ensure scroll to top after refresh completes
+                    if (refresh.isNotEmpty()) {
+                        binding.postRecyclerView.post {
+                            binding.postRecyclerView.scrollToPosition(0)
+                        }
+                    }
                 }
             }
 
