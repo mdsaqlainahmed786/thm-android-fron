@@ -137,6 +137,15 @@ class CommentsBottomSheetFragment : BottomSheetDialogFragment() {
 
         getCommentsData()
 
+        // Observe delete comment result to refresh the list
+        individualViewModal.deleteCommentResult.observe(viewLifecycleOwner) { result ->
+            if (result != null && result.status == true) {
+                // Refresh comments after successful deletion
+                lifecycleScope.launch {
+                    commentsAdapter.refresh()
+                }
+            }
+        }
 
         binding.cancelReplyingBtn.setOnClickListener {
             binding.replyLayout.visibility = View.GONE

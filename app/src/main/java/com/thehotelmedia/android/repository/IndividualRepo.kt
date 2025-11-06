@@ -663,6 +663,17 @@ class IndividualRepo (private val context: Context){
         }
     }
 
+    suspend fun deleteComment(commentId: String): Response<DeleteModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.deleteComment(accessToken,commentId).execute()
+        }
+    }
+
     suspend fun getVideos(id: String,pageNumber: Int,documentLimit: Int): Response<VideoModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {

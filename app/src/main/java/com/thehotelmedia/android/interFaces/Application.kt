@@ -338,6 +338,12 @@ interface Application {
         @Path(value = "id",encoded = true) id: String,
     ): Call<SavePostModal>
 
+    @DELETE("posts/comments"+"/{id}")
+    fun deleteComment(
+        @Header("x-access-token") token: String,
+        @Path(value = "id",encoded = true) id: String,
+    ): Call<DeleteModal>
+
     @GET("user/videos"+"/{id}")
     fun getVideos(
         @Header("x-access-token") token: String,
