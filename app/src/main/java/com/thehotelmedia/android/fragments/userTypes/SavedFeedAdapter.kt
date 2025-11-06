@@ -109,6 +109,7 @@ class SavedFeedAdapter(
             for ((key, value) in allEntries) {
                 if (key.startsWith("collab_text_") && value is String) {
                     val postId = key.removePrefix("collab_text_")
+                    // Store as plain string - we'll rebuild SpannableString when needed
                     collaboratorTextCache[postId] = value
                 }
             }
@@ -357,8 +358,26 @@ class SavedFeedAdapter(
         // Check cache FIRST - if we have cached text, use it immediately (no flicker)
         val cachedText = collaboratorTextCache[postId]
         val finalNameText: CharSequence = if (cachedText != null) {
-            // Use cached text - don't process collaborators again
-            cachedText
+            // Use cached text - rebuild SpannableString if it contains "and" (collaborator format)
+            val cachedString = cachedText.toString()
+            if (cachedString.contains(" and ") && cachedString.length > cachedString.indexOf(" and ") + 5) {
+                // Rebuild SpannableString with blue styling for collaborator name
+                val spannableString = android.text.SpannableString(cachedString)
+                val startIndex = cachedString.indexOf("and") + 4 // Start after "and "
+                val endIndex = cachedString.length
+                if (startIndex < endIndex && startIndex > 0 && startIndex < cachedString.length) {
+                    spannableString.setSpan(
+                        android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.blue)),
+                        startIndex,
+                        endIndex,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                spannableString
+            } else {
+                // Plain name, no styling needed
+                cachedString
+            }
         } else try {
             val collaborators = post.collaborators
             if (collaborators != null && collaborators.isNotEmpty()) {
@@ -410,9 +429,13 @@ class SavedFeedAdapter(
             name
         }
         
-        // Set the collaborator name text (only if different to prevent redundant updates)
-        if (binding.nameTv.text.toString() != finalNameText.toString()) {
-            binding.nameTv.text = finalNameText
+        // Always set the text (don't skip if it's the same - ensures collaborator text is displayed)
+        // The comparison was preventing collaborator text from being set in some cases
+        binding.nameTv.text = finalNameText
+        
+        // Debug logging to trace collaborator display
+        if (finalNameText.toString().contains(" and ")) {
+            android.util.Log.d("SavedFeedAdapter", "Setting collaborator text for postId: $postId, text: $finalNameText")
         }
 
 

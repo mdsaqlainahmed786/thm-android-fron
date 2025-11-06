@@ -146,6 +146,8 @@ class StoryPagerAdapter(
             binding.menuBtn.visibility = View.GONE
             binding.otherUserCommentLayout.visibility = View.GONE
             binding.deleteBtn.visibility = View.VISIBLE
+            // Show engagement buttons for owners too
+            binding.engagementButtonsLayout?.visibility = View.VISIBLE
             likeCount =  users.storiesRef[currentStoryIndex].likes.toString()
             viewerCount =  users.storiesRef[currentStoryIndex].views.toString()
 
@@ -200,10 +202,22 @@ class StoryPagerAdapter(
             binding.otherUserCommentLayout.visibility = View.VISIBLE
             binding.deleteBtn.visibility = View.GONE
             binding.viewerLayout.visibility = View.GONE
+            // Show engagement buttons for non-owners
+            binding.engagementButtonsLayout?.visibility = View.VISIBLE
         }
 
         var likedByMe = users.storiesRef[currentStoryIndex].likedByMe ?: false
-        updateLikeBtn(likedByMe,binding)
+        val currentStory = users.storiesRef[currentStoryIndex]
+        val likesCount = currentStory.likes ?: 0
+        val viewsCount = currentStory.views ?: 0
+        // Note: Comment count would need to be tracked separately or from API
+        var commentCount = 0 // This should be fetched from API or tracked via socket
+        
+        // Update engagement buttons UI
+        updateEngagementButtons(likedByMe, likesCount, commentCount, viewsCount, binding, accountType == "Owner")
+        
+        // Setup engagement button click listeners
+        setupEngagementButtons(binding, storyId, users, currentStoryIndex, likedByMe, socketUserName, sourceUrl, mediaId)
 
         binding.deleteBtn.setOnClickListener {
             showBottomSheet(storyId,binding)
@@ -215,13 +229,6 @@ class StoryPagerAdapter(
 
         binding.viewerLayout.setOnClickListener {
             showViewerBottomSheet(storyId,binding,likeCount,viewerCount)
-        }
-
-        binding.likeBtn.setOnClickListener {
-            likedByMe = !likedByMe
-            updateLikeBtn(likedByMe,binding)
-            users.storiesRef[currentStoryIndex].likedByMe = likedByMe
-            likeUserStory(storyId)
         }
 
         binding.commentEt.setOnFocusChangeListener { _, hasFocus ->
@@ -241,16 +248,22 @@ class StoryPagerAdapter(
         binding.commentEt.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 val commentText = binding.commentEt.text.toString().trim()
-                // Do something with the commentText, like printing it or sending it somewhere
+                if (commentText.isNotEmpty()) {
+                    // Send comment via socket
+                    socketViewModel.sendStoryComment("story-comment",commentText,socketUserName,sourceUrl,mediaId,storyId)
+                    
+                    // Increment comment count
+                    val currentCommentCount = binding.commentCountTv?.text?.toString()?.toIntOrNull() ?: 0
+                    binding.commentCountTv?.text = (currentCommentCount + 1).toString()
+                    
+                    // Clear the EditText after sending
+                    binding.commentEt.text?.clear()
+                    resumeStory(binding)
 
-                socketViewModel.sendStoryComment("story-comment",commentText,socketUserName,sourceUrl,mediaId,storyId)
-                // Optionally clear the EditText after sending
-                binding.commentEt.text?.clear()
-                resumeStory(binding)
-
-                // Hide the keyboard after sending
-                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.hideSoftInputFromWindow(binding.commentEt.windowToken, 0)
+                    // Hide the keyboard after sending
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(binding.commentEt.windowToken, 0)
+                }
 
                 true // Return true to indicate the action was handled
             } else {
@@ -367,12 +380,74 @@ class StoryPagerAdapter(
     private fun likeUserStory(storyId: String) {
         individualViewModal.likeStory(storyId)
     }
-
-    private fun updateLikeBtn(likedByMe: Boolean, binding: StoryScreenLayoutBinding) {
-        if (likedByMe){
-            binding.likeIv.setImageResource(R.drawable.ic_like_icon)
-        }else{
-            binding.likeIv.setImageResource(R.drawable.ic_unlike_icon)
+    
+    private fun updateEngagementButtons(
+        likedByMe: Boolean,
+        likesCount: Int,
+        commentCount: Int,
+        viewsCount: Int,
+        binding: StoryScreenLayoutBinding,
+        isOwner: Boolean
+    ) {
+        // Update like icon and count
+        binding.likeIconIv?.setImageResource(
+            if (likedByMe) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon
+        )
+        binding.likeCountTv?.text = likesCount.toString()
+        
+        // Update comment count
+        binding.commentCountTv?.text = commentCount.toString()
+        
+        // Update views count (only visible to owner)
+        if (isOwner) {
+            binding.viewsCountContainer?.visibility = View.VISIBLE
+            binding.viewsCountTv?.text = "$viewsCount views"
+        } else {
+            binding.viewsCountContainer?.visibility = View.GONE
+        }
+    }
+    
+    private fun setupEngagementButtons(
+        binding: StoryScreenLayoutBinding,
+        storyId: String,
+        users: Stories,
+        storyIndex: Int,
+        currentLikedByMe: Boolean,
+        socketUserName: String,
+        sourceUrl: String,
+        mediaId: String
+    ) {
+        var likedByMe = currentLikedByMe
+        val currentStory = users.storiesRef[storyIndex]
+        
+        // Like button click
+        binding.likeButtonContainer?.setOnClickListener {
+            likedByMe = !likedByMe
+            currentStory.likedByMe = likedByMe
+            
+            // Update like count
+            val currentLikes = currentStory.likes ?: 0
+            currentStory.likes = if (likedByMe) currentLikes + 1 else currentLikes - 1
+            
+            // Update UI
+            updateEngagementButtons(
+                likedByMe,
+                currentStory.likes ?: 0,
+                binding.commentCountTv?.text?.toString()?.toIntOrNull() ?: 0,
+                currentStory.views ?: 0,
+                binding,
+                users.accountType?.capitalizeFirstLetter() == "Owner"
+            )
+            
+            // Call API
+            likeUserStory(storyId)
+        }
+        
+        // Comment button click - focus on comment input
+        binding.commentButtonContainer?.setOnClickListener {
+            binding.commentEt?.requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(binding.commentEt, InputMethodManager.SHOW_IMPLICIT)
         }
     }
 

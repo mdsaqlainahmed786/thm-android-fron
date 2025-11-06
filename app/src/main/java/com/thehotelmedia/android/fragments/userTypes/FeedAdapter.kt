@@ -161,6 +161,7 @@ class FeedAdapter(
             for ((key, value) in allEntries) {
                 if (key.startsWith("collab_text_") && value is String) {
                     val postId = key.removePrefix("collab_text_")
+                    // Store as plain string - we'll rebuild SpannableString when needed
                     collaboratorTextCache[postId] = value
                 }
             }
@@ -500,10 +501,30 @@ class FeedAdapter(
         // Check cache FIRST - if we have cached text, use it immediately (no flicker)
         val cachedText = collaboratorTextCache[postId]
         val finalNameText: CharSequence = if (cachedText != null) {
-            // Use cached text - don't process collaborators again
-            cachedText
+            android.util.Log.d("FeedAdapter", "Using cached text for postId: $postId, cached: $cachedText")
+            // Use cached text - rebuild SpannableString if it contains "and" (collaborator format)
+            val cachedString = cachedText.toString()
+            if (cachedString.contains(" and ") && cachedString.length > cachedString.indexOf(" and ") + 5) {
+                // Rebuild SpannableString with blue styling for collaborator name
+                val spannableString = android.text.SpannableString(cachedString)
+                val startIndex = cachedString.indexOf("and") + 4 // Start after "and "
+                val endIndex = cachedString.length
+                if (startIndex < endIndex && startIndex > 0 && startIndex < cachedString.length) {
+                    spannableString.setSpan(
+                        android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.blue)),
+                        startIndex,
+                        endIndex,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                spannableString
+            } else {
+                // Plain name, no styling needed
+                cachedString
+            }
         } else try {
             val collaborators = post.collaborators
+            android.util.Log.d("FeedAdapter", "Processing collaborators for postId: $postId, userId: $userId, collaborators count: ${collaborators?.size ?: 0}")
             
             if (collaborators != null && collaborators.isNotEmpty()) {
                 try {
@@ -514,15 +535,20 @@ class FeedAdapter(
                     val validCollaborators = collaborators.filterNotNull()
                         .filter { 
                             try {
-                                !it.name.isNullOrEmpty() && it._id != userId
+                                val isValid = !it.name.isNullOrEmpty() && it._id != userId
+                                android.util.Log.d("FeedAdapter", "Collaborator ${it._id}: name='${it.name}', isValid=$isValid, userId=$userId")
+                                isValid
                             } catch (e: Exception) {
                                 false
                             }
                         }
                     
+                    android.util.Log.d("FeedAdapter", "Valid collaborators count: ${validCollaborators.size} for postId: $postId")
+                    
                     if (validCollaborators.isNotEmpty()) {
                         // Build collaborator text with blue styling
                         val collaboratorText = buildCollaboratorText(validCollaborators, name)
+                        android.util.Log.d("FeedAdapter", "Built collaborator text: $collaboratorText for postId: $postId")
                         // Cache the result for future rebinds (both memory and persistent storage)
                         collaboratorTextCache[postId] = collaboratorText
                         saveCollaboratorTextToPrefs(postId, collaboratorText)
@@ -530,6 +556,7 @@ class FeedAdapter(
                     } else {
                         // If we have collaborators but no valid ones (only IDs), mark for API call
                         val collaboratorsWithOnlyIds = collaborators.filter { it._id != userId && it.name.isNullOrEmpty() && !it._id.isNullOrEmpty() }
+                        android.util.Log.d("FeedAdapter", "Collaborators with only IDs count: ${collaboratorsWithOnlyIds.size} for postId: $postId")
                         if (collaboratorsWithOnlyIds.isNotEmpty()) {
                             // Load collaborators from API (async, will update later)
                             loadCollaboratorsForPost(postId, binding, name, userId)
@@ -541,22 +568,29 @@ class FeedAdapter(
                 } catch (e: Exception) {
                     // If there's any error processing collaborators, just show normal name
                     android.util.Log.e("FeedAdapter", "Error processing collaborators: ${e.message}", e)
+                    e.printStackTrace()
                     // Don't cache errors
                     name
                 }
             } else {
+                android.util.Log.d("FeedAdapter", "No collaborators found for postId: $postId")
                 // No collaborators - don't cache normal names
                 name
             }
         } catch (e: Exception) {
             // If there's any error accessing collaborators, just show normal name
             android.util.Log.e("FeedAdapter", "Error accessing collaborators field: ${e.message}", e)
+            e.printStackTrace()
             name
         }
         
-        // Only set text if it's different (prevents redundant updates during rebind)
-        if (binding.nameTv.text.toString() != finalNameText.toString()) {
-            binding.nameTv.text = finalNameText
+        // Always set the text (don't skip if it's the same - ensures collaborator text is displayed)
+        // The comparison was preventing collaborator text from being set in some cases
+        binding.nameTv.text = finalNameText
+        
+        // Debug logging to trace collaborator display
+        if (finalNameText.toString().contains(" and ")) {
+            android.util.Log.d("FeedAdapter", "Setting collaborator text for postId: $postId, text: $finalNameText")
         }
 
 
