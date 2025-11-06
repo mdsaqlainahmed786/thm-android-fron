@@ -161,6 +161,7 @@ class FeedAdapter(
             for ((key, value) in allEntries) {
                 if (key.startsWith("collab_text_") && value is String) {
                     val postId = key.removePrefix("collab_text_")
+                    // Store as plain string - we'll rebuild SpannableString when needed
                     collaboratorTextCache[postId] = value
                 }
             }
@@ -500,10 +501,112 @@ class FeedAdapter(
         // Check cache FIRST - if we have cached text, use it immediately (no flicker)
         val cachedText = collaboratorTextCache[postId]
         val finalNameText: CharSequence = if (cachedText != null) {
-            // Use cached text - don't process collaborators again
-            cachedText
+            android.util.Log.d("FeedAdapter", "Using cached text for postId: $postId, cached: $cachedText")
+            // Use cached text - rebuild SpannableString if it contains "and" (collaborator format)
+            val cachedString = cachedText.toString()
+            if (cachedString.contains(" and ") && cachedString.length > cachedString.indexOf(" and ") + 5) {
+                // Rebuild SpannableString with blue styling and clickable spans for collaborator name
+                val spannableString = android.text.SpannableString(cachedString)
+                val mainUserNameEndIndex = cachedString.indexOf(" and")
+                val collaboratorStartIndex = cachedString.indexOf("and") + 4 // Start after "and "
+                val endIndex = cachedString.length
+                
+                // Make main user name clickable
+                if (mainUserNameEndIndex > 0) {
+                    spannableString.setSpan(
+                        object : android.text.style.ClickableSpan() {
+                            override fun onClick(widget: android.view.View) {
+                                moveToBusinessProfileDetailsActivity(userId)
+                            }
+                            override fun updateDrawState(ds: android.text.TextPaint) {
+                                super.updateDrawState(ds)
+                                ds.isUnderlineText = false
+                                // Explicitly set text color to ensure visibility
+                                ds.color = ContextCompat.getColor(context, R.color.text_color)
+                            }
+                        },
+                        0,
+                        mainUserNameEndIndex,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    // Also set foreground color span to ensure the text is visible
+                    spannableString.setSpan(
+                        android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.text_color)),
+                        0,
+                        mainUserNameEndIndex,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                
+                // Make collaborator name blue and clickable
+                if (collaboratorStartIndex < endIndex && collaboratorStartIndex > 0 && collaboratorStartIndex < cachedString.length) {
+                    // Get collaborator ID from post data if available
+                    val collaborators = post.collaborators
+                    val collaboratorId = if (collaborators != null && collaborators.isNotEmpty()) {
+                        collaborators.firstOrNull()?._id ?: ""
+                    } else {
+                        ""
+                    }
+                    
+                    // Set blue color
+                    spannableString.setSpan(
+                        android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.blue)),
+                        collaboratorStartIndex,
+                        endIndex,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    
+                    // Make clickable if we have collaborator ID
+                    if (collaboratorId.isNotEmpty()) {
+                        spannableString.setSpan(
+                            object : android.text.style.ClickableSpan() {
+                                override fun onClick(widget: android.view.View) {
+                                    moveToBusinessProfileDetailsActivity(collaboratorId)
+                                }
+                                override fun updateDrawState(ds: android.text.TextPaint) {
+                                    super.updateDrawState(ds)
+                                    ds.color = ContextCompat.getColor(context, R.color.blue)
+                                    ds.isUnderlineText = false
+                                }
+                            },
+                            collaboratorStartIndex,
+                            endIndex,
+                            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                        )
+                    }
+                }
+                spannableString
+            } else {
+                // Plain name - make it clickable
+                val spannableString = android.text.SpannableString(cachedString)
+                spannableString.setSpan(
+                    object : android.text.style.ClickableSpan() {
+                        override fun onClick(widget: android.view.View) {
+                            moveToBusinessProfileDetailsActivity(userId)
+                        }
+                        override fun updateDrawState(ds: android.text.TextPaint) {
+                            super.updateDrawState(ds)
+                            ds.isUnderlineText = false
+                            // Explicitly set text color to ensure visibility
+                            ds.color = ContextCompat.getColor(context, R.color.text_color)
+                        }
+                    },
+                    0,
+                    cachedString.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                // Also set foreground color span to ensure the text is visible
+                spannableString.setSpan(
+                    android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.text_color)),
+                    0,
+                    cachedString.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                spannableString
+            }
         } else try {
             val collaborators = post.collaborators
+            android.util.Log.d("FeedAdapter", "Processing collaborators for postId: $postId, userId: $userId, collaborators count: ${collaborators?.size ?: 0}")
             
             if (collaborators != null && collaborators.isNotEmpty()) {
                 try {
@@ -514,15 +617,20 @@ class FeedAdapter(
                     val validCollaborators = collaborators.filterNotNull()
                         .filter { 
                             try {
-                                !it.name.isNullOrEmpty() && it._id != userId
+                                val isValid = !it.name.isNullOrEmpty() && it._id != userId
+                                android.util.Log.d("FeedAdapter", "Collaborator ${it._id}: name='${it.name}', isValid=$isValid, userId=$userId")
+                                isValid
                             } catch (e: Exception) {
                                 false
                             }
                         }
                     
+                    android.util.Log.d("FeedAdapter", "Valid collaborators count: ${validCollaborators.size} for postId: $postId")
+                    
                     if (validCollaborators.isNotEmpty()) {
-                        // Build collaborator text with blue styling
-                        val collaboratorText = buildCollaboratorText(validCollaborators, name)
+                        // Build collaborator text with blue styling and clickable spans
+                        val collaboratorText = buildCollaboratorText(validCollaborators, name, userId, binding)
+                        android.util.Log.d("FeedAdapter", "Built collaborator text: $collaboratorText for postId: $postId")
                         // Cache the result for future rebinds (both memory and persistent storage)
                         collaboratorTextCache[postId] = collaboratorText
                         saveCollaboratorTextToPrefs(postId, collaboratorText)
@@ -530,6 +638,7 @@ class FeedAdapter(
                     } else {
                         // If we have collaborators but no valid ones (only IDs), mark for API call
                         val collaboratorsWithOnlyIds = collaborators.filter { it._id != userId && it.name.isNullOrEmpty() && !it._id.isNullOrEmpty() }
+                        android.util.Log.d("FeedAdapter", "Collaborators with only IDs count: ${collaboratorsWithOnlyIds.size} for postId: $postId")
                         if (collaboratorsWithOnlyIds.isNotEmpty()) {
                             // Load collaborators from API (async, will update later)
                             loadCollaboratorsForPost(postId, binding, name, userId)
@@ -541,22 +650,36 @@ class FeedAdapter(
                 } catch (e: Exception) {
                     // If there's any error processing collaborators, just show normal name
                     android.util.Log.e("FeedAdapter", "Error processing collaborators: ${e.message}", e)
+                    e.printStackTrace()
                     // Don't cache errors
                     name
                 }
             } else {
+                android.util.Log.d("FeedAdapter", "No collaborators found for postId: $postId")
                 // No collaborators - don't cache normal names
                 name
             }
         } catch (e: Exception) {
             // If there's any error accessing collaborators, just show normal name
             android.util.Log.e("FeedAdapter", "Error accessing collaborators field: ${e.message}", e)
+            e.printStackTrace()
             name
         }
         
-        // Only set text if it's different (prevents redundant updates during rebind)
-        if (binding.nameTv.text.toString() != finalNameText.toString()) {
-            binding.nameTv.text = finalNameText
+        // Always set the text (don't skip if it's the same - ensures collaborator text is displayed)
+        // The comparison was preventing collaborator text from being set in some cases
+        binding.nameTv.text = finalNameText
+        
+        // Make TextView clickable if it contains clickable spans (collaborator text)
+        if (finalNameText is android.text.Spannable) {
+            binding.nameTv.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+        } else {
+            binding.nameTv.movementMethod = null
+        }
+        
+        // Debug logging to trace collaborator display
+        if (finalNameText.toString().contains(" and ")) {
+            android.util.Log.d("FeedAdapter", "Setting collaborator text for postId: $postId, text: $finalNameText")
         }
 
 
@@ -1235,10 +1358,40 @@ class FeedAdapter(
     private val pendingCollaboratorRequests = mutableMapOf<String, Triple<PostItemsLayoutBinding, String, String>>()
     
     // Build collaborator text with blue styling (returns SpannableString)
-    private fun buildCollaboratorText(collaborators: List<com.thehotelmedia.android.modals.feeds.feed.Collaborator>, mainUserName: String): CharSequence {
+    private fun buildCollaboratorText(
+        collaborators: List<com.thehotelmedia.android.modals.feeds.feed.Collaborator>, 
+        mainUserName: String,
+        mainUserId: String,
+        binding: PostItemsLayoutBinding
+    ): CharSequence {
         return try {
             if (collaborators.isEmpty()) {
-                return mainUserName
+                // Even for single user, make it clickable
+                val spannableString = android.text.SpannableString(mainUserName)
+                spannableString.setSpan(
+                    object : android.text.style.ClickableSpan() {
+                        override fun onClick(widget: android.view.View) {
+                            moveToBusinessProfileDetailsActivity(mainUserId)
+                        }
+                        override fun updateDrawState(ds: android.text.TextPaint) {
+                            super.updateDrawState(ds)
+                            ds.isUnderlineText = false
+                            // Explicitly set text color to ensure visibility
+                            ds.color = ContextCompat.getColor(context, R.color.text_color)
+                        }
+                    },
+                    0,
+                    mainUserName.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                // Also set foreground color span to ensure the text is visible
+                spannableString.setSpan(
+                    android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.text_color)),
+                    0,
+                    mainUserName.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                return spannableString
             }
 
             // Format text: "mainUserName and collaboratorName" or "mainUserName and X others"
@@ -1248,35 +1401,121 @@ class FeedAdapter(
             }
             
             if (collaboratorName.isEmpty()) {
-                return mainUserName
+                val spannableString = android.text.SpannableString(mainUserName)
+                spannableString.setSpan(
+                    object : android.text.style.ClickableSpan() {
+                        override fun onClick(widget: android.view.View) {
+                            moveToBusinessProfileDetailsActivity(mainUserId)
+                        }
+                        override fun updateDrawState(ds: android.text.TextPaint) {
+                            super.updateDrawState(ds)
+                            ds.isUnderlineText = false
+                            // Explicitly set text color to ensure visibility
+                            ds.color = ContextCompat.getColor(context, R.color.text_color)
+                        }
+                    },
+                    0,
+                    mainUserName.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                // Also set foreground color span to ensure the text is visible
+                spannableString.setSpan(
+                    android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.text_color)),
+                    0,
+                    mainUserName.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                return spannableString
             }
             
             val fullText = "$mainUserName and $collaboratorName"
             
-            // Create SpannableString to style collaborator name in blue
+            // Create SpannableString to style collaborator name in blue and make both names clickable
             val spannableString = android.text.SpannableString(fullText)
-            val startIndex = fullText.indexOf("and") + 4 // Start after "and "
+            
+            // Get collaborator ID(s) - use first collaborator's ID if single, or empty if multiple
+            val collaboratorId = if (collaborators.size == 1) {
+                collaborators[0]?._id ?: ""
+            } else {
+                "" // For "X others", we can't navigate to a specific profile
+            }
+            
+            // Make main user name clickable (from start to "and")
+            val mainUserNameEndIndex = fullText.indexOf(" and")
+            if (mainUserNameEndIndex > 0) {
+                spannableString.setSpan(
+                    object : android.text.style.ClickableSpan() {
+                        override fun onClick(widget: android.view.View) {
+                            moveToBusinessProfileDetailsActivity(mainUserId)
+                        }
+                        override fun updateDrawState(ds: android.text.TextPaint) {
+                            super.updateDrawState(ds)
+                            ds.isUnderlineText = false
+                            // Explicitly set text color to ensure visibility (use text_color from resources)
+                            ds.color = ContextCompat.getColor(context, R.color.text_color)
+                        }
+                    },
+                    0,
+                    mainUserNameEndIndex,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                // Also set foreground color span to ensure the text is visible
+                spannableString.setSpan(
+                    android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.text_color)),
+                    0,
+                    mainUserNameEndIndex,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            
+            // Make collaborator name clickable and blue (from "and " to end)
+            val collaboratorStartIndex = fullText.indexOf("and") + 4 // Start after "and "
             val endIndex = fullText.length
             
-            if (startIndex < endIndex && startIndex > 0 && startIndex < fullText.length) {
+            if (collaboratorStartIndex < endIndex && collaboratorStartIndex > 0 && collaboratorStartIndex < fullText.length) {
+                // Set blue color
                 spannableString.setSpan(
                     android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.blue)),
-                    startIndex,
+                    collaboratorStartIndex,
                     endIndex,
                     android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
+                
+                // Make clickable only if we have a single collaborator ID
+                if (collaboratorId.isNotEmpty()) {
+                    spannableString.setSpan(
+                        object : android.text.style.ClickableSpan() {
+                            override fun onClick(widget: android.view.View) {
+                                moveToBusinessProfileDetailsActivity(collaboratorId)
+                            }
+                            override fun updateDrawState(ds: android.text.TextPaint) {
+                                super.updateDrawState(ds)
+                                ds.color = ContextCompat.getColor(context, R.color.blue)
+                                ds.isUnderlineText = false
+                            }
+                        },
+                        collaboratorStartIndex,
+                        endIndex,
+                        android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
             }
             
             spannableString
         } catch (e: Exception) {
             // If there's any error, just return the main user name
+            android.util.Log.e("FeedAdapter", "Error building collaborator text: ${e.message}", e)
             mainUserName
         }
     }
     
     // Display collaborators inline with blue text styling (no avatars, no API calls)
-    private fun displayCollaboratorsInline(collaborators: List<com.thehotelmedia.android.modals.feeds.feed.Collaborator>, binding: PostItemsLayoutBinding, mainUserName: String) {
-        binding.nameTv.text = buildCollaboratorText(collaborators, mainUserName)
+    // DEPRECATED: This function is no longer used - we now build collaborator text directly in setPostData
+    private fun displayCollaboratorsInline(collaborators: List<com.thehotelmedia.android.modals.feeds.feed.Collaborator>, binding: PostItemsLayoutBinding, mainUserName: String, mainUserId: String) {
+        binding.nameTv.text = buildCollaboratorText(collaborators, mainUserName, mainUserId, binding)
+        if (binding.nameTv.text is android.text.Spannable) {
+            binding.nameTv.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+        }
     }
 
     // Load collaborator details from API when only IDs are available
@@ -1343,7 +1582,7 @@ class FeedAdapter(
                                 val verifyTag = pendingBinding.nameTv.tag as? String ?: ""
                                 if (verifyTag == pendingPostOwnerId || verifyTag.isEmpty()) {
                                     // Build collaborator text and cache it
-                                    val collaboratorText = buildCollaboratorText(validCollaborators, pendingMainUserName)
+                                    val collaboratorText = buildCollaboratorText(validCollaborators, pendingMainUserName, pendingPostOwnerId, pendingBinding)
                                     // Cache the result for future rebinds (both memory and persistent storage)
                                     collaboratorTextCache[requestedPostId] = collaboratorText
                                     saveCollaboratorTextToPrefs(requestedPostId, collaboratorText)
@@ -1352,6 +1591,10 @@ class FeedAdapter(
                                     // Only update if text is different
                                     if (pendingBinding.nameTv.text.toString() != collaboratorText.toString()) {
                                         pendingBinding.nameTv.text = collaboratorText
+                                        // Make TextView clickable if it contains clickable spans
+                                        if (collaboratorText is android.text.Spannable) {
+                                            pendingBinding.nameTv.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+                                        }
                                     }
                                     android.util.Log.d("FeedAdapter", "Displaying collaborators: ${validCollaborators.map { it.name }}")
                                 } else {

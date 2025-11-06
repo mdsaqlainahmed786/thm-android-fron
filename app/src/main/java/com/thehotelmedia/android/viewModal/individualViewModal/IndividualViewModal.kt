@@ -1821,6 +1821,34 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         }
     }
 
+    //Delete Comment
+    private val _deleteCommentResult = MutableLiveData<DeleteModal>()
+    val deleteCommentResult: LiveData<DeleteModal> = _deleteCommentResult
+    fun deleteComment(commentId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.deleteComment(commentId)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _deleteCommentResult.postValue(response.body())
+                    Log.wtf(tag, response.body().toString())
+                    _loading.postValue(false)
+                } else {
+                    Log.wtf(tag + "ELSE", response.message().toString())
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
     //Shared Post
     private val _getSharedPostsResult = MutableLiveData<SharePostModal>()
     val getSharedPostsResult: LiveData<SharePostModal> = _getSharedPostsResult

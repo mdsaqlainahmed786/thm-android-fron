@@ -235,12 +235,15 @@
                 android:id="@+id/otherUserCommentLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp">
 
                 <com.google.android.material.card.MaterialCardView
-                    android:layout_weight="1"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="@dimen/_40sdp"
+                    android:layout_weight="1"
                     app:cardCornerRadius="24dp"
                     app:cardBackgroundColor="@color/transparent"
                     app:strokeColor="@color/blue_50"
@@ -250,7 +253,9 @@
                         android:id="@+id/commentBtn"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:background="@color/blue_30">
+                        android:background="@color/blue_30"
+                        android:clickable="true"
+                        android:focusable="false">
 
                         <androidx.appcompat.widget.AppCompatEditText
                             android:id="@+id/commentEt"
@@ -262,39 +267,13 @@
                             android:drawablePadding="@dimen/_2sdp"
                             android:hint="@string/add_comment"
                             android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:focusableInTouchMode="true"
                             android:textColor="@color/text_color"
                             android:textColorHint="@color/text_hint_color"
-                            android:textSize="14sp"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@+id/textView3" />
-
-                    </eightbitlab.com.blurview.BlurView>
-
-
-
-                </com.google.android.material.card.MaterialCardView>
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_marginStart="12dp"
-                    android:layout_width="@dimen/_40sdp"
-                    android:layout_height="@dimen/_40sdp"
-                    app:cardCornerRadius="24dp"
-                    app:cardBackgroundColor="@color/transparent"
-                    app:strokeColor="@color/blue_50"
-                    app:strokeWidth="1dp">
-
-                    <eightbitlab.com.blurview.BlurView
-                        android:id="@+id/likeBtn"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="@color/blue_30">
-
-                        <ImageView
-                            android:id="@+id/likeIv"
-                            android:layout_gravity="center"
-                            android:layout_width="@dimen/_24sdp"
-                            android:layout_height="@dimen/_24sdp"
-                            android:src="@drawable/ic_unlike_icon"/>
-
+                            android:textSize="14sp" />
 
                     </eightbitlab.com.blurview.BlurView>
 
@@ -306,8 +285,6 @@
 
 
             </androidx.appcompat.widget.LinearLayoutCompat>
-
-
 
         </androidx.appcompat.widget.LinearLayoutCompat>
 

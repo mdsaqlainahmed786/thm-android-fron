@@ -202,9 +202,6 @@ class StoryPagerAdapter(
             binding.viewerLayout.visibility = View.GONE
         }
 
-        var likedByMe = users.storiesRef[currentStoryIndex].likedByMe ?: false
-        updateLikeBtn(likedByMe,binding)
-
         binding.deleteBtn.setOnClickListener {
             showBottomSheet(storyId,binding)
         }
@@ -217,11 +214,11 @@ class StoryPagerAdapter(
             showViewerBottomSheet(storyId,binding,likeCount,viewerCount)
         }
 
-        binding.likeBtn.setOnClickListener {
-            likedByMe = !likedByMe
-            updateLikeBtn(likedByMe,binding)
-            users.storiesRef[currentStoryIndex].likedByMe = likedByMe
-            likeUserStory(storyId)
+        // Make the comment button (BlurView) clickable to open the comment input
+        binding.commentBtn?.setOnClickListener {
+            binding.commentEt?.requestFocus()
+            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(binding.commentEt, InputMethodManager.SHOW_IMPLICIT)
         }
 
         binding.commentEt.setOnFocusChangeListener { _, hasFocus ->
@@ -241,16 +238,18 @@ class StoryPagerAdapter(
         binding.commentEt.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 val commentText = binding.commentEt.text.toString().trim()
-                // Do something with the commentText, like printing it or sending it somewhere
+                if (commentText.isNotEmpty()) {
+                    // Send comment via socket
+                    socketViewModel.sendStoryComment("story-comment",commentText,socketUserName,sourceUrl,mediaId,storyId)
+                    
+                    // Clear the EditText after sending
+                    binding.commentEt.text?.clear()
+                    resumeStory(binding)
 
-                socketViewModel.sendStoryComment("story-comment",commentText,socketUserName,sourceUrl,mediaId,storyId)
-                // Optionally clear the EditText after sending
-                binding.commentEt.text?.clear()
-                resumeStory(binding)
-
-                // Hide the keyboard after sending
-                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.hideSoftInputFromWindow(binding.commentEt.windowToken, 0)
+                    // Hide the keyboard after sending
+                    val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(binding.commentEt.windowToken, 0)
+                }
 
                 true // Return true to indicate the action was handled
             } else {
@@ -367,14 +366,7 @@ class StoryPagerAdapter(
     private fun likeUserStory(storyId: String) {
         individualViewModal.likeStory(storyId)
     }
-
-    private fun updateLikeBtn(likedByMe: Boolean, binding: StoryScreenLayoutBinding) {
-        if (likedByMe){
-            binding.likeIv.setImageResource(R.drawable.ic_like_icon)
-        }else{
-            binding.likeIv.setImageResource(R.drawable.ic_unlike_icon)
-        }
-    }
+    
 
 
     private fun resetProgressBars(count: Int, binding: StoryScreenLayoutBinding) {

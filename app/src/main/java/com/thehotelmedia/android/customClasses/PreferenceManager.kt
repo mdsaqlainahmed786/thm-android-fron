@@ -29,13 +29,52 @@ class PreferenceManager private constructor(context: Context) {
     }
 
     fun putString(key: Keys, value: String) {
+        if (value.isEmpty() && (key == Keys.ACCESS_TOKEN || key == Keys.REFRESH_TOKEN || key == Keys.USER_ID)) {
+            android.util.Log.w("PreferenceManager", "Warning: Attempting to save empty value for critical key: ${key.name}")
+        }
+        
         val editor = sharedPreferences.edit()
         editor.putString(key.name, value)
-        editor.apply()
+        // Use commit() for critical authentication data to ensure immediate persistence
+        // This prevents data loss on app restart/rebuild
+        if (key == Keys.ACCESS_TOKEN || key == Keys.REFRESH_TOKEN || key == Keys.USER_ID || 
+            key == Keys.COOKIES || key == Keys.BUSINESS_TYPE || key == Keys.BUSINESS_ACC_APPROVED) {
+            val success = editor.commit() // Synchronous commit for critical data
+            if (!success) {
+                android.util.Log.e("PreferenceManager", "Failed to commit critical preference: ${key.name}, retrying...")
+                // Create new editor and retry
+                val retryEditor = sharedPreferences.edit()
+                retryEditor.putString(key.name, value)
+                val retrySuccess = retryEditor.commit()
+                if (!retrySuccess) {
+                    android.util.Log.e("PreferenceManager", "CRITICAL: Failed to commit after retry: ${key.name}")
+                    // Last resort: use apply
+                    retryEditor.apply()
+                } else {
+                    android.util.Log.d("PreferenceManager", "Successfully committed after retry: ${key.name}")
+                }
+            } else {
+                android.util.Log.d("PreferenceManager", "Successfully committed: ${key.name}")
+            }
+        } else {
+            editor.apply() // Async for non-critical data
+        }
     }
 
     fun getString(key: Keys, defaultValue: String): String? {
-        return sharedPreferences.getString(key.name, defaultValue)
+        val value = sharedPreferences.getString(key.name, defaultValue)
+        // Debug logging for critical keys to track data retrieval
+        if (key == Keys.ACCESS_TOKEN || key == Keys.REFRESH_TOKEN || key == Keys.USER_ID) {
+            if (value.isNullOrEmpty()) {
+                android.util.Log.w("PreferenceManager", "Retrieved empty/null value for critical key: ${key.name}, defaultValue was: '$defaultValue'")
+                // Check if key exists at all
+                val keyExists = sharedPreferences.contains(key.name)
+                android.util.Log.d("PreferenceManager", "Key '${key.name}' exists in SharedPreferences: $keyExists")
+            } else {
+                android.util.Log.d("PreferenceManager", "Retrieved value for ${key.name}, length: ${value.length}")
+            }
+        }
+        return value
     }
     fun putInt(key: Keys, value: Int) {
         val editor = sharedPreferences.edit()
@@ -62,7 +101,17 @@ class PreferenceManager private constructor(context: Context) {
     fun putBoolean(key: Keys, value: Boolean) {
         val editor = sharedPreferences.edit()
         editor.putBoolean(key.name, value)
-        editor.apply()
+        // Use commit() for critical authentication flags to ensure immediate persistence
+        if (key == Keys.BUSINESS_ACC_APPROVED || key == Keys.USER_ACCEPTED_TERMS) {
+            val success = editor.commit() // Synchronous commit for critical data
+            if (!success) {
+                android.util.Log.e("PreferenceManager", "Failed to commit critical boolean preference: ${key.name}")
+                // Retry with apply as fallback
+                editor.apply()
+            }
+        } else {
+            editor.apply() // Async for non-critical data
+        }
     }
 
     // getBoolean function
@@ -102,15 +151,88 @@ class PreferenceManager private constructor(context: Context) {
     }
 
     fun clearPreferences() {
+        android.util.Log.d("PreferenceManager", "clearPreferences() called - This will clear ALL preferences including auth data!")
         val editor = sharedPreferences.edit()
         editor.clear()
-        editor.apply()
+        // Use commit() to ensure immediate clearing
+        val success = editor.commit()
+        if (!success) {
+            android.util.Log.e("PreferenceManager", "Failed to commit clearPreferences, using apply()")
+            editor.apply()
+        } else {
+            android.util.Log.d("PreferenceManager", "Successfully cleared all preferences")
+        }
     }
 
     fun removePreference(key: Keys) {
         val editor = sharedPreferences.edit()
         editor.remove(key.name)
         editor.apply()
+    }
+    
+    /**
+     * Batch save multiple critical authentication values atomically
+     * This ensures all auth data is saved together and prevents partial saves
+     */
+    fun saveAuthDataBatch(
+        accessToken: String? = null,
+        refreshToken: String? = null,
+        userId: String? = null,
+        cookies: String? = null,
+        businessType: String? = null,
+        businessAccApproved: Boolean? = null,
+        userAcceptedTerms: Boolean? = null
+    ) {
+        android.util.Log.d("PreferenceManager", "saveAuthDataBatch called - Token: ${accessToken?.take(10)}..., UserId: $userId, BusinessType: $businessType, AcceptedTerms: $userAcceptedTerms")
+        
+        val editor = sharedPreferences.edit()
+        
+        accessToken?.let { 
+            editor.putString(Keys.ACCESS_TOKEN.name, it)
+            android.util.Log.d("PreferenceManager", "Adding ACCESS_TOKEN to batch, length: ${it.length}")
+        }
+        refreshToken?.let { editor.putString(Keys.REFRESH_TOKEN.name, it) }
+        userId?.let { 
+            editor.putString(Keys.USER_ID.name, it)
+            android.util.Log.d("PreferenceManager", "Adding USER_ID to batch: $it")
+        }
+        cookies?.let { editor.putString(Keys.COOKIES.name, it) }
+        businessType?.let { 
+            editor.putString(Keys.BUSINESS_TYPE.name, it)
+            android.util.Log.d("PreferenceManager", "Adding BUSINESS_TYPE to batch: $it")
+        }
+        businessAccApproved?.let { editor.putBoolean(Keys.BUSINESS_ACC_APPROVED.name, it) }
+        userAcceptedTerms?.let { 
+            editor.putBoolean(Keys.USER_ACCEPTED_TERMS.name, it)
+            android.util.Log.d("PreferenceManager", "Adding USER_ACCEPTED_TERMS to batch: $it")
+        }
+        
+        val success = editor.commit()
+        if (!success) {
+            android.util.Log.e("PreferenceManager", "CRITICAL: Failed to commit auth data batch!")
+            // Retry
+            val retryEditor = sharedPreferences.edit()
+            accessToken?.let { retryEditor.putString(Keys.ACCESS_TOKEN.name, it) }
+            refreshToken?.let { retryEditor.putString(Keys.REFRESH_TOKEN.name, it) }
+            userId?.let { retryEditor.putString(Keys.USER_ID.name, it) }
+            cookies?.let { retryEditor.putString(Keys.COOKIES.name, it) }
+            businessType?.let { retryEditor.putString(Keys.BUSINESS_TYPE.name, it) }
+            businessAccApproved?.let { retryEditor.putBoolean(Keys.BUSINESS_ACC_APPROVED.name, it) }
+            userAcceptedTerms?.let { retryEditor.putBoolean(Keys.USER_ACCEPTED_TERMS.name, it) }
+            val retrySuccess = retryEditor.commit()
+            if (!retrySuccess) {
+                android.util.Log.e("PreferenceManager", "CRITICAL: Retry also failed!")
+            } else {
+                android.util.Log.d("PreferenceManager", "Retry succeeded")
+            }
+        } else {
+            android.util.Log.d("PreferenceManager", "Successfully committed auth data batch")
+            // Immediately verify the data was saved
+            val verifyToken = sharedPreferences.getString(Keys.ACCESS_TOKEN.name, null)
+            val verifyUserId = sharedPreferences.getString(Keys.USER_ID.name, null)
+            val verifyAcceptedTerms = sharedPreferences.getBoolean(Keys.USER_ACCEPTED_TERMS.name, false)
+            android.util.Log.d("PreferenceManager", "Verification - Token saved: ${verifyToken != null}, UserId saved: ${verifyUserId != null}, AcceptedTerms saved: $verifyAcceptedTerms")
+        }
     }
 
     enum class Keys {

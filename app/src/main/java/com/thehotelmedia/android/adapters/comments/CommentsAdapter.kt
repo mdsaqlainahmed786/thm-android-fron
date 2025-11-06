@@ -115,7 +115,7 @@ class CommentsAdapter(
                 }
             }
             binding.menuBtn.setOnClickListener { view ->
-                showMenuDialog(view,id)
+                showMenuDialog(view,id,userId)
             }
 
 
@@ -159,7 +159,7 @@ class CommentsAdapter(
     }
 
 
-    private fun showMenuDialog(view: View?, commentId: String) {
+    private fun showMenuDialog(view: View?, commentId: String, commentUserId: String) {
         // Inflate the dropdown menu layout
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val dropdownView = inflater.inflate(R.layout.single_post_menu_dropdown_item, null)
@@ -173,17 +173,23 @@ class CommentsAdapter(
         )
 
         // Find TextViews and set click listeners
-//        val blockBtn: TextView = dropdownView.findViewById(R.id.blockBtn)
+        val deleteBtn: TextView = dropdownView.findViewById(R.id.deleteBtn)
         val reportBtn: TextView = dropdownView.findViewById(R.id.reportBtn)
-//        val shareBtn: TextView = dropdownView.findViewById(R.id.shareBtn)
 
+        // Show delete option only if the comment belongs to the current user
+        val isCommentOwner = commentUserId == ownerUserId
+        deleteBtn.visibility = if (isCommentOwner) View.VISIBLE else View.GONE
+        reportBtn.visibility = if (isCommentOwner) View.GONE else View.VISIBLE
 
+        deleteBtn.setOnClickListener {
+            deleteComment(commentId)
+            popupWindow.dismiss()
+        }
 
         reportBtn.setOnClickListener {
             reportComment(commentId)
             popupWindow.dismiss()
         }
-
 
         // Set the background drawable to make the popup more visually appealing
         popupWindow.setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.popup_background))
@@ -210,6 +216,10 @@ class CommentsAdapter(
         }
         bottomSheetFragment.show(childFragmentManager, bottomSheetFragment.tag)
 
+    }
+
+    private fun deleteComment(commentId: String) {
+        individualViewModal.deleteComment(commentId)
     }
 
 

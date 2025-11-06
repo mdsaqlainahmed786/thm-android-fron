@@ -144,18 +144,21 @@ class ViewStoriesActivity : BaseActivity() {
     private fun setViewPager(storiesList: List<Stories>) {
         // Set up the adapter with the list of images
         storyPagerAdapter = StoryPagerAdapter(this,storiesList,binding.viewPager,preferenceManager,individualViewModal,supportFragmentManager,::hideNameLayout,socketViewModel)
-//        binding.viewPager.setPageTransformer(YAxisRotationPageTransformer()) // Optional for custom animation
-        binding.viewPager.setPageTransformer(RotateDownTransformer()) // Optional for custom animation
-//        binding.viewPager.offscreenPageLimit = 1 // Set how many pages to load offscreen (for performance)
+        
+        // Configure ViewPager2 for smooth swipe navigation between users
+        binding.viewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
+        binding.viewPager.isUserInputEnabled = true // Enable swipe gestures
+        binding.viewPager.offscreenPageLimit = 1 // Preload adjacent pages for smoother transitions
+        
+        // Set page transformer for smooth transitions
+        binding.viewPager.setPageTransformer(RotateDownTransformer())
+        
         binding.viewPager.adapter = storyPagerAdapter
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                if (position>0){
-//                    storyPagerAdapter.onPageChanged(position)
-                }
-
+                // Page change is handled in StoryPagerAdapter
             }
         })
     }
