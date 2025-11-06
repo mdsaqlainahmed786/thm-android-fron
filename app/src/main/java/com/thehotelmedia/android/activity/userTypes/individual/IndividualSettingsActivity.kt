@@ -257,10 +257,14 @@ class IndividualSettingsActivity : BaseActivity() {
             ThemeHelper.toggleTheme(this)
 //            recreate()
 
-            val intent = Intent(this, SplashScreenActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            finish()
+            // Add delay to ensure SharedPreferences commits before process recreation
+            // This prevents race conditions where the app restarts before preferences are saved
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                val intent = Intent(this, SplashScreenActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+            }, 250) // 250ms delay to ensure commit completes
 
         }
     }

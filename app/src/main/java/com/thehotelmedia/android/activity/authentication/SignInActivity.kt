@@ -531,18 +531,30 @@ class SignInActivity : BaseActivity() {
 
         val cookies = "SessionToken=$refreshToken; UserDeviceID=$deviceId; X-Access-Token= $accessToken"
 
-        preferenceManager.putString(PreferenceManager.Keys.COOKIES, cookies)
-        preferenceManager.putString(PreferenceManager.Keys.ACCESS_TOKEN, accessToken)
-        preferenceManager.putString(PreferenceManager.Keys.USER_ID, userId)
-        preferenceManager.putString(PreferenceManager.Keys.REFRESH_TOKEN, refreshToken)
+        // Save all critical authentication data atomically using batch method
+        // This ensures all auth data is saved together in a single commit operation
+        preferenceManager.saveAuthDataBatch(
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            userId = userId,
+            cookies = cookies,
+            businessType = accountType,
+            userAcceptedTerms = acceptedTerms
+        )
+        
+        // Verify critical data was saved immediately after batch save
+        val savedToken = preferenceManager.getString(PreferenceManager.Keys.ACCESS_TOKEN, "")
+        val savedUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "")
+        if (savedToken.isNullOrEmpty() || savedUserId.isNullOrEmpty()) {
+            android.util.Log.e("SignInActivity", "CRITICAL: Failed to save auth data! Token: ${!savedToken.isNullOrEmpty()}, UserId: ${!savedUserId.isNullOrEmpty()}")
+        } else {
+            android.util.Log.d("SignInActivity", "Successfully saved auth data - Token length: ${savedToken?.length ?: 0}, UserId: $savedUserId")
+        }
 
         preferenceManager.putString(PreferenceManager.Keys.USER_USER_NAME, username)
         preferenceManager.putString(PreferenceManager.Keys.USER_EMAIL, email)
         preferenceManager.putString(PreferenceManager.Keys.USER_DIAL_CODE, dialCode)
         preferenceManager.putString(PreferenceManager.Keys.USER_PHONE_NUMBER, phoneNumber)
-        preferenceManager.putString(PreferenceManager.Keys.BUSINESS_TYPE, accountType)
-
-        preferenceManager.putBoolean(PreferenceManager.Keys.USER_ACCEPTED_TERMS, acceptedTerms)
 
 
 

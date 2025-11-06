@@ -27,6 +27,7 @@ import com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.
 import com.thehotelmedia.android.customClasses.Constants.LANGUAGE_CODE
 import com.thehotelmedia.android.customClasses.Constants.business_type_business
 import com.thehotelmedia.android.customClasses.CustomProgressBar
+import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.ActivityTermsAndConditionsBinding
 import com.thehotelmedia.android.extensions.makeCall
 import com.thehotelmedia.android.extensions.openUrl
@@ -41,6 +42,7 @@ class TermsAndConditionsActivity : BaseActivity() {
     private var from: String? = null
     private var isChecked = false  // To track the checkbox state
     private lateinit var authViewModel: AuthViewModel
+    private lateinit var preferenceManager: PreferenceManager
     private val activity = this@TermsAndConditionsActivity
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,7 +62,11 @@ class TermsAndConditionsActivity : BaseActivity() {
         val authRepo = AuthRepo(activity)
         authViewModel = ViewModelProvider(activity, ViewModelFactory(authRepo))[AuthViewModel::class.java]
         val progressBar = CustomProgressBar(activity)
-
+        preferenceManager = PreferenceManager.getInstance(activity)
+        
+        // Initialize checkbox state from saved preferences
+        isChecked = preferenceManager.getBoolean(PreferenceManager.Keys.USER_ACCEPTED_TERMS, false)
+        android.util.Log.d("TermsAndConditions", "Initializing checkbox state from preferences: $isChecked")
 
         // Initially disable the next button
         updateNextButtonState(isChecked)
@@ -80,6 +86,10 @@ class TermsAndConditionsActivity : BaseActivity() {
 
         authViewModel.termsAndConditionsResult.observe(activity){result->
             if (result.status==true){
+                // Save USER_ACCEPTED_TERMS to SharedPreferences after successful API call
+                preferenceManager.putBoolean(PreferenceManager.Keys.USER_ACCEPTED_TERMS, true)
+                android.util.Log.d("TermsAndConditions", "Successfully saved USER_ACCEPTED_TERMS to preferences")
+                
                 val intent = if (from == business_type_business) {
                     Intent(this, BusinessSubscriptionActivity::class.java)
                 } else {

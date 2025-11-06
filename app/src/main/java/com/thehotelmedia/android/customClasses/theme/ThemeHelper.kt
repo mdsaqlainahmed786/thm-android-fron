@@ -41,9 +41,17 @@ object ThemeHelper {
         val isDarkMode = sharedPreferences.getBoolean(KEY_THEME, false)
 
         val newMode = !isDarkMode
-        sharedPreferences.edit()
-            .putBoolean(KEY_THEME, newMode)
-            .apply()
+        // Use commit() instead of apply() to ensure immediate persistence
+        // This prevents race conditions when immediately restarting the app
+        val editor = sharedPreferences.edit()
+        editor.putBoolean(KEY_THEME, newMode)
+        val success = editor.commit()
+        if (!success) {
+            android.util.Log.e("ThemeHelper", "Failed to commit theme change, retrying with apply()")
+            editor.apply()
+        } else {
+            android.util.Log.d("ThemeHelper", "Successfully committed theme change: $newMode")
+        }
 
         return newMode
     }
