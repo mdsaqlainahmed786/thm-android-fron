@@ -65,8 +65,13 @@ class ProfilePhotosFragment : Fragment() {
     }
 
     private fun getImageData() {
-        profilePhotosAdapter = ProfilePhotosAdapter(requireContext())
+        profilePhotosAdapter = ProfilePhotosAdapter(requireContext(), userId)
 
+        // Optimize RecyclerView performance
+        binding.photosRv.setItemViewCacheSize(15)
+        binding.photosRv.itemAnimator = null
+        binding.photosRv.recycledViewPool.setMaxRecycledViews(0, 10)
+        
         binding.photosRv.adapter = profilePhotosAdapter
             .withLoadStateFooter(footer = LoaderAdapter())
 

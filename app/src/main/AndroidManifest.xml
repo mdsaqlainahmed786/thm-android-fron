@@ -93,6 +93,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".activity.UserPostsViewerActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activity.InboxScreenActivity"
             android:configChanges="uiMode"
             android:exported="false"

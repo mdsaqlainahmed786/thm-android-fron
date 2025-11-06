@@ -12,10 +12,12 @@ import com.thehotelmedia.android.R
 import com.thehotelmedia.android.customClasses.Constants.IMAGE
 import com.thehotelmedia.android.databinding.ProfilePhotosItemsLayoutBinding
 import com.thehotelmedia.android.extensions.moveToViewer
+import com.thehotelmedia.android.extensions.moveToUserPostsViewer
 import com.thehotelmedia.android.modals.profileData.image.ImageData
 
 class ProfilePhotosAdapter(
-    private val context: Context
+    private val context: Context,
+    private val userId: String = ""
 )  : PagingDataAdapter<ImageData, ProfilePhotosAdapter.ViewHolder>(COMPARATOR)  {
 
 //    inner class ViewHolder(val binding: ProfilePhotosItemsLayoutBinding) : RecyclerView.ViewHolder(binding.root)
@@ -24,10 +26,23 @@ class ProfilePhotosAdapter(
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: ImageData) {
             val mediaUri = item.sourceUrl.orEmpty()
-            Glide.with(context).load(mediaUri).into(binding.imageView)
+            Glide.with(context)
+                .load(mediaUri)
+                .placeholder(R.drawable.ic_post_placeholder)
+                .error(R.drawable.ic_post_placeholder)
+                .thumbnail(0.1f) // Load thumbnail first for faster display
+                .centerCrop()
+                .skipMemoryCache(false) // Use memory cache
+                .into(binding.imageView)
 
             binding.root.setOnClickListener {
-                context.moveToViewer(IMAGE,mediaUri)
+                if (userId.isNotEmpty()) {
+                    // Launch UserPostsViewerActivity with image filter - only scroll through photos
+                    context.moveToUserPostsViewer(userId, null, "image")
+                } else {
+                    // Fallback to old viewer if userId not available
+                    context.moveToViewer(IMAGE, mediaUri)
+                }
             }
 
         }

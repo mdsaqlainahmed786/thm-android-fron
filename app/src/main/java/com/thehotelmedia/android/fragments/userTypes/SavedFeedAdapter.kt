@@ -48,6 +48,7 @@ import com.thehotelmedia.android.extensions.formatCount
 import com.thehotelmedia.android.extensions.getEmojiForRating
 import com.thehotelmedia.android.extensions.isFutureDateOrTime
 import com.thehotelmedia.android.extensions.moveToPostPreviewScreen
+import com.thehotelmedia.android.extensions.moveToUserPostsViewer
 import com.thehotelmedia.android.extensions.openGoogleMaps
 import com.thehotelmedia.android.extensions.setRatingWithStar
 import com.thehotelmedia.android.extensions.setRatingWithStars
@@ -277,6 +278,14 @@ class SavedFeedAdapter(
             }
             binding.viewPager.adapter = mediaPagerAdapter
             binding.mediaLayout.visibility = View.VISIBLE
+            
+            // Add click listener to open post viewer
+            binding.mediaLayout.setOnClickListener {
+                val userId = post.userID ?: post.postedBy?.Id ?: ""
+                if (userId.isNotEmpty()) {
+                    context.moveToUserPostsViewer(userId, postId)
+                }
+            }
         }else{
             binding.mediaLayout.visibility = View.GONE
         }

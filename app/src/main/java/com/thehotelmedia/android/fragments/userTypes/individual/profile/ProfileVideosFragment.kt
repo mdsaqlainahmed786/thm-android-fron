@@ -66,8 +66,12 @@ class ProfileVideosFragment : Fragment() {
     }
 
     private fun getVideoData() {
-        videoAdapter = ProfileVideosAdapter(requireContext())
-//        binding.videosRv.adapter = videoAdapter
+        videoAdapter = ProfileVideosAdapter(requireContext(), userId)
+        
+        // Optimize RecyclerView performance
+        binding.videosRv.setItemViewCacheSize(15)
+        binding.videosRv.itemAnimator = null
+        binding.videosRv.recycledViewPool.setMaxRecycledViews(0, 10)
 
         binding.videosRv.adapter = videoAdapter
             .withLoadStateFooter(footer = LoaderAdapter())
