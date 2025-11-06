@@ -235,12 +235,15 @@
                 android:id="@+id/otherUserCommentLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp">
 
                 <com.google.android.material.card.MaterialCardView
-                    android:layout_weight="1"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="@dimen/_40sdp"
+                    android:layout_weight="1"
                     app:cardCornerRadius="24dp"
                     app:cardBackgroundColor="@color/transparent"
                     app:strokeColor="@color/blue_50"
@@ -250,7 +253,9 @@
                         android:id="@+id/commentBtn"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:background="@color/blue_30">
+                        android:background="@color/blue_30"
+                        android:clickable="true"
+                        android:focusable="false">
 
                         <androidx.appcompat.widget.AppCompatEditText
                             android:id="@+id/commentEt"
@@ -262,11 +267,13 @@
                             android:drawablePadding="@dimen/_2sdp"
                             android:hint="@string/add_comment"
                             android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:focusableInTouchMode="true"
                             android:textColor="@color/text_color"
                             android:textColorHint="@color/text_hint_color"
-                            android:textSize="14sp"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toBottomOf="@+id/textView3" />
+                            android:textSize="14sp" />
 
                     </eightbitlab.com.blurview.BlurView>
 
@@ -278,101 +285,6 @@
 
 
             </androidx.appcompat.widget.LinearLayoutCompat>
-
-        </androidx.appcompat.widget.LinearLayoutCompat>
-
-        <!-- Instagram-style engagement buttons on the right side -->
-        <androidx.appcompat.widget.LinearLayoutCompat
-            android:id="@+id/engagementButtonsLayout"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="12dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent">
-
-                <!-- Like Button with Count -->
-                <androidx.appcompat.widget.LinearLayoutCompat
-                    android:id="@+id/likeButtonContainer"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="16dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless">
-
-                    <ImageView
-                        android:id="@+id/likeIconIv"
-                        android:layout_width="@dimen/_24sdp"
-                        android:layout_height="@dimen/_24sdp"
-                        android:src="@drawable/ic_unlike_icon"
-                        android:layout_marginEnd="6dp"/>
-
-                    <TextView
-                        android:id="@+id/likeCountTv"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/white"
-                        android:textSize="14sp"
-                        android:fontFamily="@font/comic_regular"/>
-
-                </androidx.appcompat.widget.LinearLayoutCompat>
-
-                <!-- Comment Button with Count -->
-                <androidx.appcompat.widget.LinearLayoutCompat
-                    android:id="@+id/commentButtonContainer"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="16dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless">
-
-                    <ImageView
-                        android:id="@+id/commentIconIv"
-                        android:layout_width="@dimen/_24sdp"
-                        android:layout_height="@dimen/_24sdp"
-                        android:src="@drawable/ic_comment_icon"
-                        android:tint="@color/white"
-                        android:layout_marginEnd="6dp"/>
-
-                    <TextView
-                        android:id="@+id/commentCountTv"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/white"
-                        android:textSize="14sp"
-                        android:fontFamily="@font/comic_regular"/>
-
-                </androidx.appcompat.widget.LinearLayoutCompat>
-
-                <!-- Views Count (only visible to owner) -->
-                <androidx.appcompat.widget.LinearLayoutCompat
-                    android:id="@+id/viewsCountContainer"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:id="@+id/viewsCountTv"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0 views"
-                        android:textColor="@color/white"
-                        android:textSize="12sp"
-                        android:fontFamily="@font/comic_regular"/>
-
-                </androidx.appcompat.widget.LinearLayoutCompat>
 
         </androidx.appcompat.widget.LinearLayoutCompat>
 
