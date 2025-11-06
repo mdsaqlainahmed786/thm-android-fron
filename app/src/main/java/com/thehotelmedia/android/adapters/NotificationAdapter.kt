@@ -39,19 +39,115 @@ class NotificationAdapter(
 
     companion object {
         // Track collaboration responses locally (notificationId -> "accepted" or "rejected")
+        // This is in-memory cache for immediate UI updates
         private val collaborationResponses = mutableMapOf<String, String>()
         
-        fun markCollaborationResponded(notificationId: String, action: String) {
+        // SharedPreferences name for persisting collaboration responses across app restarts
+        private const val PREFS_NAME = "collaboration_responses"
+        
+        // Load all persisted responses into memory
+        // This is called on adapter initialization and whenever we need to check responses
+        internal fun loadCacheIfNeeded(context: Context) {
+            // Only load if cache is empty (to avoid reloading unnecessarily)
+            if (collaborationResponses.isNotEmpty()) {
+                return
+            }
+            
+            try {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val allEntries = prefs.all
+                var loadedCount = 0
+                for ((key, value) in allEntries) {
+                    if (key.startsWith("collab_response_") && value is String) {
+                        val id = key.removePrefix("collab_response_")
+                        collaborationResponses[id] = value
+                        loadedCount++
+                    }
+                }
+                android.util.Log.d("NotificationAdapter", "Loaded $loadedCount persisted collaboration responses from SharedPreferences: ${collaborationResponses.keys}")
+            } catch (e: Exception) {
+                android.util.Log.e("NotificationAdapter", "Error loading collaboration responses cache: ${e.message}", e)
+            }
+        }
+        
+        fun markCollaborationResponded(context: Context, notificationId: String, postId: String, action: String) {
+            // Load cache if not already loaded
+            loadCacheIfNeeded(context)
+            
+            // Store in memory for immediate UI update (using both notificationId and postId as keys)
             collaborationResponses[notificationId] = action
+            if (postId.isNotEmpty() && postId != "null") {
+                collaborationResponses["post_$postId"] = action
+            }
+            
+            // Persist to SharedPreferences so it survives app restarts
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            editor.putString("collab_response_$notificationId", action)
+            if (postId.isNotEmpty() && postId != "null") {
+                editor.putString("collab_response_post_$postId", action)
+            }
+            editor.apply() // Use apply() for async, but ensure it's written
+            
+            android.util.Log.d("NotificationAdapter", "Marked notification $notificationId (postId: $postId) as $action and persisted")
         }
         
-        fun getCollaborationResponse(notificationId: String): String? {
-            return collaborationResponses[notificationId]
+        fun getCollaborationResponse(context: Context, notificationId: String, postId: String = ""): String? {
+            // Load cache if not already loaded
+            loadCacheIfNeeded(context)
+            
+            // First check in-memory cache by notificationId (fast)
+            val memoryResponse = collaborationResponses[notificationId]
+            if (memoryResponse != null) {
+                return memoryResponse
+            }
+            
+            // Also check by postId if available (in case notificationId changes)
+            if (postId.isNotEmpty() && postId != "null") {
+                val postResponse = collaborationResponses["post_$postId"]
+                if (postResponse != null) {
+                    return postResponse
+                }
+            }
+            
+            // If not in memory, check SharedPreferences (persisted across app restarts)
+            // This is a fallback in case memory cache was cleared
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            
+            // Check by notificationId first
+            val key = "collab_response_$notificationId"
+            var persistedResponse = prefs.getString(key, null)
+            
+            // If not found and postId is available, check by postId
+            if (persistedResponse == null && postId.isNotEmpty() && postId != "null") {
+                val postKey = "collab_response_post_$postId"
+                persistedResponse = prefs.getString(postKey, null)
+            }
+            
+            if (persistedResponse != null) {
+                // Restore to memory cache for faster future access
+                collaborationResponses[notificationId] = persistedResponse
+                if (postId.isNotEmpty() && postId != "null") {
+                    collaborationResponses["post_$postId"] = persistedResponse
+                }
+                android.util.Log.d("NotificationAdapter", "Restored notification $notificationId (postId: $postId) response: $persistedResponse from SharedPreferences")
+                return persistedResponse
+            }
+            
+            return null
         }
         
-        fun clearCollaborationResponses() {
+        fun clearCollaborationResponses(context: Context) {
             collaborationResponses.clear()
+            // Optionally clear SharedPreferences if needed (for testing/debugging)
+            // val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            // prefs.edit().clear().apply()
         }
+    }
+    
+    init {
+        // Load persisted responses on adapter initialization
+        Companion.loadCacheIfNeeded(context)
     }
 
     private val notifications = mutableListOf<NotificationData>()
@@ -108,8 +204,15 @@ class NotificationAdapter(
                                                type == "collaboration-invite" || 
                                                type == "collaboration"
             
-            // Check if collaboration is accepted or rejected (from backend or local tracking)
-            val localResponse = getCollaborationResponse(id)
+            // Check if collaboration is accepted or rejected (from backend or persisted local tracking)
+            // Pass both notificationId and postId for more reliable lookup
+            val localResponse = getCollaborationResponse(context, id, postId)
+            
+            // Debug logging to verify state
+            if (isCollaborationNotification) {
+                android.util.Log.d("NotificationAdapter", "Checking collaboration response for notificationId: $id, postId: $postId, type: $type, localResponse: $localResponse")
+            }
+            
             val isCollaborationAccepted = type.contains("collaboration-accepted", ignoreCase = true) || 
                                          type == "collaboration-accepted" ||
                                          localResponse == "accept"
@@ -174,15 +277,17 @@ class NotificationAdapter(
             if (isCollaborationNotification && !isCollaborationAccepted && !isCollaborationRejected && postId.isNotEmpty() && postId != "null") {
                 // Use collaboration-specific handlers
                 binding.declineBtn.setOnClickListener {
-                    // Mark as responded locally before API call
-                    markCollaborationResponded(id, "reject")
+                    // Mark as responded locally (persisted) before API call
+                    // Use both notificationId and postId for reliable persistence
+                    markCollaborationResponded(context, id, postId, "reject")
                     // Update UI immediately
                     notifyItemChanged(position)
                     onCollaborationDeclineClick(postId, id)
                 }
                 binding.acceptBtn.setOnClickListener {
-                    // Mark as responded locally before API call
-                    markCollaborationResponded(id, "accept")
+                    // Mark as responded locally (persisted) before API call
+                    // Use both notificationId and postId for reliable persistence
+                    markCollaborationResponded(context, id, postId, "accept")
                     // Update UI immediately
                     notifyItemChanged(position)
                     onCollaborationAcceptClick(postId, id)

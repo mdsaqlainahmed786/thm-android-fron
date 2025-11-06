@@ -90,7 +90,41 @@ class SavedFeedAdapter(
     // Store original names to restore them if no collaborators
     private val originalNamesCache = mutableMapOf<String, String>()
     // In-memory cache for collaborator display text (postId -> "User1 and User2")
+    // This is loaded from SharedPreferences on initialization
     private val collaboratorTextCache = mutableMapOf<String, CharSequence>()
+    
+    // SharedPreferences name for persisting collaborator text cache
+    private val prefsName = "collaborator_text_cache"
+    
+    init {
+        // Load persisted collaborator text from SharedPreferences on adapter creation
+        loadCollaboratorTextCache()
+    }
+    
+    private fun loadCollaboratorTextCache() {
+        try {
+            val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+            val allEntries = prefs.all
+            for ((key, value) in allEntries) {
+                if (key.startsWith("collab_text_") && value is String) {
+                    val postId = key.removePrefix("collab_text_")
+                    collaboratorTextCache[postId] = value
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SavedFeedAdapter", "Error loading collaborator text cache: ${e.message}", e)
+        }
+    }
+    
+    private fun saveCollaboratorTextToPrefs(postId: String, text: CharSequence) {
+        try {
+            val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+            val key = "collab_text_$postId"
+            prefs.edit().putString(key, text.toString()).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("SavedFeedAdapter", "Error saving collaborator text to prefs: ${e.message}", e)
+        }
+    }
 
 
 
@@ -343,8 +377,9 @@ class SavedFeedAdapter(
                     if (validCollaborators.isNotEmpty()) {
                         // Build collaborator text with blue styling
                         val collaboratorText = buildCollaboratorText(validCollaborators, name)
-                        // Cache the result for future rebinds
+                        // Cache the result for future rebinds (both memory and persistent storage)
                         collaboratorTextCache[postId] = collaboratorText
+                        saveCollaboratorTextToPrefs(postId, collaboratorText)
                         collaboratorText
                     } else {
                         // If we have collaborators but no valid ones (only IDs), mark for API call
@@ -353,27 +388,23 @@ class SavedFeedAdapter(
                             // Load collaborators from API (async, will update later)
                             loadCollaboratorsForPost(postId, binding, name, userId)
                         }
-                        // Cache normal name to prevent re-processing
+                        // Cache normal name to prevent re-processing (but don't persist normal names)
                         collaboratorTextCache[postId] = name
                         name
                     }
                 } catch (e: Exception) {
                     // If there's any error processing collaborators, just show normal name
                     android.util.Log.e("SavedFeedAdapter", "Error processing collaborators: ${e.message}", e)
-                    // Cache normal name
-                    collaboratorTextCache[postId] = name
+                    // Don't cache errors
                     name
                 }
             } else {
-                // Cache normal name
-                collaboratorTextCache[postId] = name
+                // No collaborators - don't cache normal names
                 name
             }
         } catch (e: Exception) {
             // If there's any error accessing collaborators, just show normal name
             android.util.Log.e("SavedFeedAdapter", "Error accessing collaborators field: ${e.message}", e)
-            // Cache normal name
-            collaboratorTextCache[postId] = name
             name
         }
         
@@ -1215,8 +1246,9 @@ class SavedFeedAdapter(
                                 if (verifyTag == pendingPostOwnerId || verifyTag.isEmpty()) {
                                     // Build collaborator text and cache it
                                     val collaboratorText = buildCollaboratorText(validCollaborators, pendingMainUserName)
-                                    // Cache the result for future rebinds
+                                    // Cache the result for future rebinds (both memory and persistent storage)
                                     collaboratorTextCache[requestedPostId] = collaboratorText
+                                    saveCollaboratorTextToPrefs(requestedPostId, collaboratorText)
                                     // Set tag and text together to prevent flickering
                                     pendingBinding.nameTv.tag = pendingPostOwnerId
                                     // Only update if text is different
