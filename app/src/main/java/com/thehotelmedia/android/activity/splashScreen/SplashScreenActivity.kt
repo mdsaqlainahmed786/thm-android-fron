@@ -79,19 +79,27 @@ class SplashScreenActivity : TransparentBaseActivity() {
         val sharedPrefs = applicationContext.getSharedPreferences("YOWS_USER_PREF", Context.MODE_PRIVATE)
         Log.d("SESSION_DEBUG", "SharedPreferences file: YOWS_USER_PREF, contains ACCESS_TOKEN: ${sharedPrefs.contains("ACCESS_TOKEN")}, contains BUSINESS_TYPE: ${sharedPrefs.contains("BUSINESS_TYPE")}")
 
+        // Add initial delay to allow SharedPreferences to fully load after process recreation
+        // This is especially important after theme changes when the process is recreated
+        try {
+            Thread.sleep(150) // Initial delay to allow SharedPreferences to be ready
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+
         // Retry logic to handle potential timing issues with SharedPreferences
         // Only retry if token is empty (user should be logged in)
         var token = ""
         var businessType = ""
         var retryCount = 0
-        val maxRetries = 5 // Increased retries
+        val maxRetries = 8 // Increased retries for better reliability
         
         // Try to read token with retry logic (only retry if token is empty)
         while (retryCount < maxRetries && token.isEmpty()) {
             if (retryCount > 0) {
                 // Small delay before retry to allow SharedPreferences to commit
                 try {
-                    Thread.sleep(100) // Increased delay
+                    Thread.sleep(150) // Increased delay between retries
                 } catch (e: InterruptedException) {
                     Thread.currentThread().interrupt()
                 }
@@ -113,11 +121,23 @@ class SplashScreenActivity : TransparentBaseActivity() {
             retryCount++
         }
         
-        // Read business type with retry logic
-        businessType = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "")?.trim() ?: ""
-        if (businessType.isEmpty()) {
-            // Try reading directly from SharedPreferences
-            businessType = sharedPrefs.getString("BUSINESS_TYPE", "")?.trim() ?: ""
+        // Read business type with retry logic (similar to token)
+        var businessTypeRetryCount = 0
+        val maxBusinessTypeRetries = 5
+        while (businessTypeRetryCount < maxBusinessTypeRetries && businessType.isEmpty()) {
+            if (businessTypeRetryCount > 0) {
+                try {
+                    Thread.sleep(100)
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                }
+            }
+            businessType = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "")?.trim() ?: ""
+            if (businessType.isEmpty()) {
+                // Try reading directly from SharedPreferences
+                businessType = sharedPrefs.getString("BUSINESS_TYPE", "")?.trim() ?: ""
+            }
+            businessTypeRetryCount++
         }
         
         val businessAccIsApproved = preferenceManager.getBoolean(PreferenceManager.Keys.BUSINESS_ACC_APPROVED, false)
@@ -185,17 +205,28 @@ class SplashScreenActivity : TransparentBaseActivity() {
                     finish()
                 }
             } else {
-                // Business type is empty but token exists - retry reading it one more time
-                Log.w("SESSION_DEBUG", "Token exists but business type is empty, attempting one more read...")
-                // Wait a bit more before retry
-                try {
-                    Thread.sleep(100)
-                } catch (e: InterruptedException) {
-                    Thread.currentThread().interrupt()
-                }
+                // Business type is empty but token exists - retry reading it with more attempts
+                Log.w("SESSION_DEBUG", "Token exists but business type is empty, attempting additional reads...")
+                var retryBusinessType = ""
+                var businessTypeRetryAttempts = 0
+                val maxBusinessTypeRetries = 5
                 
-                val retryBusinessType = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "")?.trim() ?: ""
-                Log.d("SESSION_DEBUG", "Retry BusinessType: '$retryBusinessType'")
+                while (businessTypeRetryAttempts < maxBusinessTypeRetries && retryBusinessType.isEmpty()) {
+                    if (businessTypeRetryAttempts > 0) {
+                        try {
+                            Thread.sleep(150) // Wait longer between retries
+                        } catch (e: InterruptedException) {
+                            Thread.currentThread().interrupt()
+                        }
+                    }
+                    
+                    retryBusinessType = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "")?.trim() ?: ""
+                    if (retryBusinessType.isEmpty()) {
+                        retryBusinessType = sharedPrefs.getString("BUSINESS_TYPE", "")?.trim() ?: ""
+                    }
+                    businessTypeRetryAttempts++
+                    Log.d("SESSION_DEBUG", "Business type retry attempt $businessTypeRetryAttempts: '$retryBusinessType'")
+                }
                 
                 if (retryBusinessType.isNotEmpty()) {
                     val normalizedRetryType = retryBusinessType.lowercase().trim()
@@ -211,7 +242,7 @@ class SplashScreenActivity : TransparentBaseActivity() {
                         finish()
                     }
                 } else {
-                    Log.e("SESSION_DEBUG", "✗ DECISION: Business type still empty after retry, redirecting to SignIn")
+                    Log.e("SESSION_DEBUG", "✗ DECISION: Business type still empty after $maxBusinessTypeRetries retries, redirecting to SignIn")
                     Log.e("SESSION_DEBUG", "This is unusual - token exists but business type is missing")
                     val intent = Intent(activity, SignInActivity::class.java)
                     startActivity(intent)
