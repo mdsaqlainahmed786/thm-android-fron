@@ -78,21 +78,99 @@
 
                         </com.google.android.material.card.MaterialCardView>
 
+                        <LinearLayout
+                            android:id="@+id/collaboratorsProfileContainer"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_marginStart="@dimen/_6sdp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            android:visibility="gone">
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/collaboratorProfileIv1"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_marginEnd="-4dp"
+                                android:elevation="2dp"
+                                app:cardCornerRadius="8dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="@color/post_background"
+                                app:cardBackgroundColor="@color/transparent"
+                                android:visibility="gone">
+
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/collaboratorProfileImage1"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:scaleType="centerCrop"
+                                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/collaboratorProfileIv2"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:layout_marginEnd="-4dp"
+                                android:elevation="3dp"
+                                app:cardCornerRadius="8dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="@color/post_background"
+                                app:cardBackgroundColor="@color/transparent"
+                                android:visibility="gone">
+
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/collaboratorProfileImage2"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:scaleType="centerCrop"
+                                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/collaboratorProfileIv3"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:elevation="4dp"
+                                app:cardCornerRadius="8dp"
+                                app:strokeWidth="1dp"
+                                app:strokeColor="@color/post_background"
+                                app:cardBackgroundColor="@color/transparent"
+                                android:visibility="gone">
+
+                                <com.google.android.material.imageview.ShapeableImageView
+                                    android:id="@+id/collaboratorProfileImage3"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:scaleType="centerCrop"
+                                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"/>
+
+                            </com.google.android.material.card.MaterialCardView>
+
+                        </LinearLayout>
+
                         <androidx.appcompat.widget.LinearLayoutCompat
                             android:layout_gravity="center"
                             android:layout_marginStart="@dimen/_6sdp"
+                            android:id="@+id/nameLayout"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
 
                             <TextView
                                 android:id="@+id/nameTv"
-                                android:layout_width="match_parent"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:textSize="16sp"
                                 android:textColor="@color/text_color"
                                 android:fontFamily="@font/comic_regular"
                                 android:text="Grand Imperial"/>
+
 
                             <LinearLayout
                                 android:id="@+id/businessTypeLayout"

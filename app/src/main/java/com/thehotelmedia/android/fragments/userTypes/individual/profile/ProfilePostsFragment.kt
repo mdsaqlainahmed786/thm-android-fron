@@ -124,8 +124,11 @@ class ProfilePostsFragment : Fragment() {
 
         postAdapter = SavedFeedAdapter(requireContext(), individualViewModal, childFragmentManager,ownerUserId,from,this.lifecycleScope)
         binding.postRecyclerView.adapter = postAdapter.withLoadStateFooter(footer = LoaderAdapter())
-
         binding.postRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        // Optimize RecyclerView performance
+        binding.postRecyclerView.setItemViewCacheSize(10) // Increased cache size for smoother scrolling
+        binding.postRecyclerView.setHasFixedSize(false) // Allow RecyclerView to optimize layout
+        binding.postRecyclerView.itemAnimator = null // Disable animations for better performance
 
         individualViewModal.getPostsData(userId).observe(viewLifecycleOwner) { data ->
             this.lifecycleScope.launch {

@@ -59,6 +59,7 @@ import com.thehotelmedia.android.extensions.sharePostWithDeepLink
 import com.thehotelmedia.android.extensions.updateTextWithAnimation
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.modals.feeds.feed.TaggedRef
+import com.thehotelmedia.android.modals.collaboration.CollaborationUser
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,7 +78,27 @@ val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Data>() {
     }
 
     override fun areContentsTheSame(oldItem: Data, newItem: Data): Boolean {
-        return oldItem == newItem
+        // Compare key fields that affect UI, including collaborators
+        return oldItem.Id == newItem.Id &&
+               oldItem.likes == newItem.likes &&
+               oldItem.comments == newItem.comments &&
+               oldItem.savedByMe == newItem.savedByMe &&
+               oldItem.likedByMe == newItem.likedByMe &&
+               oldItem.views == newItem.views &&
+               collaboratorsEqual(oldItem.collaborators, newItem.collaborators)
+    }
+    
+    // Helper function to compare collaborator lists efficiently
+    private fun collaboratorsEqual(old: ArrayList<com.thehotelmedia.android.modals.feeds.feed.Collaborator>?, 
+                                   new: ArrayList<com.thehotelmedia.android.modals.feeds.feed.Collaborator>?): Boolean {
+        if (old == null && new == null) return true
+        if (old == null || new == null) return false
+        if (old.size != new.size) return false
+        
+        // Compare by IDs only (fast comparison)
+        val oldIds = old.mapNotNull { it._id }.sorted()
+        val newIds = new.mapNotNull { it._id }.sorted()
+        return oldIds == newIds
     }
 }
 
@@ -116,6 +137,47 @@ class FeedAdapter(
 
     private val selectedIds = mutableListOf<String>()
     private val handlerMap = mutableMapOf<String, Job>()
+    
+    // Cache for collaborators to avoid redundant API calls
+    private val collaboratorsCache = mutableMapOf<String, List<com.thehotelmedia.android.modals.collaboration.CollaborationUser>>()
+    // Store original names to restore them if no collaborators
+    private val originalNamesCache = mutableMapOf<String, String>()
+    // In-memory cache for collaborator display text (postId -> "User1 and User2")
+    // This is loaded from SharedPreferences on initialization
+    private val collaboratorTextCache = mutableMapOf<String, CharSequence>()
+    
+    // SharedPreferences name for persisting collaborator text cache
+    private val prefsName = "collaborator_text_cache"
+    
+    init {
+        // Load persisted collaborator text from SharedPreferences on adapter creation
+        loadCollaboratorTextCache()
+    }
+    
+    private fun loadCollaboratorTextCache() {
+        try {
+            val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+            val allEntries = prefs.all
+            for ((key, value) in allEntries) {
+                if (key.startsWith("collab_text_") && value is String) {
+                    val postId = key.removePrefix("collab_text_")
+                    collaboratorTextCache[postId] = value
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FeedAdapter", "Error loading collaborator text cache: ${e.message}", e)
+        }
+    }
+    
+    private fun saveCollaboratorTextToPrefs(postId: String, text: CharSequence) {
+        try {
+            val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+            val key = "collab_text_$postId"
+            prefs.edit().putString(key, text.toString()).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("FeedAdapter", "Error saving collaborator text to prefs: ${e.message}", e)
+        }
+    }
 
 
 
@@ -168,7 +230,21 @@ class FeedAdapter(
 
     inner class PostViewHolder(val binding: PostItemsLayoutBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(post: Data,isActive: Boolean) {
-            setPostData(post,binding,isActive)
+            try {
+                // Cancel any pending async updates for this view to prevent stale data
+                val postId = post.Id ?: ""
+                if (pendingCollaboratorRequests.containsKey(postId)) {
+                    // Remove pending request if view is being rebound (prevents stale updates)
+                    pendingCollaboratorRequests.remove(postId)
+                }
+                setPostData(post,binding,isActive)
+            } catch (e: Exception) {
+                // Catch any exceptions to prevent crashes
+                android.util.Log.e("FeedAdapter", "Error binding post data: ${e.message}", e)
+                // Set default values to prevent UI from breaking
+                binding.nameTv.text = "User"
+                binding.collaboratorsProfileContainer.visibility = View.GONE
+            }
         }
     }
 
@@ -297,9 +373,10 @@ class FeedAdapter(
 
 
     private fun setPostData(post: Data, binding: PostItemsLayoutBinding,isActive: Boolean) {
-        // Media setup
-        val mediaList = post.mediaRef
-        val postId = post.Id ?: ""
+        try {
+            // Media setup
+            val mediaList = post.mediaRef ?: arrayListOf()
+            val postId = post.Id ?: ""
 
         onItemActive(postId, isActive)
 
@@ -409,11 +486,85 @@ class FeedAdapter(
 
         }
 
-        // Set user name and profile picture
-        binding.nameTv.text = name
+        // Set user profile picture
         Glide.with(context).load(profilePic).placeholder(R.drawable.ic_profile_placeholder).error(R.drawable.ic_profile_placeholder).into(binding.profileIv)
 
-//        binding.profileIv.loadImageInBackground(context, profilePic, R.drawable.ic_profile_placeholder)
+        // Display collaborators directly from post data (no separate API call)
+        // Hide avatar container completely - we only show text
+        binding.collaboratorsProfileContainer.visibility = View.GONE
+        
+        // Set tag FIRST to identify this view
+        binding.nameTv.tag = userId
+        
+        // Check cache FIRST - if we have cached text, use it immediately (no flicker)
+        val cachedText = collaboratorTextCache[postId]
+        if (cachedText != null) {
+            // Only update if text is different (prevents redundant setText calls during rebind)
+            val currentText = binding.nameTv.text?.toString() ?: ""
+            if (currentText != cachedText.toString()) {
+                binding.nameTv.text = cachedText
+            }
+            // Don't process collaborators again if we have cached text - saves CPU cycles
+            return
+        }
+        
+        // Calculate final name text synchronously (before any UI updates)
+        val finalNameText: CharSequence = try {
+            val collaborators = post.collaborators
+            
+            if (collaborators != null && collaborators.isNotEmpty()) {
+                try {
+                    // Filter out:
+                    // 1. Post owner (by userId)
+                    // 2. Collaborators without names (only have IDs from string array response)
+                    // 3. Empty/null names
+                    val validCollaborators = collaborators.filterNotNull()
+                        .filter { 
+                            try {
+                                !it.name.isNullOrEmpty() && it._id != userId
+                            } catch (e: Exception) {
+                                false
+                            }
+                        }
+                    
+                    if (validCollaborators.isNotEmpty()) {
+                        // Build collaborator text with blue styling
+                        val collaboratorText = buildCollaboratorText(validCollaborators, name)
+                        // Cache the result for future rebinds (both memory and persistent storage)
+                        collaboratorTextCache[postId] = collaboratorText
+                        saveCollaboratorTextToPrefs(postId, collaboratorText)
+                        collaboratorText
+                    } else {
+                        // If we have collaborators but no valid ones (only IDs), mark for API call
+                        val collaboratorsWithOnlyIds = collaborators.filter { it._id != userId && it.name.isNullOrEmpty() && !it._id.isNullOrEmpty() }
+                        if (collaboratorsWithOnlyIds.isNotEmpty()) {
+                            // Load collaborators from API (async, will update later)
+                            loadCollaboratorsForPost(postId, binding, name, userId)
+                        }
+                        // Cache normal name to prevent re-processing (but don't persist normal names)
+                        collaboratorTextCache[postId] = name
+                        name
+                    }
+                } catch (e: Exception) {
+                    // If there's any error processing collaborators, just show normal name
+                    android.util.Log.e("FeedAdapter", "Error processing collaborators: ${e.message}", e)
+                    // Don't cache errors
+                    name
+                }
+            } else {
+                // No collaborators - don't cache normal names
+                name
+            }
+        } catch (e: Exception) {
+            // If there's any error accessing collaborators, just show normal name
+            android.util.Log.e("FeedAdapter", "Error accessing collaborators field: ${e.message}", e)
+            name
+        }
+        
+        // Only set text if it's different (prevents redundant updates during rebind)
+        if (binding.nameTv.text.toString() != finalNameText.toString()) {
+            binding.nameTv.text = finalNameText
+        }
 
 
         // Post content
@@ -502,10 +653,13 @@ class FeedAdapter(
         binding.menuBtn.setOnClickListener { view ->
             showMenuDialog(view,postId)
         }
-
-
-
-
+        } catch (e: Exception) {
+            // Catch any exceptions to prevent crashes
+            android.util.Log.e("FeedAdapter", "Error in setPostData: ${e.message}", e)
+            // Set safe defaults
+            binding.nameTv.text = "User"
+            binding.collaboratorsProfileContainer.visibility = View.GONE
+        }
     }
 
     private fun setReviewData(review: Data, binding: ReviewItemsLayoutBinding,isActive: Boolean) {
@@ -1081,7 +1235,253 @@ class FeedAdapter(
 
     }
 
+    // Initialize collaborator observer once
+    private var collaboratorObserverInitialized = false
+    
+    // Map to track pending collaborator requests: postId -> (binding, mainUserName, userId)
+    private val pendingCollaboratorRequests = mutableMapOf<String, Triple<PostItemsLayoutBinding, String, String>>()
+    
+    // Build collaborator text with blue styling (returns SpannableString)
+    private fun buildCollaboratorText(collaborators: List<com.thehotelmedia.android.modals.feeds.feed.Collaborator>, mainUserName: String): CharSequence {
+        return try {
+            if (collaborators.isEmpty()) {
+                return mainUserName
+            }
+
+            // Format text: "mainUserName and collaboratorName" or "mainUserName and X others"
+            val collaboratorName = when {
+                collaborators.size == 1 -> collaborators[0]?.name ?: ""
+                else -> "${collaborators.size} others"
+            }
+            
+            if (collaboratorName.isEmpty()) {
+                return mainUserName
+            }
+            
+            val fullText = "$mainUserName and $collaboratorName"
+            
+            // Create SpannableString to style collaborator name in blue
+            val spannableString = android.text.SpannableString(fullText)
+            val startIndex = fullText.indexOf("and") + 4 // Start after "and "
+            val endIndex = fullText.length
+            
+            if (startIndex < endIndex && startIndex > 0 && startIndex < fullText.length) {
+                spannableString.setSpan(
+                    android.text.style.ForegroundColorSpan(ContextCompat.getColor(context, R.color.blue)),
+                    startIndex,
+                    endIndex,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            
+            spannableString
+        } catch (e: Exception) {
+            // If there's any error, just return the main user name
+            mainUserName
+        }
+    }
+    
+    // Display collaborators inline with blue text styling (no avatars, no API calls)
+    private fun displayCollaboratorsInline(collaborators: List<com.thehotelmedia.android.modals.feeds.feed.Collaborator>, binding: PostItemsLayoutBinding, mainUserName: String) {
+        binding.nameTv.text = buildCollaboratorText(collaborators, mainUserName)
+    }
+
+    // Load collaborator details from API when only IDs are available
+    private fun loadCollaboratorsForPost(postId: String, binding: PostItemsLayoutBinding, mainUserName: String, postOwnerId: String) {
+        // Check if we already have a pending request for this post
+        if (pendingCollaboratorRequests.containsKey(postId)) {
+            android.util.Log.d("FeedAdapter", "Already have pending request for postId: $postId")
+            return
+        }
+        
+        // Store the request info
+        pendingCollaboratorRequests[postId] = Triple(binding, mainUserName, postOwnerId)
+        android.util.Log.d("FeedAdapter", "Stored pending request for postId: $postId, total pending: ${pendingCollaboratorRequests.size}")
+        
+        // Initialize observer once if not already done
+        if (!collaboratorObserverInitialized) {
+            collaboratorObserverInitialized = true
+            individualViewModal.postCollaboratorsResult.observe(viewLifecycleOwner) { result ->
+                if (result.status == true && result.data != null) {
+                    android.util.Log.d("FeedAdapter", "Received collaborator result, data size: ${result.data.size}, pending requests: ${pendingCollaboratorRequests.size}")
+                    
+                    // Try to match by finding the first pending request
+                    // Since responses come sequentially, process the first one
+                    val pendingRequest = pendingCollaboratorRequests.entries.firstOrNull()
+                    
+                    if (pendingRequest != null) {
+                        val (requestedPostId, requestData) = pendingRequest
+                        val (pendingBinding, pendingMainUserName, pendingPostOwnerId) = requestData
+                        
+                        android.util.Log.d("FeedAdapter", "Processing collaborator data for postId: $requestedPostId, collaborators count: ${result.data.size}")
+                        
+                        // Remove from pending requests
+                        pendingCollaboratorRequests.remove(requestedPostId)
+                        
+                        // Convert CollaborationUser to Collaborator
+                        val collaborators = result.data.map { collabUser ->
+                            com.thehotelmedia.android.modals.feeds.feed.Collaborator(
+                                _id = collabUser._id,
+                                name = collabUser.name,
+                                profilePic = collabUser.profilePic?.let { pic ->
+                                    com.thehotelmedia.android.modals.feeds.feed.CollaboratorProfilePic(
+                                        small = pic.small,
+                                        medium = pic.medium,
+                                        large = pic.large
+                                    )
+                                }
+                            )
+                        }
+                        
+                        android.util.Log.d("FeedAdapter", "Converted collaborators: ${collaborators.map { "${it._id}:${it.name}" }}")
+                        
+                        // Filter out post owner and empty names
+                        val validCollaborators = collaborators.filter { 
+                            !it.name.isNullOrEmpty() && it._id != pendingPostOwnerId 
+                        }
+                        
+                        android.util.Log.d("FeedAdapter", "Valid collaborators after filtering: ${validCollaborators.size}, names: ${validCollaborators.map { it.name }}")
+                        
+                        if (validCollaborators.isNotEmpty()) {
+                            // Verify binding is still valid (check if it's still for the same post)
+                            val currentPostId = pendingBinding.nameTv.tag as? String ?: ""
+                            if (currentPostId == pendingPostOwnerId || currentPostId.isEmpty()) {
+                                // Verify the binding tag matches to prevent stale updates
+                                val verifyTag = pendingBinding.nameTv.tag as? String ?: ""
+                                if (verifyTag == pendingPostOwnerId || verifyTag.isEmpty()) {
+                                    // Build collaborator text and cache it
+                                    val collaboratorText = buildCollaboratorText(validCollaborators, pendingMainUserName)
+                                    // Cache the result for future rebinds (both memory and persistent storage)
+                                    collaboratorTextCache[requestedPostId] = collaboratorText
+                                    saveCollaboratorTextToPrefs(requestedPostId, collaboratorText)
+                                    // Set tag and text together to prevent flickering
+                                    pendingBinding.nameTv.tag = pendingPostOwnerId
+                                    // Only update if text is different
+                                    if (pendingBinding.nameTv.text.toString() != collaboratorText.toString()) {
+                                        pendingBinding.nameTv.text = collaboratorText
+                                    }
+                                    android.util.Log.d("FeedAdapter", "Displaying collaborators: ${validCollaborators.map { it.name }}")
+                                } else {
+                                    android.util.Log.d("FeedAdapter", "Binding tag mismatch, skipping update")
+                                }
+                            } else {
+                                android.util.Log.d("FeedAdapter", "Binding was recycled, skipping update for postId: $requestedPostId")
+                            }
+                        } else {
+                            android.util.Log.d("FeedAdapter", "No valid collaborators to display for postId: $requestedPostId")
+                        }
+                    } else {
+                        android.util.Log.d("FeedAdapter", "No pending request found for collaborator result")
+                    }
+                } else {
+                    android.util.Log.d("FeedAdapter", "Collaborator result failed or empty, status: ${result.status}, message: ${result.message}")
+                }
+            }
+        }
+        
+        // Make the API call
+        android.util.Log.d("FeedAdapter", "Calling getPostCollaborators for postId: $postId")
+        individualViewModal.getPostCollaborators(postId)
+    }
+
+    // Format and display collaborators like Instagram: main user avatar + overlapping collaborator avatars + "mainUser and collaborator" text
+    // DEPRECATED: This function is no longer used - we now use displayCollaboratorsInline instead
+    private fun displayCollaborators(collaborators: List<CollaborationUser>, binding: PostItemsLayoutBinding, postOwnerId: String, mainUserName: String) {
+        // Verify binding is still for this post (prevent stale updates from recycled views)
+        val currentPostId = binding.nameTv.tag as? String ?: ""
+        if (currentPostId != postOwnerId) {
+            // View was recycled, don't update
+            return
+        }
+        
+        // Double-check: Filter out the post owner and empty names
+        val validCollaborators = collaborators.filter { 
+            !it.name.isNullOrEmpty() && it._id != postOwnerId 
+        }
+        
+        if (validCollaborators.isEmpty()) {
+            // No valid collaborators - hide UI and restore original name
+            binding.collaboratorsProfileContainer.visibility = View.GONE
+            binding.collaboratorProfileIv1.visibility = View.GONE
+            binding.collaboratorProfileIv2.visibility = View.GONE
+            binding.collaboratorProfileIv3.visibility = View.GONE
+            // Restore original name only if binding is still for this post
+            if (binding.nameTv.tag as? String == postOwnerId) {
+                binding.nameTv.text = mainUserName
+            }
+            return
+        }
+
+        // Show overlapping collaborator profile pictures (up to 2-3, overlapping)
+        val profilePicsToShow = validCollaborators.take(2) // Show max 2 overlapping avatars
+        
+        // Show first collaborator profile picture
+        if (profilePicsToShow.isNotEmpty()) {
+            val firstCollaborator = profilePicsToShow[0]
+            val profilePicUrl1 = firstCollaborator.profilePic?.large ?: firstCollaborator.profilePic?.medium ?: firstCollaborator.profilePic?.small
+            if (!profilePicUrl1.isNullOrEmpty()) {
+                Glide.with(context)
+                    .load(profilePicUrl1)
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .error(R.drawable.ic_profile_placeholder)
+                    .circleCrop()
+                    .into(binding.collaboratorProfileImage1)
+                binding.collaboratorProfileIv1.visibility = View.VISIBLE
+            } else {
+                binding.collaboratorProfileIv1.visibility = View.GONE
+            }
+        } else {
+            binding.collaboratorProfileIv1.visibility = View.GONE
+        }
+        
+        // Show second collaborator profile picture (overlapping)
+        if (profilePicsToShow.size >= 2) {
+            val secondCollaborator = profilePicsToShow[1]
+            val profilePicUrl2 = secondCollaborator.profilePic?.large ?: secondCollaborator.profilePic?.medium ?: secondCollaborator.profilePic?.small
+            if (!profilePicUrl2.isNullOrEmpty()) {
+                Glide.with(context)
+                    .load(profilePicUrl2)
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .error(R.drawable.ic_profile_placeholder)
+                    .circleCrop()
+                    .into(binding.collaboratorProfileImage2)
+                binding.collaboratorProfileIv2.visibility = View.VISIBLE
+            } else {
+                binding.collaboratorProfileIv2.visibility = View.GONE
+            }
+        } else {
+            binding.collaboratorProfileIv2.visibility = View.GONE
+        }
+        
+        // Hide third profile picture (we'll show max 2)
+        binding.collaboratorProfileIv3.visibility = View.GONE
+
+        // Format text: "mainUserName and collaboratorName" or "mainUserName and X others"
+        val collaborationText = when {
+            validCollaborators.size == 1 -> {
+                val collaboratorName = validCollaborators[0].name ?: ""
+                "$mainUserName and $collaboratorName"
+            }
+            validCollaborators.size == 2 -> {
+                val collaboratorName = validCollaborators[0].name ?: ""
+                "$mainUserName and $collaboratorName"
+            }
+            else -> {
+                val remaining = validCollaborators.size
+                "$mainUserName and $remaining others"
+            }
+        }
+
+        // Final verification before updating UI
+        if (binding.nameTv.tag as? String == postOwnerId) {
+            binding.nameTv.text = collaborationText
+            binding.collaboratorsProfileContainer.visibility = View.VISIBLE
+        }
+    }
+
     fun setActivePosition(position: Int) {
         activePosition = position
     }
 }
+
+
