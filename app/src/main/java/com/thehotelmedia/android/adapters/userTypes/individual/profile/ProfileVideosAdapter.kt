@@ -18,11 +18,12 @@ import com.thehotelmedia.android.customClasses.Constants.IMAGE
 import com.thehotelmedia.android.customClasses.Constants.VIDEO
 import com.thehotelmedia.android.databinding.ProfileVideosItemsLayoutBinding
 import com.thehotelmedia.android.extensions.moveToViewer
+import com.thehotelmedia.android.extensions.moveToUserPostsViewer
 import com.thehotelmedia.android.modals.profileData.video.Data
 import java.io.File
 
 
-class ProfileVideosAdapter (private val context: Context) : PagingDataAdapter<Data, ProfileVideosAdapter.ViewHolder>(COMPARATOR)  {
+class ProfileVideosAdapter (private val context: Context, private val userId: String = "") : PagingDataAdapter<Data, ProfileVideosAdapter.ViewHolder>(COMPARATOR)  {
 
     inner class ViewHolder(val binding: ProfileVideosItemsLayoutBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -40,13 +41,23 @@ class ProfileVideosAdapter (private val context: Context) : PagingDataAdapter<Da
             Glide.with(context)
                 .load(thumbnailUrl)
                 .placeholder(R.drawable.ic_post_placeholder)
+                .error(R.drawable.ic_post_placeholder)
+                .thumbnail(0.1f) // Load thumbnail first for faster display
+                .centerCrop()
+                .skipMemoryCache(false) // Use memory cache
                 .into(binding.imageView)
 
 
 
 
             binding.root.setOnClickListener {
-                context.moveToViewer(VIDEO, mediaUri)
+                if (userId.isNotEmpty()) {
+                    // Launch UserPostsViewerActivity with video filter - only scroll through videos
+                    context.moveToUserPostsViewer(userId, null, "video")
+                } else {
+                    // Fallback to old viewer if userId not available
+                    context.moveToViewer(VIDEO, mediaUri)
+                }
             }
 
         }

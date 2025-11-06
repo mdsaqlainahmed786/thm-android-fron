@@ -126,9 +126,10 @@ class ProfilePostsFragment : Fragment() {
         binding.postRecyclerView.adapter = postAdapter.withLoadStateFooter(footer = LoaderAdapter())
         binding.postRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         // Optimize RecyclerView performance
-        binding.postRecyclerView.setItemViewCacheSize(10) // Increased cache size for smoother scrolling
+        binding.postRecyclerView.setItemViewCacheSize(20) // Increased cache size for smoother scrolling
         binding.postRecyclerView.setHasFixedSize(false) // Allow RecyclerView to optimize layout
         binding.postRecyclerView.itemAnimator = null // Disable animations for better performance
+        binding.postRecyclerView.recycledViewPool.setMaxRecycledViews(0, 10) // Recycle views more efficiently
 
         individualViewModal.getPostsData(userId).observe(viewLifecycleOwner) { data ->
             this.lifecycleScope.launch {
@@ -141,12 +142,21 @@ class ProfilePostsFragment : Fragment() {
         }
 
 
-        // Scroll listener to track active item
+        // Scroll listener to track active item - optimized to reduce updates
         binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            private var lastUpdateTime = 0L
+            private val UPDATE_THROTTLE_MS = 200L // Throttle updates to every 200ms
+            
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
+                
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastUpdateTime < UPDATE_THROTTLE_MS) {
+                    return // Throttle updates
+                }
+                lastUpdateTime = currentTime
 
-                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
                 val firstVisibleItem = layoutManager.findFirstCompletelyVisibleItemPosition()
 
                 if (firstVisibleItem != RecyclerView.NO_POSITION && firstVisibleItem != activePosition) {
@@ -163,10 +173,15 @@ class ProfilePostsFragment : Fragment() {
         if (newPosition != activePosition) {
             val previousActivePosition = activePosition
             activePosition = newPosition
-            // Notify adapter to update views
+            // Notify adapter to update views - use payload to avoid full rebind
             postAdapter.setActivePosition(activePosition)
-            postAdapter.notifyItemChanged(previousActivePosition)
-            postAdapter.notifyItemChanged(activePosition)
+            // Only notify if positions are valid
+            if (previousActivePosition >= 0 && previousActivePosition < postAdapter.itemCount) {
+                postAdapter.notifyItemChanged(previousActivePosition, "active_state")
+            }
+            if (activePosition >= 0 && activePosition < postAdapter.itemCount) {
+                postAdapter.notifyItemChanged(activePosition, "active_state")
+            }
         }
     }
 

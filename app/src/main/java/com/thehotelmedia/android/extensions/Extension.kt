@@ -56,6 +56,7 @@ import com.bumptech.glide.Glide
 import com.google.android.material.card.MaterialCardView
 import com.thehotelmedia.android.BuildConfig
 import com.thehotelmedia.android.activity.PostPreviewActivity
+import com.thehotelmedia.android.activity.UserPostsViewerActivity
 import com.thehotelmedia.android.activity.VideoImageViewer
 import com.thehotelmedia.android.activity.userTypes.business.bottomNavigation.BottomNavigationBusinessMainActivity
 import com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity
@@ -1037,6 +1038,19 @@ fun Context.moveToPostPreviewScreen(postId: String) {
     val intent = Intent(this, PostPreviewActivity::class.java).apply {
         putExtra("FROM", "Notification")
         putExtra("POST_ID", postId)
+    }
+    startActivity(intent)
+}
+
+fun Context.moveToUserPostsViewer(
+    userId: String, 
+    initialPostId: String? = null,
+    filterMediaType: String? = null // "image" for photos only, "video" for videos only, null for all
+) {
+    val intent = Intent(this, UserPostsViewerActivity::class.java).apply {
+        putExtra("USER_ID", userId)
+        initialPostId?.let { putExtra("INITIAL_POST_ID", it) }
+        filterMediaType?.let { putExtra("FILTER_MEDIA_TYPE", it) }
     }
     startActivity(intent)
 }
