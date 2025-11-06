@@ -496,20 +496,13 @@ class FeedAdapter(
         // Set tag FIRST to identify this view
         binding.nameTv.tag = userId
         
+        // Calculate final name text synchronously (before any UI updates)
         // Check cache FIRST - if we have cached text, use it immediately (no flicker)
         val cachedText = collaboratorTextCache[postId]
-        if (cachedText != null) {
-            // Only update if text is different (prevents redundant setText calls during rebind)
-            val currentText = binding.nameTv.text?.toString() ?: ""
-            if (currentText != cachedText.toString()) {
-                binding.nameTv.text = cachedText
-            }
-            // Don't process collaborators again if we have cached text - saves CPU cycles
-            return
-        }
-        
-        // Calculate final name text synchronously (before any UI updates)
-        val finalNameText: CharSequence = try {
+        val finalNameText: CharSequence = if (cachedText != null) {
+            // Use cached text - don't process collaborators again
+            cachedText
+        } else try {
             val collaborators = post.collaborators
             
             if (collaborators != null && collaborators.isNotEmpty()) {

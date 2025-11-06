@@ -141,11 +141,22 @@ class TagPeopleActivity : BaseActivity() {
         binding.tagPeopleRv.adapter = tagPeopleListAdapter
             .withLoadStateFooter(footer = LoaderAdapter())
 
-
-        individualViewModal.getTagged(search).observe(this) {
-            this.lifecycleScope.launch {
-                isLoading()
-                tagPeopleListAdapter.submitData(it)
+        // For collaboration, search all users in database; for tagging, use tagged people (followers)
+        if (isCollaboration) {
+            // Use search endpoint to get all users (individual + business) from database
+            individualViewModal.getCollaborationUsers(search).observe(this) {
+                this.lifecycleScope.launch {
+                    isLoading()
+                    tagPeopleListAdapter.submitData(it)
+                }
+            }
+        } else {
+            // Use tagged people endpoint (followers) for regular tagging
+            individualViewModal.getTagged(search).observe(this) {
+                this.lifecycleScope.launch {
+                    isLoading()
+                    tagPeopleListAdapter.submitData(it)
+                }
             }
         }
         
