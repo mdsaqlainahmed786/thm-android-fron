@@ -91,15 +91,39 @@
                             android:orientation="vertical">
 
 
-                            <TextView
-                                android:id="@+id/nameTv"
-                                android:layout_width="match_parent"
+                            <LinearLayout
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:textSize="16sp"
-                                android:layout_marginEnd="@dimen/_26sdp"
-                                android:textColor="@color/text_color"
-                                android:fontFamily="@font/comic_regular"
-                                android:text="Grand Imperial"/>
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+                                <TextView
+                                    android:id="@+id/nameTv"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textSize="16sp"
+                                    android:layout_marginEnd="@dimen/_26sdp"
+                                    android:textColor="@color/text_color"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:text="Grand Imperial"/>
+                                
+                                <!-- New Post Badge next to name -->
+                                <TextView
+                                    android:id="@+id/newPostBadge"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:text="NEW"
+                                    android:textSize="9sp"
+                                    android:textColor="@color/blue"
+                                    android:fontFamily="@font/comic_regular"
+                                    android:background="@drawable/rounded_blue_50_background"
+                                    android:paddingStart="6dp"
+                                    android:paddingEnd="6dp"
+                                    android:paddingTop="2dp"
+                                    android:paddingBottom="2dp"
+                                    android:visibility="gone"
+                                    android:elevation="1dp"/>
+                            </LinearLayout>
 
 
                             <LinearLayout

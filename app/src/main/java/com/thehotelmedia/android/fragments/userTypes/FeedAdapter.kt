@@ -50,6 +50,7 @@ import com.thehotelmedia.android.extensions.calculateDaysAgo
 import com.thehotelmedia.android.extensions.formatCount
 import com.thehotelmedia.android.extensions.getEmojiForRating
 import com.thehotelmedia.android.extensions.isFutureDateOrTime
+import com.thehotelmedia.android.extensions.isRecentPost
 import com.thehotelmedia.android.extensions.moveToPostPreviewScreen
 import com.thehotelmedia.android.extensions.openGoogleMaps
 import com.thehotelmedia.android.extensions.setRatingWithStar
@@ -442,7 +443,9 @@ class FeedAdapter(
         val createdAt = post.createdAt ?: ""
         val formatedCreatedAt = calculateDaysAgo(createdAt,context)
 
-
+        // Show/hide new post indicator (Instagram-style)
+        val isRecent = isRecentPost(createdAt)
+        binding.newPostBadge.visibility = if (isRecent) View.VISIBLE else View.GONE
 
         // Handle user details
         val postedBy = post.postedBy
@@ -820,6 +823,10 @@ class FeedAdapter(
         val city = review.reviewedBusinessProfileRef?.address?.city
         val state = review.reviewedBusinessProfileRef?.address?.state
 
+        // Show/hide new post indicator for reviews
+        val isRecent = isRecentPost(createdAt)
+        binding.newPostBadge.visibility = if (isRecent) View.VISIBLE else View.GONE
+
         // Set user and business info
         binding.userNameTv.text = userName
         Glide.with(context).load(userProfilePic).placeholder(R.drawable.ic_profile_placeholder).error(R.drawable.ic_profile_placeholder).into(binding.userProfileIv)
@@ -968,6 +975,11 @@ class FeedAdapter(
         } else {
             binding.joiningBtn.visibility = View.GONE
         }
+
+        // Show/hide new post indicator for events
+        val createdAt = event.createdAt ?: ""
+        val isRecent = isRecentPost(createdAt)
+        binding.newPostBadge.visibility = if (isRecent) View.VISIBLE else View.GONE
 
         val viewsCount = event.views ?: 0
         if (viewsCount > 0){
