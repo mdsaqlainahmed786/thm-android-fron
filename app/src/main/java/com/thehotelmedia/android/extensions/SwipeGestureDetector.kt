@@ -13,8 +13,8 @@ class SwipeGestureDetector(
 ) : GestureDetector.OnGestureListener {
 
     companion object {
-        private const val SWIPE_THRESHOLD = 50  // Lower threshold for better responsiveness
-        private const val SWIPE_VELOCITY_THRESHOLD = 50  // Lower velocity threshold
+        private const val SWIPE_THRESHOLD = 150  // Increased threshold - must swipe at least 150px
+        private const val SWIPE_VELOCITY_THRESHOLD = 300  // Increased velocity threshold for more intentional swipes
     }
 
     override fun onDown(e: MotionEvent): Boolean {
@@ -105,8 +105,14 @@ fun View.setOnSwipeListener(
                 val deltaX = Math.abs(event.x - initialX)
                 val deltaY = Math.abs(event.y - initialY)
                 
-                // Detect horizontal swipe early (lower threshold for better responsiveness)
-                if (!hasIntercepted && deltaX > 20 && deltaX > deltaY * 1.1) {
+                // Stricter detection to avoid false positives during vertical scrolling:
+                // 1. Horizontal movement must be at least 60px
+                // 2. Horizontal must be at least 2.5x the vertical movement
+                // 3. Vertical movement must be less than 40px (to avoid triggering during scrolling)
+                if (!hasIntercepted && 
+                    deltaX > 60 && 
+                    deltaX > deltaY * 2.5 &&
+                    deltaY < 40) {
                     isHorizontalSwipe = true
                     hasIntercepted = true
                     // Prevent RecyclerView from scrolling when we detect horizontal swipe
