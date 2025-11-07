@@ -67,16 +67,29 @@ class IndividualChatFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-//        socketViewModel.connectSocket(userName)
+        refreshData()
+    }
+    
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden && isAdded) {
+            // Fragment became visible, refresh data
+            refreshData()
+        }
+    }
+    
+    fun refreshDataIfNeeded() {
+        // Public method to refresh data when fragment becomes visible
+        refreshData()
+    }
+    
+    private fun refreshData() {
         // Ensure fragment is attached before proceeding
         if (isAdded) {
             userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
             socketViewModel.connectSocket(userName)
             fetchSocketData()
         }
-//        userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
-//        socketViewModel.connectSocket(userName)
-//        fetchSocketData()
     }
 
     override fun onPause() {

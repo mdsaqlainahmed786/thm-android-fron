@@ -349,6 +349,17 @@ class BottomNavigationIndividualMainActivity : BaseActivity() {
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 binding.bottomNavigationView.menu.getItem(position).isChecked = true
+                
+                // Refresh chat fragment when Messages tab is selected (position 3)
+                if (position == 3) {
+                    // Clear unread messages
+                    ChatDotUtil.clearUnreadMessagesAndBroadcast(
+                        context = this@BottomNavigationIndividualMainActivity,
+                        preferenceManager = preferenceManager
+                    )
+                    // Trigger data refresh in chat fragment
+                    refreshChatFragment()
+                }
             }
         })
 
@@ -406,6 +417,25 @@ class BottomNavigationIndividualMainActivity : BaseActivity() {
 
     private fun blurNavigationBar() {
         blurTheView(binding.blurView)
+    }
+
+    private fun refreshChatFragment() {
+        // Get the chat fragment and trigger refresh
+        try {
+            // ViewPager2 uses "f" + position as fragment tag
+            val fragmentTag = "f${3}"
+            val fragment = supportFragmentManager.findFragmentByTag(fragmentTag)
+            if (fragment is com.thehotelmedia.android.fragments.userTypes.individual.bottomNavigation.IndividualChatFragment) {
+                // Post with a small delay to ensure fragment is fully visible
+                Handler(Looper.getMainLooper()).postDelayed({
+                    if (fragment.isAdded && !fragment.isHidden) {
+                        fragment.refreshDataIfNeeded()
+                    }
+                }, 150)
+            }
+        } catch (e: Exception) {
+            // Handle exception silently
+        }
     }
 
     private fun hidePlusBtn() {
