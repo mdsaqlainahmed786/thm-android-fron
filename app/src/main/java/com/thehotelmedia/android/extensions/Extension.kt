@@ -354,6 +354,31 @@ fun calculateDaysAgo(utcString: String,context: Context): String {
     }
 }
 
+/**
+ * Checks if a post was created within the last 24 hours (recent post)
+ * @param utcString The UTC timestamp string in ISO 8601 format
+ * @return true if the post is less than 24 hours old, false otherwise
+ */
+fun isRecentPost(utcString: String): Boolean {
+    if (utcString.isEmpty()) return false
+    return try {
+        // Parse the input timestamp string (ISO 8601 format)
+        val formatter = DateTimeFormatter.ISO_DATE_TIME
+        val inputDate = ZonedDateTime.parse(utcString, formatter)
+        
+        // Get the current date and time in UTC
+        val currentDate = ZonedDateTime.now(inputDate.zone)
+        
+        // Calculate the difference in hours
+        val hoursAgo = ChronoUnit.HOURS.between(inputDate, currentDate)
+        
+        // Consider posts less than 24 hours old as recent
+        hoursAgo < 24
+    } catch (e: Exception) {
+        false
+    }
+}
+
 fun calculateDaysAgoInSmall(utcString: String): String {
     // Parse the input timestamp string (ISO 8601 format)
     val formatter = DateTimeFormatter.ISO_DATE_TIME
