@@ -46,6 +46,7 @@ import com.thehotelmedia.android.customClasses.imageEditor.CustomTextEntryDialog
 import com.thehotelmedia.android.customDialog.PhotoVideoDialog
 import com.thehotelmedia.android.databinding.ActivityCreateStoryBinding
 import com.thehotelmedia.android.extensions.navigateToMainActivity
+import com.thehotelmedia.android.extensions.setOnSwipeListener
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import com.yalantis.ucrop.UCrop
@@ -188,6 +189,22 @@ class CreateStoryActivity : BaseActivity() {
         individualViewModal.toast.observe(activity){
             CustomSnackBar.showSnackBar(binding.root,it)
         }
+
+        setupSwipeGestures()
+    }
+
+    private fun setupSwipeGestures() {
+        binding.root.setOnSwipeListener(
+            onSwipeRight = {
+                // Swipe left -> right: Open messages tab
+                val intent = Intent(this, com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity::class.java).apply {
+                    putExtra(com.thehotelmedia.android.customClasses.Constants.FROM, com.thehotelmedia.android.customClasses.Constants.notification)
+                }
+                startActivity(intent)
+                finish()
+            },
+            onSwipeLeft = null // No action for right->left swipe on story creation
+        )
     }
 
     private fun checkPermissions() {

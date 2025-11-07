@@ -23,6 +23,9 @@ import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.NotificationActivity
 import com.thehotelmedia.android.activity.userTypes.business.BusinessSearchActivity
+import com.thehotelmedia.android.activity.userTypes.forms.createStory.CreateStoryActivity
+import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.thehotelmedia.android.adapters.LoaderAdapter
 import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LAT
 import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LNG
@@ -36,6 +39,8 @@ import com.thehotelmedia.android.databinding.FragmentIndividualHomeBinding
 import com.thehotelmedia.android.extensions.LocationHelper
 import com.thehotelmedia.android.extensions.NotificationDotUtil
 import com.thehotelmedia.android.extensions.animateVisibilityToggle
+import com.thehotelmedia.android.extensions.setOnSwipeListener
+import android.view.MotionEvent
 import com.thehotelmedia.android.extensions.openWeatherApp
 import com.thehotelmedia.android.extensions.setWeatherAndTemperature
 import com.thehotelmedia.android.extensions.toAQI
@@ -87,6 +92,8 @@ class IndividualHomeFragment : Fragment() {
 
         initUI()
         initializeAndUpdateNotificationDot()
+        setupSwipeGestures()
+        setupRecyclerViewSwipeGestures()
 
         return binding.root
     }
@@ -419,6 +426,108 @@ class IndividualHomeFragment : Fragment() {
                 binding.noDataFoundLayout.visibility = View.VISIBLE
             } else {
                 binding.noDataFoundLayout.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun setupSwipeGestures() {
+        // Add swipe detection to root view
+        val swipeLeftAction = {
+            // Swipe right -> left: Open messages tab
+            val activity = requireActivity()
+            if (activity is com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity) {
+                // Access the ViewPager from the activity
+                val viewPager = activity.findViewById<ViewPager2>(R.id.viewPager)
+                viewPager?.setCurrentItem(3, true) // Navigate to messages tab (position 3)
+                // Also update the bottom navigation
+                activity.findViewById<BottomNavigationView>(R.id.bottomNavigationView)
+                    ?.selectedItemId = R.id.chatFrag
+            }
+        }
+        
+        val swipeRightAction = {
+            // Swipe left -> right: Open story creation page
+            val intent = Intent(requireContext(), CreateStoryActivity::class.java)
+            startActivity(intent)
+        }
+        
+        // Add to root view
+        binding.root.setOnSwipeListener(
+            onSwipeLeft = swipeLeftAction,
+            onSwipeRight = swipeRightAction
+        )
+    }
+    
+    private var swipeInitialX = 0f
+    private var swipeInitialY = 0f
+    private var isHorizontalSwipe = false
+    
+    private fun setupRecyclerViewSwipeGestures() {
+        val SWIPE_THRESHOLD = 80f
+        val DETECTION_THRESHOLD = 20f
+        
+        binding.postRecyclerView.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    swipeInitialX = event.x
+                    swipeInitialY = event.y
+                    isHorizontalSwipe = false
+                    false // Don't consume, let RecyclerView handle it
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val deltaX = event.x - swipeInitialX
+                    val deltaY = event.y - swipeInitialY
+                    val absDeltaX = Math.abs(deltaX)
+                    val absDeltaY = Math.abs(deltaY)
+                    
+                    // Detect horizontal swipe early
+                    if (!isHorizontalSwipe && absDeltaX > DETECTION_THRESHOLD && absDeltaX > absDeltaY * 1.1) {
+                        isHorizontalSwipe = true
+                        // Prevent RecyclerView and SwipeRefreshLayout from handling the touch
+                        binding.postRecyclerView.parent?.requestDisallowInterceptTouchEvent(true)
+                        binding.swipeRefreshLayout.isEnabled = false
+                    }
+                    
+                    // If horizontal swipe detected, consume the event
+                    if (isHorizontalSwipe) {
+                        true
+                    } else {
+                        false // Let RecyclerView handle vertical scrolling
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (isHorizontalSwipe) {
+                        val deltaX = event.x - swipeInitialX
+                        val absDeltaX = Math.abs(deltaX)
+                        
+                        // Check if swipe distance meets threshold
+                        if (absDeltaX > SWIPE_THRESHOLD) {
+                            if (deltaX > 0) {
+                                // Swipe Right (Left to Right): Open story creation page
+                                val intent = Intent(requireContext(), CreateStoryActivity::class.java)
+                                startActivity(intent)
+                            } else {
+                                // Swipe Left (Right to Left): Open messages tab
+                                val activity = requireActivity()
+                                if (activity is com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity) {
+                                    val viewPager = activity.findViewById<ViewPager2>(R.id.viewPager)
+                                    viewPager?.setCurrentItem(3, true)
+                                    activity.findViewById<BottomNavigationView>(R.id.bottomNavigationView)
+                                        ?.selectedItemId = R.id.chatFrag
+                                }
+                            }
+                        }
+                        
+                        // Re-enable SwipeRefreshLayout
+                        binding.swipeRefreshLayout.isEnabled = true
+                        binding.postRecyclerView.parent?.requestDisallowInterceptTouchEvent(false)
+                        isHorizontalSwipe = false
+                        true
+                    } else {
+                        false
+                    }
+                }
+                else -> false
             }
         }
     }

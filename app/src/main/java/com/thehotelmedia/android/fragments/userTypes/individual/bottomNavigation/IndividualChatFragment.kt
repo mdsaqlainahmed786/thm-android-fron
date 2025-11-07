@@ -27,6 +27,7 @@ import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.FragmentIndividualChatBinding
 import com.thehotelmedia.android.extensions.NotificationDotUtil
+import com.thehotelmedia.android.extensions.setOnSwipeListener
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -52,6 +53,7 @@ class IndividualChatFragment : Fragment() {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_individual_chat, container, false)
         initUI()
         initializeAndUpdateNotificationDot()
+        setupSwipeGestures()
         return binding.root
     }
 
@@ -65,16 +67,29 @@ class IndividualChatFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-//        socketViewModel.connectSocket(userName)
+        refreshData()
+    }
+    
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden && isAdded) {
+            // Fragment became visible, refresh data
+            refreshData()
+        }
+    }
+    
+    fun refreshDataIfNeeded() {
+        // Public method to refresh data when fragment becomes visible
+        refreshData()
+    }
+    
+    private fun refreshData() {
         // Ensure fragment is attached before proceeding
         if (isAdded) {
             userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
             socketViewModel.connectSocket(userName)
             fetchSocketData()
         }
-//        userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
-//        socketViewModel.connectSocket(userName)
-//        fetchSocketData()
     }
 
     override fun onPause() {
@@ -205,5 +220,16 @@ class IndividualChatFragment : Fragment() {
 //            binding.noDataFoundLayout.visibility = if (isEmpty) View.VISIBLE else View.GONE
 //            binding.chatListRv.visibility = if (isEmpty) View.GONE else View.VISIBLE
         }
+    }
+
+    private fun setupSwipeGestures() {
+        binding.root.setOnSwipeListener(
+            onSwipeLeft = {
+                // Swipe right -> left: Open story creation page
+                val intent = Intent(requireContext(), com.thehotelmedia.android.activity.userTypes.forms.createStory.CreateStoryActivity::class.java)
+                startActivity(intent)
+            },
+            onSwipeRight = null // No action for left->right swipe on messages tab
+        )
     }
 }
