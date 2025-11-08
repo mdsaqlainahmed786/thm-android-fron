@@ -16,6 +16,8 @@ import com.thehotelmedia.android.activity.stories.ViewStoriesActivity
 import com.thehotelmedia.android.activity.userTypes.forms.createStory.CreateStoryActivity
 import com.thehotelmedia.android.customClasses.Constants.business_type_individual
 import com.thehotelmedia.android.customClasses.MessageStore
+import com.thehotelmedia.android.customClasses.PreferenceManager
+import com.thehotelmedia.android.customClasses.ViewedStoriesManager
 import com.thehotelmedia.android.databinding.StoryItemsLayoutBinding
 import com.thehotelmedia.android.databinding.HeaderItemLayoutBinding
 import com.thehotelmedia.android.extensions.capitalizeFirstLetter
@@ -26,6 +28,93 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
     companion object {
         private const val VIEW_TYPE_HEADER = 0
         private const val VIEW_TYPE_ITEM = 1
+    }
+
+    private val preferenceManager = PreferenceManager.getInstance(context)
+
+    /**
+     * Calculate if all stories have been viewed by the current user.
+     * Returns true only if ALL stories in storiesRef have been viewed by the current user.
+     * Returns false if any story has not been viewed, or if storiesRef is empty.
+     * 
+     * Uses hybrid approach:
+     * 1. If backend says seenByMe = true, trust it (most reliable after viewing)
+     * 2. If backend says seenByMe = false/null, check locally via viewsRef
+     * 3. This handles both immediate updates (backend) and delayed updates (local check)
+     */
+    private fun areAllStoriesViewedByCurrentUser(stories: Stories): Boolean {
+        val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "") ?: ""
+        
+        // If no user ID, can't determine if viewed
+        if (currentUserId.isEmpty()) {
+            android.util.Log.w("StoryAdapter", "No current user ID found")
+            return false
+        }
+        
+        val storiesRef = stories.storiesRef
+        
+        // If no stories, return false (no stories to view)
+        if (storiesRef.isEmpty()) {
+            return false
+        }
+        
+        // Get all story IDs
+        val storyIds = storiesRef.mapNotNull { it.Id }.filter { it.isNotEmpty() }
+        
+        if (storyIds.isEmpty()) {
+            return false
+        }
+        
+        // Check 1: Check SharedPreferences first (immediate update after viewing)
+        // This ensures the ring disappears immediately after viewing, even before backend refreshes
+        val allViewedLocally = ViewedStoriesManager.areAllStoriesViewed(context, storyIds)
+        if (allViewedLocally) {
+            android.util.Log.d("StoryAdapter", "✅ All ${storyIds.size} stories viewed locally (from SharedPreferences) for user $currentUserId")
+            return true
+        }
+        
+        // Check 2: If backend says seenByMe = true, trust it and mark locally for future
+        if (stories.seenByMe == true) {
+            android.util.Log.d("StoryAdapter", "✅ Backend confirms all stories viewed (seenByMe=true) for user $currentUserId")
+            // Mark all stories as viewed locally for faster future checks
+            ViewedStoriesManager.markAllStoriesAsViewed(context, storyIds)
+            return true
+        }
+        
+        // Check 3: Verify by checking viewsRef from backend data
+        android.util.Log.d("StoryAdapter", "Backend seenByMe=${stories.seenByMe}, checking viewsRef: ${storiesRef.size} stories for user $currentUserId")
+        
+        // Check if current user has viewed ALL stories
+        var allViewed = true
+        val viewedStoryIdsFromBackend = mutableListOf<String>()
+        
+        for ((index, story) in storiesRef.withIndex()) {
+            val storyId = story.Id ?: "unknown"
+            
+            // Check viewsRef from backend data
+            val viewsRef = story.viewsRef ?: emptyList()
+            val hasViewedInBackend = viewsRef.any { viewer -> 
+                viewer.Id?.equals(currentUserId, ignoreCase = true) == true
+            }
+            
+            if (hasViewedInBackend) {
+                viewedStoryIdsFromBackend.add(storyId)
+                android.util.Log.d("StoryAdapter", "Story $storyId (index $index) viewed (from backend viewsRef)")
+            } else {
+                // Story not viewed
+                android.util.Log.d("StoryAdapter", "❌ Story $storyId (index $index) NOT viewed by user $currentUserId. ViewsRef size: ${viewsRef.size}")
+                allViewed = false
+                break
+            }
+        }
+        
+        // If all stories are viewed according to backend, mark them locally
+        if (allViewed && viewedStoryIdsFromBackend.isNotEmpty()) {
+            ViewedStoriesManager.markAllStoriesAsViewed(context, viewedStoryIdsFromBackend)
+            android.util.Log.d("StoryAdapter", "✅ All ${storiesRef.size} stories viewed by user $currentUserId (from backend viewsRef)")
+        }
+        
+        return allViewed
     }
 
     // ViewHolder for list items
@@ -149,9 +238,11 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
                     profilePic = it.businessProfileRef?.profilePic?.large.toString()
                 }
 
-                val seenByMe = it.seenByMe ?: false
+                // Calculate seenByMe based on whether ALL stories have been viewed by current user
+                // This ensures the ring reappears when new stories are added
+                val seenByMe = areAllStoriesViewedByCurrentUser(it)
 
-                println("asdnfkashdfjk    $seenByMe")
+                println("asdnfkashdfjk    seenByMe: $seenByMe, storiesCount: ${it.storiesRef.size}")
 
                 // Apply shiny blue ring for unseen stories, normal appearance for seen stories
                 if (seenByMe){
@@ -221,7 +312,28 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
         }
 
         override fun areContentsTheSame(oldItem: Stories, newItem: Stories): Boolean {
-            return oldItem == newItem
+            // Check if storiesRef has changed (new stories added or removed)
+            // This ensures the adapter refreshes when new stories are added
+            val storiesRefChanged = oldItem.storiesRef.size != newItem.storiesRef.size ||
+                    oldItem.storiesRef.mapNotNull { it.Id }.toSet() != newItem.storiesRef.mapNotNull { it.Id }.toSet()
+            
+            // Check if viewsRef has changed for any story (user viewed a story)
+            // Only check if sizes match, otherwise we know it changed
+            val viewsRefChanged = if (oldItem.storiesRef.size == newItem.storiesRef.size) {
+                oldItem.storiesRef.zip(newItem.storiesRef).any { (old, new) ->
+                    val oldViewsRef = old.viewsRef ?: emptyList()
+                    val newViewsRef = new.viewsRef ?: emptyList()
+                    oldViewsRef.size != newViewsRef.size ||
+                    oldViewsRef.mapNotNull { it.Id }.toSet() != newViewsRef.mapNotNull { it.Id }.toSet()
+                }
+            } else {
+                true // Different sizes means viewsRef definitely changed
+            }
+            
+            // Return false if storiesRef or viewsRef changed, so the adapter rebinds the item
+            // This ensures the ring visibility updates when new stories are added or viewed
+            return !storiesRefChanged && !viewsRefChanged && oldItem.id == newItem.id &&
+                   oldItem.name == newItem.name && oldItem.accountType == newItem.accountType
         }
     }
 }
