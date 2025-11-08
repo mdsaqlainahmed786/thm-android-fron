@@ -75,10 +75,15 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
 
 
 
+                // Apply shiny blue ring for user's own stories if they have stories
                 if (it.storiesRef.isEmpty()){
+                    // No stories - show normal appearance
                     holder.binding.imageView.strokeColor = ContextCompat.getColorStateList(context, R.color.et_stroke)
+                    holder.binding.ringContainer.setBackgroundResource(0)
                 }else{
+                    // User has stories - show shiny blue ring
                     holder.binding.imageView.strokeColor = ContextCompat.getColorStateList(context, R.color.blue)
+                    holder.binding.ringContainer.setBackgroundResource(R.drawable.shiny_blue_ring_border)
                 }
                 Glide.with(context).load(userProfilePic).placeholder(R.drawable.ic_profile_placeholder).into(holder.binding.imageView)
                 // You can bind the first item data to the header view here
@@ -148,10 +153,15 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
 
                 println("asdnfkashdfjk    $seenByMe")
 
+                // Apply shiny blue ring for unseen stories, normal appearance for seen stories
                 if (seenByMe){
+                    // Story has been viewed - show normal appearance (gray stroke, no ring)
                     holder.binding.imageView.strokeColor = ContextCompat.getColorStateList(context, R.color.et_stroke)
+                    holder.binding.ringContainer.setBackgroundResource(0)
                 }else{
+                    // Story is unseen - show shiny blue ring
                     holder.binding.imageView.strokeColor = ContextCompat.getColorStateList(context, R.color.blue)
+                    holder.binding.ringContainer.setBackgroundResource(R.drawable.shiny_blue_ring_border)
                 }
 
 
