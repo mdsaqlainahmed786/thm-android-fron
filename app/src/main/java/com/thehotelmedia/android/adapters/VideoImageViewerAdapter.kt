@@ -61,31 +61,18 @@ class VideoImageViewerAdapter(
                     binding.videoLayout.visibility = View.VISIBLE
 
                     binding.playerView.player = exoPlayer
+                    binding.playerView.useController = false
+                    controllerVisible(false)
 
-                    binding.playerView.setControllerVisibilityListener { visibility ->
-                        if (visibility == View.VISIBLE) {
-                            // Controller is visible
-                            controllerVisible(true)
-                        } else {
-                            // Controller is hidden
-                            controllerVisible(false)
-                        }
-                    }
-
-
+                    exoPlayer.clearMediaItems()
+                    exoPlayer.volume = 0f
+                    exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
                     val media = MediaItem.fromUri(mediaItem.uri)
                     exoPlayer.setMediaItem(media)
                     exoPlayer.prepare()
+                    exoPlayer.seekTo(0)
+                    exoPlayer.playWhenReady = true
                     exoPlayer.play()
-
-                    // Add listener to handle playback state
-                    exoPlayer.addListener(object : Player.Listener {
-                        override fun onPlaybackStateChanged(state: Int) {
-                            if (state == Player.STATE_ENDED) {
-                //            binding.playPauseButton.setImageResource(R.drawable.ic_play_videos)
-                            }
-                        }
-                    })
 
 //                    binding.volumeSeekBar.progress = (exoPlayer.volume * 100).toInt()
                 }

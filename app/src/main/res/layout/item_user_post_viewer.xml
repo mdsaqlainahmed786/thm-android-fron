@@ -22,8 +22,241 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- Reels overlay -->
+        <View
+            android:id="@+id/reelTopGradient"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:background="@drawable/gradient_reels_top"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <View
+            android:id="@+id/reelBottomGradient"
+            android:layout_width="match_parent"
+            android:layout_height="260dp"
+            android:background="@drawable/gradient_reels_bottom"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
         <LinearLayout
-            android:id="@+id/headerContainer"
+            android:id="@+id/reelActionColumn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="8dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.6">
+
+            <LinearLayout
+                android:id="@+id/reelLikeBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingVertical="8dp">
+
+                <ImageView
+                    android:id="@+id/reelLikeIv"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:src="@drawable/ic_unlike_icon_white" />
+
+                <TextView
+                    android:id="@+id/reelLikeCountTv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="@font/comic_regular"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/reelCommentBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingVertical="8dp">
+
+                <ImageView
+                    android:id="@+id/reelCommentIv"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:src="@drawable/ic_comment_icon_white" />
+
+                <TextView
+                    android:id="@+id/reelCommentCountTv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="@font/comic_regular"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/reelShareBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingVertical="8dp">
+
+                <ImageView
+                    android:id="@+id/reelShareIv"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:src="@drawable/ic_share_icon_white" />
+
+                <TextView
+                    android:id="@+id/reelShareCountTv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:fontFamily="@font/comic_regular"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/reelSaveBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingVertical="8dp">
+
+                <ImageView
+                    android:id="@+id/reelSaveIv"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:src="@drawable/ic_unsave_icon"
+                    android:tint="@color/white" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/reelInfoContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="80dp"
+            android:layout_marginBottom="28dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/reelActionColumn"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <LinearLayout
+                android:id="@+id/reelProfileRow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/reelProfileIv"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_profile_placeholder"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/reelUsernameTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="username"
+                        android:textColor="@color/white"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/reelSubtitleTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="Location"
+                        android:textColor="@color/white"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/reelFollowButton"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="12dp"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/follow"
+                    android:textAllCaps="false"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    app:backgroundTint="@android:color/transparent"
+                    app:cornerRadius="24dp"
+                    app:strokeColor="@color/white"
+                    app:strokeWidth="1dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/reelCaptionTv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/comic_regular"
+                android:maxLines="3"
+                android:text="Caption goes here"
+                android:textColor="@color/white"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/reelViewCommentsTv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:fontFamily="@font/comic_regular"
+                android:text="View all 0 comments"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/reelTimestampTv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:fontFamily="@font/comic_regular"
+                android:text="0 DAYS AGO"
+                android:textAllCaps="true"
+                android:textColor="@color/white"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Photo overlay -->
+        <LinearLayout
+            android:id="@+id/photoHeaderContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#B3000000"
@@ -36,7 +269,7 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/profileIv"
+                android:id="@+id/photoProfileIv"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:scaleType="centerCrop"
@@ -51,7 +284,7 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/usernameHeaderTv"
+                    android:id="@+id/photoUsernameTv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/comic_regular"
@@ -61,7 +294,7 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/headerSubtitleTv"
+                    android:id="@+id/photoSubtitleTv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/comic_regular"
@@ -74,7 +307,7 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/footerContainer"
+            android:id="@+id/photoFooterContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#B3000000"
@@ -86,13 +319,14 @@
             app:layout_constraintBottom_toBottomOf="parent">
 
             <LinearLayout
+                android:id="@+id/photoActionRow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <LinearLayout
-                    android:id="@+id/likeBtn"
+                    android:id="@+id/photoLikeBtn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="center"
@@ -100,14 +334,24 @@
                     android:paddingEnd="12dp">
 
                     <ImageView
-                        android:id="@+id/likeIv"
+                        android:id="@+id/photoLikeIv"
                         android:layout_width="26dp"
                         android:layout_height="26dp"
                         android:src="@drawable/ic_unlike_icon_white" />
+
+                    <TextView
+                        android:id="@+id/photoLikeTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="0"
+                        android:textColor="@color/white"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <LinearLayout
-                    android:id="@+id/commentBtn"
+                    android:id="@+id/photoCommentBtn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="center"
@@ -115,14 +359,24 @@
                     android:paddingEnd="12dp">
 
                     <ImageView
-                        android:id="@+id/commentIv"
+                        android:id="@+id/photoCommentIv"
                         android:layout_width="26dp"
                         android:layout_height="26dp"
                         android:src="@drawable/ic_comment_icon_white" />
+
+                    <TextView
+                        android:id="@+id/photoCommentTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="0"
+                        android:textColor="@color/white"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <LinearLayout
-                    android:id="@+id/shareBtn"
+                    android:id="@+id/photoShareBtn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="center"
@@ -130,10 +384,20 @@
                     android:paddingEnd="12dp">
 
                     <ImageView
-                        android:id="@+id/shareIv"
+                        android:id="@+id/photoShareIv"
                         android:layout_width="26dp"
                         android:layout_height="26dp"
                         android:src="@drawable/ic_share_icon_white" />
+
+                    <TextView
+                        android:id="@+id/photoShareTv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:fontFamily="@font/comic_regular"
+                        android:text="0"
+                        android:textColor="@color/white"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <View
@@ -142,16 +406,15 @@
                     android:layout_weight="1" />
 
                 <ImageView
-                    android:id="@+id/saveIv"
+                    android:id="@+id/photoSaveIv"
                     android:layout_width="26dp"
                     android:layout_height="26dp"
                     android:src="@drawable/ic_unsave_icon"
                     android:tint="@color/white" />
-
             </LinearLayout>
 
             <TextView
-                android:id="@+id/likeCountTv"
+                android:id="@+id/photoLikeCountTv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
@@ -162,19 +425,19 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/captionTv"
+                android:id="@+id/photoCaptionTv"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
+                android:ellipsize="end"
                 android:fontFamily="@font/comic_regular"
-                android:text="username Caption text"
-                android:textColor="@color/white"
-                android:textSize="13sp"
                 android:maxLines="2"
-                android:ellipsize="end" />
+                android:text="Caption text"
+                android:textColor="@color/white"
+                android:textSize="13sp" />
 
             <TextView
-                android:id="@+id/viewCommentsTv"
+                android:id="@+id/photoViewCommentsTv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
@@ -184,7 +447,7 @@
                 android:textSize="12sp" />
 
             <TextView
-                android:id="@+id/timestampTv"
+                android:id="@+id/photoTimestampTv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"

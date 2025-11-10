@@ -10,7 +10,8 @@ data class PostedBy (
     @SerializedName("businessProfileID"  ) var businessProfileID  : String?             = null,
     @SerializedName("name"               ) var name               : String?             = null,
     @SerializedName("profilePic"         ) var profilePic         : ProfilePic?         = ProfilePic(),
-    @SerializedName("businessProfileRef" ) var businessProfileRef : BusinessProfileRef? = BusinessProfileRef()
+    @SerializedName("businessProfileRef" ) var businessProfileRef : BusinessProfileRef? = BusinessProfileRef(),
+    @SerializedName("isFollowedByMe"     ) var isFollowedByMe     : Boolean?            = null
 
 
 )

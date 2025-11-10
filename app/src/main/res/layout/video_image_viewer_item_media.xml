@@ -35,9 +35,8 @@
                 android:id="@+id/playerView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                app:use_controller="true"
-                android:background="@color/black"
-                app:controller_layout_id="@layout/custom_exo_player_control_view" />
+                app:use_controller="false"
+                android:background="@color/black" />
 
 <!--            <androidx.appcompat.widget.LinearLayoutCompat-->
 <!--                app:layout_constraintTop_toTopOf="parent"-->

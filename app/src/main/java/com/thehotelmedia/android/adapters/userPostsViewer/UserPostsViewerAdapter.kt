@@ -2,6 +2,7 @@ package com.thehotelmedia.android.adapters.userPostsViewer
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -19,6 +20,7 @@ import com.thehotelmedia.android.adapters.MediaItems
 import com.thehotelmedia.android.adapters.MediaType
 import com.thehotelmedia.android.adapters.VideoImageViewerAdapter
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
+import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.databinding.ItemUserPostViewerBinding
 import com.thehotelmedia.android.extensions.calculateDaysAgo
 import com.thehotelmedia.android.extensions.formatCount
@@ -44,7 +46,8 @@ class UserPostsViewerAdapter(
         var isLiked: Boolean = false,
         var likeCount: Int = 0,
         var commentCount: Int = 0,
-        var isSaved: Boolean = false
+        var isSaved: Boolean = false,
+        var isFollowing: Boolean = false
     )
 
     inner class PostViewHolder(
@@ -54,61 +57,76 @@ class UserPostsViewerAdapter(
         private var currentExoPlayer: ExoPlayer? = null
         private var postId: String = ""
         private var mediaAdapter: VideoImageViewerAdapter? = null
+        private var currentMediaIsVideo: Boolean = false
+        private var currentPost: Data? = null
 
         fun bind(post: Data) {
             postId = post.Id ?: ""
+            currentPost = post
             val mediaList = post.mediaRef
 
-            // Initialize or get post state
             val state = postStates.getOrPut(postId) {
                 PostState(
                     isLiked = post.likedByMe ?: false,
                     likeCount = post.likes ?: 0,
                     commentCount = post.comments ?: 0,
-                    isSaved = post.savedByMe ?: false
+                    isSaved = post.savedByMe ?: false,
+                    isFollowing = when {
+                        post.postedBy?.isFollowedByMe == true -> true
+                        post.postedBy?.businessProfileRef?.isFollowedByMe == true -> true
+                        else -> false
+                    }
                 )
             }
             state.isLiked = post.likedByMe ?: state.isLiked
             state.likeCount = post.likes ?: state.likeCount
             state.commentCount = post.comments ?: state.commentCount
             state.isSaved = post.savedByMe ?: state.isSaved
+            state.isFollowing = when {
+                post.postedBy?.isFollowedByMe == true -> true
+                post.postedBy?.businessProfileRef?.isFollowedByMe == true -> true
+                else -> state.isFollowing
+            }
+            val firstMediaType = mediaList.firstOrNull()?.mediaType?.lowercase()
+            currentMediaIsVideo = firstMediaType == "video"
+            updateLayoutForMediaType(currentMediaIsVideo)
 
-            // Update UI with current state
             updateLikeButton(state.isLiked, state.likeCount)
             updateCommentsText(state.commentCount)
+            updateShareCount(post.shared ?: 0)
 
             val timestamp = formatTimestamp(post.createdAt)
 
-            bindHeader(post, timestamp)
-            bindFooter(state.likeCount, state.commentCount, post, timestamp)
+            bindProfileSection(post, state, timestamp)
+            bindInfoSection(state.commentCount, post.shared ?: 0, post, timestamp)
 
-            // Setup media
-            setupMedia(post, mediaList)
-
-            // Setup interaction buttons
+            setupMedia(post, mediaList, state)
             setupLikeButton(postId, state)
             setupCommentButton(postId, state)
             setupShareButton(postId, post.userID ?: "")
             setupSaveButton(postId, state)
 
-            binding.viewCommentsTv.setOnClickListener {
-                binding.commentBtn.performClick()
+            binding.reelViewCommentsTv.setOnClickListener {
+                binding.reelCommentBtn.performClick()
+            }
+            binding.photoViewCommentsTv.setOnClickListener {
+                binding.photoCommentBtn.performClick()
             }
         }
 
-        private fun setupMedia(post: Data, mediaList: List<com.thehotelmedia.android.modals.feeds.feed.MediaRef>) {
+        private fun setupMedia(
+            post: Data,
+            mediaList: List<com.thehotelmedia.android.modals.feeds.feed.MediaRef>,
+            state: PostState
+        ) {
             if (mediaList.isEmpty()) return
 
-            // Get or create ExoPlayer for this post
             val exoPlayer = exoPlayers.getOrPut(postId) {
-                ExoPlayer.Builder(context).build().apply {
-                    prepare()
-                }
+                ExoPlayer.Builder(context).build()
             }
 
             currentExoPlayer = exoPlayer
 
-            // Convert mediaRef to MediaItems
             val mediaItems = mediaList.map { mediaRef ->
                 val mediaType = when (mediaRef.mediaType?.lowercase()) {
                     "image" -> MediaType.IMAGE
@@ -118,7 +136,6 @@ class UserPostsViewerAdapter(
                 MediaItems(mediaType, mediaRef.sourceUrl ?: "", mediaRef.Id ?: "")
             }
 
-            // Create adapter for ViewPager2
             mediaAdapter = VideoImageViewerAdapter(
                 context,
                 mediaItems,
@@ -126,30 +143,43 @@ class UserPostsViewerAdapter(
                 mediaList.firstOrNull()?.Id ?: "",
                 postId,
                 individualViewModal,
-                { controllerVisible ->
-                    // Handle controller visibility if needed
-                },
+                { _ -> },
                 { mediaType ->
-                    // Handle media type change if needed
+                    val isVideo = mediaType.equals(Constants.VIDEO, ignoreCase = true)
+                    if (currentMediaIsVideo != isVideo) {
+                        currentMediaIsVideo = isVideo
+                        updateLayoutForMediaType(isVideo)
+                        currentPost?.let { bindProfileSection(it, state, formatTimestamp(it.createdAt)) }
+                        currentPost?.let {
+                            bindInfoSection(
+                                state.commentCount,
+                                it.shared ?: 0,
+                                it,
+                                formatTimestamp(it.createdAt)
+                            )
+                        }
+                    }
                 }
             )
 
             binding.mediaViewPager.adapter = mediaAdapter
-            binding.mediaViewPager.isUserInputEnabled = false // Disable swipe in ViewPager, we'll scroll via RecyclerView
+            binding.mediaViewPager.isUserInputEnabled = false
         }
 
         private fun setupLikeButton(postId: String, state: PostState) {
-            binding.likeBtn.setOnClickListener {
+            val listener = View.OnClickListener {
                 individualViewModal.likePost(postId)
                 state.isLiked = !state.isLiked
                 state.likeCount = if (state.isLiked) state.likeCount + 1 else state.likeCount - 1
                 updateLikeButton(state.isLiked, state.likeCount)
                 onLikeUpdated(postId, state.isLiked, state.likeCount)
             }
+            binding.reelLikeBtn.setOnClickListener(listener)
+            binding.photoLikeBtn.setOnClickListener(listener)
         }
 
         private fun setupCommentButton(postId: String, state: PostState) {
-            binding.commentBtn.setOnClickListener {
+            val listener = View.OnClickListener {
                 val bottomSheetFragment = CommentsBottomSheetFragment().apply {
                     arguments = Bundle().apply {
                         putString("POST_ID", postId)
@@ -165,50 +195,73 @@ class UserPostsViewerAdapter(
                 }
                 bottomSheetFragment.show(fragmentManager, bottomSheetFragment.tag)
             }
+            binding.reelCommentBtn.setOnClickListener(listener)
+            binding.photoCommentBtn.setOnClickListener(listener)
         }
 
         private fun setupShareButton(postId: String, userId: String) {
-            binding.shareBtn.setOnClickListener {
+            val listener = View.OnClickListener {
                 context.sharePostWithDeepLink(postId, userId)
             }
+            binding.reelShareBtn.setOnClickListener(listener)
+            binding.photoShareBtn.setOnClickListener(listener)
         }
 
         private fun setupSaveButton(postId: String, state: PostState) {
             updateSaveButton(state.isSaved)
-            binding.saveIv.setOnClickListener {
+            val toggleSave: (View) -> Unit = {
                 individualViewModal.savePost(postId)
                 state.isSaved = !state.isSaved
                 updateSaveButton(state.isSaved)
             }
+            binding.reelSaveBtn.setOnClickListener(toggleSave)
+            binding.reelSaveIv.setOnClickListener(toggleSave)
+            binding.photoSaveIv.setOnClickListener(toggleSave)
         }
 
         private fun updateLikeButton(isLiked: Boolean, likeCount: Int) {
-            binding.likeIv.setImageResource(
-                if (isLiked) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon_white
-            )
-            binding.likeCountTv.text = "${formatCount(likeCount)} likes"
+            val likeIcon = if (isLiked) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon_white
+            binding.reelLikeIv.setImageResource(likeIcon)
+            binding.photoLikeIv.setImageResource(likeIcon)
+
+            val formatted = formatCount(likeCount)
+            binding.reelLikeCountTv.text = formatted
+            binding.photoLikeTv.text = formatted
+            binding.photoLikeCountTv.text = context.getString(R.string.default_like_count, formatted)
         }
 
         private fun updateSaveButton(isSaved: Boolean) {
-            if (isSaved) {
-                binding.saveIv.setImageResource(R.drawable.ic_save_icon_white)
-                binding.saveIv.imageTintList = null
-            } else {
-                binding.saveIv.setImageResource(R.drawable.ic_unsave_icon)
-                binding.saveIv.imageTintList =
-                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
-            }
+            val reelIcon = if (isSaved) R.drawable.ic_save_icon_white else R.drawable.ic_unsave_icon
+            val photoIcon = if (isSaved) R.drawable.ic_save_icon_white else R.drawable.ic_unsave_icon
+
+            binding.reelSaveIv.setImageResource(reelIcon)
+            binding.photoSaveIv.setImageResource(photoIcon)
+
+            val tint = if (isSaved) null else ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
+            binding.reelSaveIv.imageTintList = tint
+            binding.photoSaveIv.imageTintList = tint
         }
 
         private fun updateCommentsText(commentCount: Int) {
-            binding.viewCommentsTv.text = if (commentCount > 0) {
-                "View all ${formatCount(commentCount)} comments"
+            val formatted = formatCount(commentCount)
+            val commentText = if (commentCount > 0) {
+                context.getString(R.string.view_all_comments, formatted)
             } else {
-                "Add a comment"
+                context.getString(R.string.add_a_comment)
             }
+            binding.reelCommentCountTv.text = formatted
+            binding.photoCommentTv.text = formatted
+            binding.reelViewCommentsTv.text = commentText
+            binding.photoViewCommentsTv.text = commentText
         }
 
-        private fun bindHeader(post: Data, timestamp: String) {
+        private fun updateShareCount(shareCount: Int) {
+            val formatted = formatCount(shareCount)
+            binding.reelShareCountTv.text = formatted
+            binding.photoShareTv.text = formatted
+        }
+
+        private fun bindProfileSection(post: Data, state: PostState, timestamp: String) {
             val postedBy = post.postedBy
             val accountType = postedBy?.accountType
             var displayName = ""
@@ -223,7 +276,9 @@ class UserPostsViewerAdapter(
                 profilePic = businessProfile?.profilePic?.large.orEmpty()
             }
 
-            binding.usernameHeaderTv.text = if (displayName.isNotBlank()) displayName else context.getString(R.string.app_name)
+            val safeName = if (displayName.isNotBlank()) displayName else context.getString(R.string.app_name)
+            binding.reelUsernameTv.text = safeName
+            binding.photoUsernameTv.text = safeName
 
             val subtitleParts = mutableListOf<String>()
             val location = post.location?.placeName.orEmpty()
@@ -236,39 +291,112 @@ class UserPostsViewerAdapter(
 
             val subtitleText = subtitleParts.joinToString(" • ")
             if (subtitleText.isNotBlank()) {
-                binding.headerSubtitleTv.text = subtitleText
-                binding.headerSubtitleTv.visibility = View.VISIBLE
+                binding.reelSubtitleTv.text = subtitleText
+                binding.reelSubtitleTv.visibility = View.VISIBLE
+                binding.photoSubtitleTv.text = subtitleText
+                binding.photoSubtitleTv.visibility = View.VISIBLE
             } else {
-                binding.headerSubtitleTv.visibility = View.GONE
+                binding.reelSubtitleTv.visibility = View.GONE
+                binding.photoSubtitleTv.visibility = View.GONE
             }
 
             Glide.with(context)
                 .load(profilePic)
                 .placeholder(R.drawable.ic_profile_placeholder)
                 .error(R.drawable.ic_profile_placeholder)
-                .into(binding.profileIv)
+                .into(binding.reelProfileIv)
+
+            Glide.with(context)
+                .load(profilePic)
+                .placeholder(R.drawable.ic_profile_placeholder)
+                .error(R.drawable.ic_profile_placeholder)
+                .into(binding.photoProfileIv)
+
+            setupFollowButton(post, state)
         }
 
-        private fun bindFooter(likeCount: Int, commentCount: Int, post: Data, timestamp: String) {
-            binding.likeCountTv.text = "${formatCount(likeCount)} likes"
-
+        private fun bindInfoSection(commentCount: Int, shareCount: Int, post: Data, timestamp: String) {
             val caption = post.content.orEmpty().trim()
             if (caption.isNotEmpty()) {
-                val username = binding.usernameHeaderTv.text
-                binding.captionTv.text = "$username $caption"
-                binding.captionTv.visibility = View.VISIBLE
+                val username = binding.reelUsernameTv.text
+                val captionText = "$username $caption"
+                binding.reelCaptionTv.text = captionText
+                binding.reelCaptionTv.visibility = View.VISIBLE
+                binding.photoCaptionTv.text = captionText
+                binding.photoCaptionTv.visibility = View.VISIBLE
             } else {
-                binding.captionTv.visibility = View.GONE
+                binding.reelCaptionTv.visibility = View.GONE
+                binding.photoCaptionTv.visibility = View.GONE
             }
 
             updateCommentsText(commentCount)
+            updateShareCount(shareCount)
 
             if (timestamp.isNotBlank()) {
-                binding.timestampTv.text = timestamp.uppercase(Locale.getDefault())
-                binding.timestampTv.visibility = View.VISIBLE
+                val formatted = timestamp.uppercase(Locale.getDefault())
+                binding.reelTimestampTv.text = formatted
+                binding.reelTimestampTv.visibility = View.VISIBLE
+                binding.photoTimestampTv.text = formatted
+                binding.photoTimestampTv.visibility = View.VISIBLE
             } else {
-                binding.timestampTv.visibility = View.GONE
+                binding.reelTimestampTv.visibility = View.GONE
+                binding.photoTimestampTv.visibility = View.GONE
             }
+        }
+
+        private fun setupFollowButton(post: Data, state: PostState) {
+            val postOwnerId = post.postedBy?.Id ?: post.userID.orEmpty()
+            val isSelf = postOwnerId.isBlank() || postOwnerId == ownerUserId
+            if (!currentMediaIsVideo || isSelf) {
+                binding.reelFollowButton.visibility = View.GONE
+                binding.reelFollowButton.setOnClickListener(null)
+                return
+            }
+
+            binding.reelFollowButton.visibility = View.VISIBLE
+            updateFollowButton(state.isFollowing)
+            binding.reelFollowButton.setOnClickListener {
+                val shouldFollow = !state.isFollowing
+                state.isFollowing = shouldFollow
+                updateFollowButton(state.isFollowing)
+                if (shouldFollow) {
+                    individualViewModal.followUser(postOwnerId)
+                } else {
+                    individualViewModal.unFollowUser(postOwnerId)
+                }
+            }
+        }
+
+        private fun updateFollowButton(isFollowing: Boolean) {
+            if (isFollowing) {
+                binding.reelFollowButton.text = context.getString(R.string.following)
+                binding.reelFollowButton.setTextColor(ContextCompat.getColor(context, R.color.black))
+                binding.reelFollowButton.backgroundTintList =
+                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
+                binding.reelFollowButton.strokeColor =
+                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
+            } else {
+                binding.reelFollowButton.text = context.getString(R.string.follow)
+                binding.reelFollowButton.setTextColor(ContextCompat.getColor(context, R.color.white))
+                binding.reelFollowButton.backgroundTintList =
+                    ColorStateList.valueOf(Color.TRANSPARENT)
+                binding.reelFollowButton.strokeColor =
+                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
+            }
+        }
+
+        private fun updateLayoutForMediaType(isVideo: Boolean) {
+            currentMediaIsVideo = isVideo
+            val reelVisibility = if (isVideo) View.VISIBLE else View.GONE
+            val photoVisibility = if (isVideo) View.GONE else View.VISIBLE
+
+            binding.reelTopGradient.visibility = reelVisibility
+            binding.reelBottomGradient.visibility = reelVisibility
+            binding.reelActionColumn.visibility = reelVisibility
+            binding.reelInfoContainer.visibility = reelVisibility
+
+            binding.photoHeaderContainer.visibility = photoVisibility
+            binding.photoFooterContainer.visibility = photoVisibility
         }
 
         private fun formatTimestamp(createdAt: String?): String {
@@ -278,7 +406,6 @@ class UserPostsViewerAdapter(
         }
 
         fun onViewAttachedToWindow() {
-            // Play video when view becomes visible
             currentExoPlayer?.play()
             bindingAdapterPosition.let { position ->
                 if (position != RecyclerView.NO_POSITION) {
@@ -288,12 +415,10 @@ class UserPostsViewerAdapter(
         }
 
         fun onViewDetachedFromWindow() {
-            // Pause video when view becomes invisible
             currentExoPlayer?.pause()
         }
 
         fun release() {
-            // Release ExoPlayer when view is recycled
             currentExoPlayer?.pause()
             currentExoPlayer = null
         }

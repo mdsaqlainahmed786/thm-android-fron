@@ -198,6 +198,9 @@
     <string name="recent_chat">Recent chat</string>
     <string name="contact_number">Contact Number</string>
     <string name="enter_verification_code">Enter Verification Code</string>
+    <string name="default_like_count">%1$s likes</string>
+    <string name="view_all_comments">View all %1$s comments</string>
+    <string name="add_a_comment">Add a comment</string>
     <string name="confirm_your_email">Confirm Your Email</string>
     <string name="code_sent_text">We’ve sent 5 digits verification code to</string>
     <string name="resend_otp">Resend OTP</string>
