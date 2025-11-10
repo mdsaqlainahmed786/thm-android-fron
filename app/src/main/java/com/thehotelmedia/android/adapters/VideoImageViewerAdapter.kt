@@ -43,6 +43,12 @@ class VideoImageViewerAdapter(
                     binding.imageView.visibility = View.VISIBLE
                     binding.videoLayout.visibility = View.GONE
                     binding.videoThumbnail.visibility = View.GONE
+                    binding.playPauseOverlay.visibility = View.GONE
+                    (binding.playerView.tag as? Player.Listener)?.let {
+                        exoPlayer.removeListener(it)
+                        binding.playerView.tag = null
+                    }
+                    binding.playerView.setOnClickListener(null)
                     onMediaTypeChanged(Constants.IMAGE)
                     Glide.with(context)
                         .load(mediaItem.uri)
@@ -57,15 +63,17 @@ class VideoImageViewerAdapter(
                     onMediaTypeChanged(Constants.VIDEO)
 
                     binding.imageView.visibility = View.GONE
-                    binding.videoThumbnail.visibility = View.GONE
+                    binding.videoThumbnail.visibility = View.VISIBLE
+                    binding.videoThumbnail.setImageResource(R.drawable.ic_post_placeholder)
                     binding.videoLayout.visibility = View.VISIBLE
+                    binding.playPauseOverlay.visibility = View.GONE
 
                     binding.playerView.player = exoPlayer
                     binding.playerView.useController = false
                     controllerVisible(false)
 
                     exoPlayer.clearMediaItems()
-                    exoPlayer.volume = 0f
+                    exoPlayer.volume = 1f
                     exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
                     val media = MediaItem.fromUri(mediaItem.uri)
                     exoPlayer.setMediaItem(media)
@@ -74,7 +82,35 @@ class VideoImageViewerAdapter(
                     exoPlayer.playWhenReady = true
                     exoPlayer.play()
 
-//                    binding.volumeSeekBar.progress = (exoPlayer.volume * 100).toInt()
+                    (binding.playerView.tag as? Player.Listener)?.let { exoPlayer.removeListener(it) }
+                    val listener = object : Player.Listener {
+                        override fun onIsPlayingChanged(isPlaying: Boolean) {
+                            if (isPlaying) {
+                                binding.playPauseOverlay.visibility = View.GONE
+                            } else {
+                                binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
+                                binding.playPauseOverlay.visibility = View.VISIBLE
+                            }
+                        }
+
+                        override fun onRenderedFirstFrame() {
+                            binding.videoThumbnail.visibility = View.GONE
+                        }
+                    }
+                    exoPlayer.addListener(listener)
+                    binding.playerView.tag = listener
+
+                    binding.playerView.setOnClickListener {
+                        if (exoPlayer.isPlaying) {
+                            exoPlayer.pause()
+                            binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
+                            binding.playPauseOverlay.visibility = View.VISIBLE
+                        } else {
+                            exoPlayer.play()
+                            binding.playPauseOverlay.setImageResource(R.drawable.ic_pause_circle)
+                            binding.playPauseOverlay.visibility = View.GONE
+                        }
+                    }
                 }
             }
         }
