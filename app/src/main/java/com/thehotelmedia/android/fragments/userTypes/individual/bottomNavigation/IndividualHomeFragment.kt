@@ -463,8 +463,10 @@ class IndividualHomeFragment : Fragment() {
     private var isHorizontalSwipe = false
     
     private fun setupRecyclerViewSwipeGestures() {
-        val SWIPE_THRESHOLD = 80f
-        val DETECTION_THRESHOLD = 20f
+        val SWIPE_THRESHOLD = 150f // Increased threshold - must swipe at least 150px
+        val DETECTION_THRESHOLD = 60f // Increased detection threshold - must move at least 60px horizontally
+        val MIN_HORIZONTAL_RATIO = 2.5f // Horizontal must be at least 2.5x the vertical movement
+        val MAX_VERTICAL_FOR_HORIZONTAL = 40f // If vertical movement exceeds this, don't consider it horizontal
         
         binding.postRecyclerView.setOnTouchListener { v, event ->
             when (event.action) {
@@ -480,8 +482,14 @@ class IndividualHomeFragment : Fragment() {
                     val absDeltaX = Math.abs(deltaX)
                     val absDeltaY = Math.abs(deltaY)
                     
-                    // Detect horizontal swipe early
-                    if (!isHorizontalSwipe && absDeltaX > DETECTION_THRESHOLD && absDeltaX > absDeltaY * 1.1) {
+                    // Only detect horizontal swipe if:
+                    // 1. Horizontal movement is significant (>= DETECTION_THRESHOLD)
+                    // 2. Horizontal is at least MIN_HORIZONTAL_RATIO times the vertical movement
+                    // 3. Vertical movement hasn't exceeded MAX_VERTICAL_FOR_HORIZONTAL (to avoid false positives during scrolling)
+                    if (!isHorizontalSwipe && 
+                        absDeltaX > DETECTION_THRESHOLD && 
+                        absDeltaX > absDeltaY * MIN_HORIZONTAL_RATIO &&
+                        absDeltaY < MAX_VERTICAL_FOR_HORIZONTAL) {
                         isHorizontalSwipe = true
                         // Prevent RecyclerView and SwipeRefreshLayout from handling the touch
                         binding.postRecyclerView.parent?.requestDisallowInterceptTouchEvent(true)
@@ -500,7 +508,7 @@ class IndividualHomeFragment : Fragment() {
                         val deltaX = event.x - swipeInitialX
                         val absDeltaX = Math.abs(deltaX)
                         
-                        // Check if swipe distance meets threshold
+                        // Check if swipe distance meets threshold (must be a complete swipe)
                         if (absDeltaX > SWIPE_THRESHOLD) {
                             if (deltaX > 0) {
                                 // Swipe Right (Left to Right): Open story creation page
