@@ -1,6 +1,6 @@
 <resources>
 
-    <string name="default_web_client_id">156125638721-8pgj2054svmllf7301tk85vau993ujkb.apps.googleusercontent.com</string>
+    <string name="default_web_client_id">863883177284-fo7lcn907hhfntd7t31k14o7omhkg93h.apps.googleusercontent.com</string>
     <string name="asset_statements" translatable="false">[{ \"include\": \"https://thehotelmedia.com/.well-known/assetlinks.json\" }]</string>
     <string name="degree_celsius" translatable="false">\u00B0C</string>
 
