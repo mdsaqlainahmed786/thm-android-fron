@@ -19,10 +19,12 @@ import com.thehotelmedia.android.adapters.MediaType
 import com.thehotelmedia.android.adapters.VideoImageViewerAdapter
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
 import com.thehotelmedia.android.databinding.ItemUserPostViewerBinding
+import com.thehotelmedia.android.extensions.calculateDaysAgo
 import com.thehotelmedia.android.extensions.formatCount
 import com.thehotelmedia.android.extensions.sharePostWithDeepLink
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
+import java.util.Locale
 
 class UserPostsViewerAdapter(
     private val context: Context,
@@ -66,7 +68,12 @@ class UserPostsViewerAdapter(
 
             // Update UI with current state
             updateLikeButton(state.isLiked, state.likeCount)
-            binding.commentTv.text = formatCount(state.commentCount)
+            updateCommentsText(state.commentCount)
+
+            val timestamp = formatTimestamp(post.createdAt)
+
+            bindHeader(post, timestamp)
+            bindFooter(state.likeCount, state.commentCount, post, timestamp)
 
             // Setup media
             setupMedia(post, mediaList)
@@ -75,6 +82,9 @@ class UserPostsViewerAdapter(
             setupLikeButton(postId, state)
             setupCommentButton(postId, state)
             setupShareButton(postId, post.userID ?: "")
+            binding.viewCommentsTv.setOnClickListener {
+                binding.commentBtn.performClick()
+            }
         }
 
         private fun setupMedia(post: Data, mediaList: List<com.thehotelmedia.android.modals.feeds.feed.MediaRef>) {
@@ -140,7 +150,7 @@ class UserPostsViewerAdapter(
                 bottomSheetFragment.onCommentSent = { comment ->
                     if (comment.isNotEmpty()) {
                         state.commentCount++
-                        binding.commentTv.text = formatCount(state.commentCount)
+                        updateCommentsText(state.commentCount)
                         onCommentUpdated(postId, state.commentCount)
                     }
                 }
@@ -158,7 +168,84 @@ class UserPostsViewerAdapter(
             binding.likeIv.setImageResource(
                 if (isLiked) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon_white
             )
-            binding.likeTv.text = formatCount(likeCount)
+            binding.likeCountTv.text = "${formatCount(likeCount)} likes"
+        }
+
+        private fun updateCommentsText(commentCount: Int) {
+            binding.viewCommentsTv.text = if (commentCount > 0) {
+                "View all ${formatCount(commentCount)} comments"
+            } else {
+                "Add a comment"
+            }
+        }
+
+        private fun bindHeader(post: Data, timestamp: String) {
+            val postedBy = post.postedBy
+            val accountType = postedBy?.accountType
+            var displayName = ""
+            var profilePic = ""
+
+            if (accountType == "individual") {
+                displayName = postedBy?.name.orEmpty()
+                profilePic = postedBy?.profilePic?.large.orEmpty()
+            } else {
+                val businessProfile = postedBy?.businessProfileRef
+                displayName = businessProfile?.name.orEmpty()
+                profilePic = businessProfile?.profilePic?.large.orEmpty()
+            }
+
+            binding.usernameHeaderTv.text = if (displayName.isNotBlank()) displayName else context.getString(R.string.app_name)
+
+            val subtitleParts = mutableListOf<String>()
+            val location = post.location?.placeName.orEmpty()
+            if (location.isNotBlank()) {
+                subtitleParts.add(location)
+            }
+            if (timestamp.isNotBlank()) {
+                subtitleParts.add(timestamp)
+            }
+
+            val subtitleText = subtitleParts.joinToString(" • ")
+            if (subtitleText.isNotBlank()) {
+                binding.headerSubtitleTv.text = subtitleText
+                binding.headerSubtitleTv.visibility = View.VISIBLE
+            } else {
+                binding.headerSubtitleTv.visibility = View.GONE
+            }
+
+            Glide.with(context)
+                .load(profilePic)
+                .placeholder(R.drawable.ic_profile_placeholder)
+                .error(R.drawable.ic_profile_placeholder)
+                .into(binding.profileIv)
+        }
+
+        private fun bindFooter(likeCount: Int, commentCount: Int, post: Data, timestamp: String) {
+            binding.likeCountTv.text = "${formatCount(likeCount)} likes"
+
+            val caption = post.content.orEmpty().trim()
+            if (caption.isNotEmpty()) {
+                val username = binding.usernameHeaderTv.text
+                binding.captionTv.text = "$username $caption"
+                binding.captionTv.visibility = View.VISIBLE
+            } else {
+                binding.captionTv.visibility = View.GONE
+            }
+
+            updateCommentsText(commentCount)
+
+            if (timestamp.isNotBlank()) {
+                binding.timestampTv.text = timestamp.uppercase(Locale.getDefault())
+                binding.timestampTv.visibility = View.VISIBLE
+            } else {
+                binding.timestampTv.visibility = View.GONE
+            }
+        }
+
+        private fun formatTimestamp(createdAt: String?): String {
+            return createdAt?.let {
+                calculateDaysAgo(it, context)
+            } ?: ""
         }
 
         fun onViewAttachedToWindow() {
