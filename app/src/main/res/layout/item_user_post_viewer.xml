@@ -71,14 +71,6 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <ImageView
-                android:id="@+id/menuBtn"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:contentDescription="@string/more"
-                android:src="@drawable/ic_post_menu"
-                android:tint="@color/white" />
-
         </LinearLayout>
 
         <LinearLayout

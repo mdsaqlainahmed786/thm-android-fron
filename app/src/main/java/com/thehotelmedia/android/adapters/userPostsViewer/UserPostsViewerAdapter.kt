@@ -1,18 +1,19 @@
 package com.thehotelmedia.android.adapters.userPostsViewer
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentManager
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.adapters.MediaItems
 import com.thehotelmedia.android.adapters.MediaType
@@ -42,7 +43,8 @@ class UserPostsViewerAdapter(
     data class PostState(
         var isLiked: Boolean = false,
         var likeCount: Int = 0,
-        var commentCount: Int = 0
+        var commentCount: Int = 0,
+        var isSaved: Boolean = false
     )
 
     inner class PostViewHolder(
@@ -62,9 +64,14 @@ class UserPostsViewerAdapter(
                 PostState(
                     isLiked = post.likedByMe ?: false,
                     likeCount = post.likes ?: 0,
-                    commentCount = post.comments ?: 0
+                    commentCount = post.comments ?: 0,
+                    isSaved = post.savedByMe ?: false
                 )
             }
+            state.isLiked = post.likedByMe ?: state.isLiked
+            state.likeCount = post.likes ?: state.likeCount
+            state.commentCount = post.comments ?: state.commentCount
+            state.isSaved = post.savedByMe ?: state.isSaved
 
             // Update UI with current state
             updateLikeButton(state.isLiked, state.likeCount)
@@ -82,6 +89,8 @@ class UserPostsViewerAdapter(
             setupLikeButton(postId, state)
             setupCommentButton(postId, state)
             setupShareButton(postId, post.userID ?: "")
+            setupSaveButton(postId, state)
+
             binding.viewCommentsTv.setOnClickListener {
                 binding.commentBtn.performClick()
             }
@@ -164,11 +173,31 @@ class UserPostsViewerAdapter(
             }
         }
 
+        private fun setupSaveButton(postId: String, state: PostState) {
+            updateSaveButton(state.isSaved)
+            binding.saveIv.setOnClickListener {
+                individualViewModal.savePost(postId)
+                state.isSaved = !state.isSaved
+                updateSaveButton(state.isSaved)
+            }
+        }
+
         private fun updateLikeButton(isLiked: Boolean, likeCount: Int) {
             binding.likeIv.setImageResource(
                 if (isLiked) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon_white
             )
             binding.likeCountTv.text = "${formatCount(likeCount)} likes"
+        }
+
+        private fun updateSaveButton(isSaved: Boolean) {
+            if (isSaved) {
+                binding.saveIv.setImageResource(R.drawable.ic_save_icon_white)
+                binding.saveIv.imageTintList = null
+            } else {
+                binding.saveIv.setImageResource(R.drawable.ic_unsave_icon)
+                binding.saveIv.imageTintList =
+                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
+            }
         }
 
         private fun updateCommentsText(commentCount: Int) {
