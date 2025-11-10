@@ -27,7 +27,7 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
 
     companion object {
         private const val VIEW_TYPE_HEADER = 0
-        private const val VIEW_TYPE_ITEM = 1
+        private const val VIEW_TYPE_ITEM = 10
     }
 
     private val preferenceManager = PreferenceManager.getInstance(context)
