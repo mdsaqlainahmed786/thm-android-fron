@@ -341,6 +341,27 @@ class IndividualHomeFragment : Fragment() {
         VideoPlayerManager.pausePlayer()
         super.onPause()
     }
+    
+    override fun onResume() {
+        super.onResume()
+        // Refresh the feed adapter when returning from other activities (like ViewStoriesActivity)
+        // This ensures the story rings update immediately after viewing stories
+        if (binding.postRecyclerView.adapter != null) {
+            // Post to ensure the RecyclerView has finished layout
+            binding.postRecyclerView.post {
+                // Get the header view holder and refresh story rings without re-fetching data
+                val headerViewHolder = binding.postRecyclerView.findViewHolderForAdapterPosition(0)
+                if (headerViewHolder is FeedAdapter.HeaderViewHolder) {
+                    // Use the new refresh method that doesn't re-submit data
+                    headerViewHolder.refreshStoryRings()
+                } else {
+                    // Fallback: notify item changed if view holder not available
+                    // This will trigger bind() which will then refresh the story rings
+                    feedAdapter.notifyItemChanged(0)
+                }
+            }
+        }
+    }
 
     private fun getFeedData(refresh: String) {
 

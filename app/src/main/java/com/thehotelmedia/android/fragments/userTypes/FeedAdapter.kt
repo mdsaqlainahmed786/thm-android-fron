@@ -212,20 +212,47 @@ class FeedAdapter(
 
             // Add a new ViewHolder for the header using binding
     inner class HeaderViewHolder(private val binding: FeedHeaderLayoutBinding) : RecyclerView.ViewHolder(binding.root) {
+        private var storyAdapter: StoryAdapter? = null
+        private var isStoryObserverSet = false
+        
         fun bind() {
-
-            val storyAdapter = StoryAdapter(context, headerUserProfilePic)
-            if (binding.recyclerView.adapter == null) {
-                binding.recyclerView.adapter = storyAdapter.withLoadStateFooter(footer = LoaderAdapter())
+            if (storyAdapter == null) {
+                storyAdapter = StoryAdapter(context, headerUserProfilePic)
+                binding.recyclerView.adapter = storyAdapter!!.withLoadStateFooter(footer = LoaderAdapter())
+                
+                // Observe stories only once when adapter is first created
+                // This prevents re-submitting data that might filter out viewed stories
+                individualViewModal.getStories().observe(viewLifecycleOwner) { data ->
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        storyAdapter?.submitData(data)
+                    }
+                }
+                isStoryObserverSet = true
             }
-            individualViewModal.getStories().observe(viewLifecycleOwner) { data ->
-                viewLifecycleOwner.lifecycleScope.launch {
-                    storyAdapter.submitData(data)
+            
+            // Instead of notifyDataSetChanged(), notify specific items to rebind
+            // This updates the ring visibility without replacing the data
+            storyAdapter?.let { adapter ->
+                val itemCount = adapter.itemCount
+                if (itemCount > 0) {
+                    // Notify all items to rebind (this triggers onBindViewHolder for existing items)
+                    for (i in 0 until itemCount) {
+                        adapter.notifyItemChanged(i)
+                    }
                 }
             }
-
-
-
+        }
+        
+        fun refreshStoryRings() {
+            // Method to manually refresh story rings without re-submitting data
+            storyAdapter?.let { adapter ->
+                val itemCount = adapter.itemCount
+                if (itemCount > 0) {
+                    for (i in 0 until itemCount) {
+                        adapter.notifyItemChanged(i)
+                    }
+                }
+            }
         }
     }
 

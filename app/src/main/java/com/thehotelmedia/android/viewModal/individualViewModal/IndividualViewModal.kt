@@ -809,7 +809,7 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         return Pager(
             config = PagingConfig(pageSize = 20),
             pagingSourceFactory = { StoriesPagingSource(individualRepo) }
-        ).liveData
+        ).liveData.cachedIn(viewModelScope)
     }
 
     fun getSavedPost(): LiveData<PagingData<Data>> {

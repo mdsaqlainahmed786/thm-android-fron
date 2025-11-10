@@ -13,15 +13,23 @@
         android:paddingTop="1dp"
         android:paddingBottom="1dp">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/imageView"
-            android:layout_width="@dimen/_60sdp"
-            android:layout_height="@dimen/_60sdp"
-            android:padding="2dp"
-            android:background="@color/grey"
-            app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"
-            app:strokeColor="@color/white"
-            app:strokeWidth="2dp" />
+        <FrameLayout
+            android:id="@+id/ringContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="1.5dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/imageView"
+                android:layout_width="@dimen/_60sdp"
+                android:layout_height="@dimen/_60sdp"
+                android:padding="2dp"
+                android:background="@color/grey"
+                app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"
+                app:strokeColor="@color/white"
+                app:strokeWidth="2dp" />
+
+        </FrameLayout>
 
     </androidx.appcompat.widget.LinearLayoutCompat>
 </layout>
