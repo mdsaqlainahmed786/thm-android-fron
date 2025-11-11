@@ -104,6 +104,17 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                 }
             }
         })
+
+        adapter.addLoadStateListener { loadStates ->
+            val refreshState = loadStates.refresh
+            if (refreshState is LoadState.NotLoading && adapter.itemCount > 0 && activePosition == RecyclerView.NO_POSITION) {
+                binding.postsRecyclerView.post {
+                    val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
+                    val target = if (firstVisible != RecyclerView.NO_POSITION) firstVisible else 0
+                    updateActivePosition(target)
+                }
+            }
+        }
     }
 
     private fun loadPosts() {
@@ -223,9 +234,18 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        adapter.stopAllPlayers()
         currentExoPlayer?.release()
         currentExoPlayer = null
+        super.onDestroy()
+    }
+
+    override fun finish() {
+        adapter.stopAllPlayers()
+        currentExoPlayer?.pause()
+        currentExoPlayer = null
+        super.finish()
     }
 }
+
 

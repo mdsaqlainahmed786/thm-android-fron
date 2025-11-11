@@ -121,9 +121,7 @@ class UserPostsViewerAdapter(
                 binding.photoCommentBtn.performClick()
             }
 
-            binding.root.post {
-                updateActiveState(isHolderActive)
-            }
+            updateActiveState(isHolderActive)
         }
 
         private fun setupMedia(
@@ -535,6 +533,16 @@ class UserPostsViewerAdapter(
     }
 
     fun isPositionActive(position: Int): Boolean = position == activePosition
+
+    fun stopAllPlayers() {
+        exoPlayers.values.forEach { player ->
+            player.playWhenReady = false
+            player.pause()
+            player.seekTo(0)
+            player.volume = 0f
+        }
+        activePosition = RecyclerView.NO_POSITION
+    }
 
     override fun onViewAttachedToWindow(holder: PostViewHolder) {
         super.onViewAttachedToWindow(holder)
