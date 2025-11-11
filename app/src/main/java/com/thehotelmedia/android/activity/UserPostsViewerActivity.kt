@@ -25,6 +25,7 @@ import com.thehotelmedia.android.extensions.sharePostWithDeepLink
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class UserPostsViewerActivity : DarkBaseActivity() {
 
@@ -68,6 +69,7 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
         setupRecyclerView()
         loadPosts()
+        observeFollowState()
     }
 
     private fun setupRecyclerView() {
@@ -218,6 +220,38 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         val currentHolder = binding.postsRecyclerView.findViewHolderForAdapterPosition(position)
         if (currentHolder is UserPostsViewerAdapter.PostViewHolder) {
             currentHolder.updateActiveState(true)
+        }
+    }
+
+    private fun observeFollowState() {
+        if (userId.isNotEmpty()) {
+            individualViewModal.getUserProfileById(userId)
+        }
+
+        individualViewModal.userProfileByIdResult.observe(this) { result ->
+            if (result.status == true) {
+                val data = result.data
+                val targetId = data?.Id ?: userId
+                val isFollowing = data?.isConnected == true
+                val isRequested = data?.isRequested == true
+                adapter.setUserFollowState(targetId, isFollowing, isRequested)
+            }
+        }
+
+        individualViewModal.followUserResult.observe(this) { result ->
+            if (result.status == true) {
+                val status = result.data?.status?.lowercase(Locale.getDefault())
+                val isRequested = status == "pending"
+                val isFollowing = !isRequested
+                val targetId = result.data?.following ?: userId
+                adapter.setUserFollowState(targetId, isFollowing, isRequested)
+            }
+        }
+
+        individualViewModal.unFollowUserResult.observe(this) { result ->
+            if (result.status == true) {
+                adapter.setUserFollowState(userId, false, false)
+            }
         }
     }
 

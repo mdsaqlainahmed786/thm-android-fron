@@ -2,7 +2,6 @@ package com.thehotelmedia.android.adapters.userPostsViewer
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -42,6 +41,7 @@ class UserPostsViewerAdapter(
 
     private val exoPlayers = mutableMapOf<String, ExoPlayer>()
     private val postStates = mutableMapOf<String, PostState>()
+    private val followStateByUser = mutableMapOf<String, FollowState>()
     private var activePosition: Int = RecyclerView.NO_POSITION
 
     data class PostState(
@@ -49,7 +49,13 @@ class UserPostsViewerAdapter(
         var likeCount: Int = 0,
         var commentCount: Int = 0,
         var isSaved: Boolean = false,
-        var isFollowing: Boolean = false
+        var isFollowing: Boolean = false,
+        var isRequested: Boolean = false
+    )
+
+    private data class FollowState(
+        var isFollowing: Boolean,
+        var isRequested: Boolean
     )
 
     inner class PostViewHolder(
@@ -64,6 +70,7 @@ class UserPostsViewerAdapter(
         private var currentMediaIsVideo: Boolean = false
         private var currentPost: Data? = null
         private var isHolderActive: Boolean = false
+        private var currentOwnerId: String = ""
 
         fun bind(post: Data, isActive: Boolean) {
             postId = post.Id ?: ""
@@ -71,6 +78,10 @@ class UserPostsViewerAdapter(
             isHolderActive = isActive
 
             val mediaList = post.mediaRef
+            val postOwnerId = extractOwnerId(post)
+            currentOwnerId = postOwnerId
+
+            val cachedFollowState = followStateByUser[postOwnerId]
 
             val state = postStates.getOrPut(postId) {
                 PostState(
@@ -78,12 +89,22 @@ class UserPostsViewerAdapter(
                     likeCount = post.likes ?: 0,
                     commentCount = post.comments ?: 0,
                     isSaved = post.savedByMe ?: false,
-                    isFollowing = when {
+                    isFollowing = cachedFollowState?.isFollowing ?: when {
                         post.postedBy?.isFollowedByMe == true -> true
                         post.postedBy?.businessProfileRef?.isFollowedByMe == true -> true
                         else -> false
-                    }
+                    },
+                    isRequested = cachedFollowState?.isRequested ?: false
                 )
+            }
+
+            cachedFollowState?.let {
+                state.isFollowing = it.isFollowing
+                state.isRequested = it.isRequested
+            }
+
+            if (cachedFollowState == null) {
+                this@UserPostsViewerAdapter.applyFollowState(postOwnerId, state.isFollowing, state.isRequested, notify = false)
             }
 
             state.isLiked = post.likedByMe ?: state.isLiked
@@ -95,6 +116,7 @@ class UserPostsViewerAdapter(
                 post.postedBy?.businessProfileRef?.isFollowedByMe == true -> true
                 else -> state.isFollowing
             }
+            this@UserPostsViewerAdapter.applyFollowState(postOwnerId, state.isFollowing, state.isRequested, notify = false)
 
             currentMediaIsVideo = mediaList.firstOrNull()?.mediaType?.equals("video", ignoreCase = true) == true
             updateLayoutForMediaType(currentMediaIsVideo)
@@ -397,7 +419,8 @@ class UserPostsViewerAdapter(
         }
 
         private fun setupFollowButton(post: Data, state: PostState) {
-            val postOwnerId = post.postedBy?.Id ?: post.userID.orEmpty()
+            val postOwnerId = currentOwnerId.ifBlank { extractOwnerId(post) }
+            currentOwnerId = postOwnerId
             val isSelf = postOwnerId.isBlank() || postOwnerId == ownerUserId
             if (!currentMediaIsVideo || isSelf) {
                 binding.reelFollowButton.visibility = View.GONE
@@ -406,34 +429,60 @@ class UserPostsViewerAdapter(
             }
 
             binding.reelFollowButton.visibility = View.VISIBLE
-            updateFollowButton(state.isFollowing)
+            updateFollowButton(state.isFollowing, state.isRequested)
             binding.reelFollowButton.setOnClickListener {
-                val shouldFollow = !state.isFollowing
-                state.isFollowing = shouldFollow
-                updateFollowButton(state.isFollowing)
-                if (shouldFollow) {
-                    individualViewModal.followUser(postOwnerId)
-                } else {
+                if (state.isFollowing) {
+                    state.isFollowing = false
+                    state.isRequested = false
+                    updateFollowButton(state.isFollowing, state.isRequested)
+                    applyFollowState(postOwnerId, state.isFollowing, state.isRequested)
                     individualViewModal.unFollowUser(postOwnerId)
+                } else {
+                    state.isFollowing = false
+                    state.isRequested = true
+                    updateFollowButton(state.isFollowing, state.isRequested)
+                    applyFollowState(postOwnerId, state.isFollowing, state.isRequested)
+                    individualViewModal.followUser(postOwnerId)
                 }
             }
         }
 
-        private fun updateFollowButton(isFollowing: Boolean) {
-            if (isFollowing) {
-                binding.reelFollowButton.text = context.getString(R.string.following)
-                binding.reelFollowButton.setTextColor(ContextCompat.getColor(context, R.color.black))
-                binding.reelFollowButton.backgroundTintList =
-                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
-                binding.reelFollowButton.strokeColor =
-                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
-            } else {
-                binding.reelFollowButton.text = context.getString(R.string.follow)
-                binding.reelFollowButton.setTextColor(ContextCompat.getColor(context, R.color.white))
-                binding.reelFollowButton.backgroundTintList =
-                    ColorStateList.valueOf(Color.TRANSPARENT)
-                binding.reelFollowButton.strokeColor =
-                    ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
+        private fun updateFollowButton(isFollowing: Boolean, isRequested: Boolean) {
+            val button = binding.reelFollowButton
+            val white = ContextCompat.getColor(context, R.color.white)
+            val black = ContextCompat.getColor(context, R.color.black)
+            val transparent = ContextCompat.getColor(context, android.R.color.transparent)
+            val outlineWidth = context.resources.getDimensionPixelSize(R.dimen.follow_button_outline_width)
+            val cornerRadius = context.resources.getDimensionPixelSize(R.dimen.follow_button_corner_radius)
+            val rippleColor = ContextCompat.getColor(context, R.color.white_40)
+
+            button.cornerRadius = cornerRadius
+            button.rippleColor = ColorStateList.valueOf(rippleColor)
+
+            button.icon = null
+
+            when {
+                isRequested -> {
+                    button.text = context.getString(R.string.requested)
+                    button.strokeWidth = outlineWidth
+                    button.strokeColor = ColorStateList.valueOf(white)
+                    button.backgroundTintList = ColorStateList.valueOf(transparent)
+                    button.setTextColor(white)
+                }
+                isFollowing -> {
+                    button.text = context.getString(R.string.unfollow)
+                    button.strokeWidth = 0
+                    button.strokeColor = ColorStateList.valueOf(transparent)
+                    button.backgroundTintList = ColorStateList.valueOf(white)
+                    button.setTextColor(black)
+                }
+                else -> {
+                    button.text = context.getString(R.string.follow)
+                    button.strokeWidth = outlineWidth
+                    button.strokeColor = ColorStateList.valueOf(white)
+                    button.backgroundTintList = ColorStateList.valueOf(transparent)
+                    button.setTextColor(white)
+                }
             }
         }
 
@@ -483,6 +532,10 @@ class UserPostsViewerAdapter(
         fun refreshLikeState(state: PostState) {
             updateLikeButton(state.isLiked, state.likeCount)
         }
+
+        fun refreshFollowState(post: Data, state: PostState) {
+            setupFollowButton(post, state)
+        }
     }
 
     private fun pauseOtherPlayers(exceptPostId: String) {
@@ -529,6 +582,12 @@ class UserPostsViewerAdapter(
                             holder.refreshLikeState(state)
                         }
                     }
+                    PAYLOAD_FOLLOW_STATE -> {
+                        val post = getItem(position) ?: return@forEach
+                        postStates[post.Id ?: return@forEach]?.let { state ->
+                            holder.refreshFollowState(post, state)
+                        }
+                    }
                     else -> {
                         super.onBindViewHolder(holder, position, payloads)
                         return
@@ -553,6 +612,44 @@ class UserPostsViewerAdapter(
     }
 
     fun isPositionActive(position: Int): Boolean = position == activePosition
+
+    fun setUserFollowState(userId: String, isFollowing: Boolean, isRequested: Boolean) {
+        applyFollowState(userId, isFollowing, isRequested)
+    }
+
+    private fun applyFollowState(userId: String, isFollowing: Boolean, isRequested: Boolean, notify: Boolean = true) {
+        val existing = followStateByUser[userId]
+        if (existing != null && existing.isFollowing == isFollowing && existing.isRequested == isRequested) {
+            return
+        }
+        followStateByUser[userId] = FollowState(isFollowing, isRequested)
+
+        if (!notify) return
+
+        for (i in 0 until itemCount) {
+            val post = getItem(i)
+            if (extractOwnerId(post) == userId) {
+                post?.Id?.let { postId ->
+                    postStates[postId]?.let { state ->
+                        state.isFollowing = isFollowing
+                        state.isRequested = isRequested
+                    }
+                }
+                notifyItemChanged(i, PAYLOAD_FOLLOW_STATE)
+            }
+        }
+    }
+
+    private fun extractOwnerId(post: Data?): String {
+        post ?: return ""
+        val postedBy = post.postedBy
+        return when {
+            !postedBy?.Id.isNullOrBlank() -> postedBy?.Id ?: ""
+            !postedBy?.businessProfileRef?.Id.isNullOrBlank() -> postedBy?.businessProfileRef?.Id ?: ""
+            !post.userID.isNullOrBlank() -> post.userID ?: ""
+            else -> ""
+        }
+    }
 
     fun stopAllPlayers() {
         exoPlayers.values.forEach { player ->
@@ -642,6 +739,7 @@ class UserPostsViewerAdapter(
     companion object {
         private const val PAYLOAD_ACTIVE = "payload_active"
         private const val PAYLOAD_LIKE = "payload_like"
+        private const val PAYLOAD_FOLLOW_STATE = "payload_follow_state"
 
         private val POST_DIFF_CALLBACK = object : DiffUtil.ItemCallback<Data>() {
             override fun areItemsTheSame(oldItem: Data, newItem: Data): Boolean {

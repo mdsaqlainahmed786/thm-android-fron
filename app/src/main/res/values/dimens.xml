@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="drawable_size" >14dp</dimen>
+    <dimen name="follow_button_corner_radius">24dp</dimen>
+    <dimen name="follow_button_outline_width">1dp</dimen>
 </resources>
