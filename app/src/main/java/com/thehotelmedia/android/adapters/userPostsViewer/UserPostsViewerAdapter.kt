@@ -479,6 +479,10 @@ class UserPostsViewerAdapter(
             currentExoPlayer = null
             activePlayer = null
         }
+
+        fun refreshLikeState(state: PostState) {
+            updateLikeButton(state.isLiked, state.likeCount)
+        }
     }
 
     private fun pauseOtherPlayers(exceptPostId: String) {
@@ -512,9 +516,25 @@ class UserPostsViewerAdapter(
         position: Int,
         payloads: MutableList<Any>
     ) {
-        if (payloads.contains(PAYLOAD_ACTIVE)) {
-            val isActive = position == activePosition
-            holder.updateActiveState(isActive)
+        if (payloads.isNotEmpty()) {
+            payloads.forEach { payload ->
+                when (payload) {
+                    PAYLOAD_ACTIVE -> {
+                        val isActive = position == activePosition
+                        holder.updateActiveState(isActive)
+                    }
+                    PAYLOAD_LIKE -> {
+                        val postId = getItem(position)?.Id ?: return@forEach
+                        postStates[postId]?.let { state ->
+                            holder.refreshLikeState(state)
+                        }
+                    }
+                    else -> {
+                        super.onBindViewHolder(holder, position, payloads)
+                        return
+                    }
+                }
+            }
         } else {
             super.onBindViewHolder(holder, position, payloads)
         }
@@ -572,7 +592,7 @@ class UserPostsViewerAdapter(
                 }
             }
             if (position >= 0) {
-                notifyItemChanged(position)
+                notifyItemChanged(position, PAYLOAD_LIKE)
             }
         }
     }
@@ -621,6 +641,7 @@ class UserPostsViewerAdapter(
 
     companion object {
         private const val PAYLOAD_ACTIVE = "payload_active"
+        private const val PAYLOAD_LIKE = "payload_like"
 
         private val POST_DIFF_CALLBACK = object : DiffUtil.ItemCallback<Data>() {
             override fun areItemsTheSame(oldItem: Data, newItem: Data): Boolean {
