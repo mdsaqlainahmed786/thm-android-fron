@@ -85,15 +85,14 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
         }
 
         binding.contactEt.setOnClickListener {
-            otpDialogManager.showSendOtpDialog (phoneNumber){ newDialCode,newPhoneNumber ->
-                otpDialogManager.showVerifyOtpDialog(newDialCode,newPhoneNumber) { finalDialCode,finalPhoneNumber ->
-                    dialCode = finalDialCode
-                    phoneNumber = finalPhoneNumber
+            val initialDialCode = if (dialCode.isNotEmpty()) dialCode else binding.countryCodePicker.selectedCountryCodeWithPlus
+            otpDialogManager.startPhoneVerificationFlow(initialDialCode, phoneNumber) { finalDialCode, finalPhoneNumber ->
+                dialCode = finalDialCode
+                phoneNumber = finalPhoneNumber
 
-                    preferenceManager.putString(PreferenceManager.Keys.USER_DIAL_CODE,finalDialCode)
-                    preferenceManager.putString(PreferenceManager.Keys.USER_PHONE_NUMBER,finalPhoneNumber)
-                    onBackPressedDispatcher.onBackPressed()
-                }
+                preferenceManager.putString(PreferenceManager.Keys.USER_DIAL_CODE, finalDialCode)
+                preferenceManager.putString(PreferenceManager.Keys.USER_PHONE_NUMBER, finalPhoneNumber)
+                onBackPressedDispatcher.onBackPressed()
             }
         }
 
