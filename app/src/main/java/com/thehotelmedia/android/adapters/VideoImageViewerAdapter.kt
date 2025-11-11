@@ -36,8 +36,6 @@ class VideoImageViewerAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(mediaItem: MediaItems) {
-
-
             when (mediaItem.type) {
                 MediaType.IMAGE -> {
                     binding.imageView.visibility = View.VISIBLE
@@ -64,7 +62,10 @@ class VideoImageViewerAdapter(
 
                     binding.imageView.visibility = View.GONE
                     binding.videoThumbnail.visibility = View.VISIBLE
-                    binding.videoThumbnail.setImageResource(R.drawable.ic_post_placeholder)
+                    Glide.with(context)
+                        .load(mediaItem.uri)
+                        .placeholder(R.drawable.ic_post_placeholder)
+                        .into(binding.videoThumbnail)
                     binding.videoLayout.visibility = View.VISIBLE
                     binding.playPauseOverlay.visibility = View.GONE
 
@@ -79,8 +80,7 @@ class VideoImageViewerAdapter(
                     exoPlayer.setMediaItem(media)
                     exoPlayer.prepare()
                     exoPlayer.seekTo(0)
-                    exoPlayer.playWhenReady = true
-                    exoPlayer.play()
+                    exoPlayer.playWhenReady = false
 
                     (binding.playerView.tag as? Player.Listener)?.let { exoPlayer.removeListener(it) }
                     val listener = object : Player.Listener {
@@ -116,6 +116,22 @@ class VideoImageViewerAdapter(
         }
 
 
+    }
+
+    fun play() {
+        exoPlayer.playWhenReady = true
+        exoPlayer.play()
+    }
+
+    fun pause() {
+        exoPlayer.playWhenReady = false
+        exoPlayer.pause()
+    }
+
+    fun stopAndReset() {
+        exoPlayer.stop()
+        exoPlayer.seekTo(0)
+        exoPlayer.playWhenReady = false
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MediaViewHolder {

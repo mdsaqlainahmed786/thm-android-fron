@@ -42,6 +42,7 @@ class UserPostsViewerAdapter(
 
     private val exoPlayers = mutableMapOf<String, ExoPlayer>()
     private val postStates = mutableMapOf<String, PostState>()
+    private var activePosition: Int = RecyclerView.NO_POSITION
 
     data class PostState(
         var isLiked: Boolean = false,
@@ -56,16 +57,21 @@ class UserPostsViewerAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         private var currentExoPlayer: ExoPlayer? = null
-        private var postId: String = ""
+        var postId: String = ""
+            private set
+        private var activePlayer: ExoPlayer? = null
         private var mediaAdapter: VideoImageViewerAdapter? = null
         private var currentMediaIsVideo: Boolean = false
         private var currentPost: Data? = null
+        private var isHolderActive: Boolean = false
 
-        fun bind(post: Data) {
+        fun bind(post: Data, isActive: Boolean) {
             postId = post.Id ?: ""
             currentPost = post
+            isHolderActive = isActive
 
             val mediaList = post.mediaRef
+
             val state = postStates.getOrPut(postId) {
                 PostState(
                     isLiked = post.likedByMe ?: false,
@@ -114,6 +120,10 @@ class UserPostsViewerAdapter(
             binding.photoViewCommentsTv.setOnClickListener {
                 binding.photoCommentBtn.performClick()
             }
+
+            binding.root.post {
+                updateActiveState(isHolderActive)
+            }
         }
 
         private fun setupMedia(
@@ -127,6 +137,10 @@ class UserPostsViewerAdapter(
             }
 
             currentExoPlayer = exoPlayer
+
+            (binding.mediaViewPager.getChildAt(0)?.findViewById<com.google.android.exoplayer2.ui.PlayerView>(R.id.playerView)?.tag as? Player.Listener)?.let {
+                exoPlayer.removeListener(it)
+            }
 
             val mediaItems = mediaList.map { mediaRef ->
                 val mediaType = when (mediaRef.mediaType?.lowercase()) {
@@ -156,15 +170,52 @@ class UserPostsViewerAdapter(
                             bindInfoSection(state.commentCount, it.shared ?: 0, it, timestamp)
                             setupFollowButton(it, state)
                         }
+                        updateActiveState(isHolderActive)
                     }
                 }
             )
 
             exoPlayer.volume = 1f
-            exoPlayer.playWhenReady = currentMediaIsVideo
+            exoPlayer.playWhenReady = false
 
             binding.mediaViewPager.adapter = mediaAdapter
             binding.mediaViewPager.isUserInputEnabled = false
+        }
+
+        private fun startPlayback() {
+            pauseOtherPlayers(postId)
+            currentExoPlayer?.let {
+                if (it.playbackState == Player.STATE_IDLE) {
+                    it.prepare()
+                }
+                it.playWhenReady = true
+                it.volume = 1f
+                it.play()
+            }
+            activePlayer = currentExoPlayer
+        }
+
+        private fun stopPlayback() {
+            activePlayer?.let {
+                it.playWhenReady = false
+                it.pause()
+                it.seekTo(0)
+                it.volume = 0f
+            }
+            activePlayer = null
+        }
+
+        fun updateActiveState(isActive: Boolean) {
+            isHolderActive = isActive
+            if (currentMediaIsVideo) {
+                if (isActive && itemView.isAttachedToWindow) {
+                    startPlayback()
+                } else {
+                    stopPlayback()
+                }
+            } else if (!isActive) {
+                stopPlayback()
+            }
         }
 
         private fun setupLikeButton(state: PostState) {
@@ -413,10 +464,7 @@ class UserPostsViewerAdapter(
         }
 
         fun onViewAttachedToWindow() {
-            if (currentMediaIsVideo) {
-                currentExoPlayer?.playWhenReady = true
-                currentExoPlayer?.play()
-            }
+            updateActiveState(isHolderActive)
             bindingAdapterPosition.let { position ->
                 if (position != RecyclerView.NO_POSITION) {
                     onPostScrolled(position, currentExoPlayer)
@@ -425,12 +473,24 @@ class UserPostsViewerAdapter(
         }
 
         fun onViewDetachedFromWindow() {
-            currentExoPlayer?.pause()
+            stopPlayback()
         }
 
         fun release() {
-            currentExoPlayer?.pause()
+            stopPlayback()
             currentExoPlayer = null
+            activePlayer = null
+        }
+    }
+
+    private fun pauseOtherPlayers(exceptPostId: String) {
+        exoPlayers.forEach { (id, player) ->
+            if (id != exceptPostId) {
+                player.playWhenReady = false
+                player.pause()
+                player.seekTo(0)
+                player.volume = 0f
+            }
         }
     }
 
@@ -445,8 +505,36 @@ class UserPostsViewerAdapter(
 
     override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
         val item = getItem(position)
-        item?.let { holder.bind(it) }
+        val isActive = position == activePosition
+        item?.let { holder.bind(it, isActive) }
     }
+
+    override fun onBindViewHolder(
+        holder: PostViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        if (payloads.contains(PAYLOAD_ACTIVE)) {
+            val isActive = position == activePosition
+            holder.updateActiveState(isActive)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
+    fun setActivePosition(position: Int) {
+        if (position == activePosition) return
+        val previous = activePosition
+        activePosition = position
+        if (previous != RecyclerView.NO_POSITION) {
+            notifyItemChanged(previous, PAYLOAD_ACTIVE)
+        }
+        if (activePosition != RecyclerView.NO_POSITION) {
+            notifyItemChanged(activePosition, PAYLOAD_ACTIVE)
+        }
+    }
+
+    fun isPositionActive(position: Int): Boolean = position == activePosition
 
     override fun onViewAttachedToWindow(holder: PostViewHolder) {
         super.onViewAttachedToWindow(holder)
@@ -524,6 +612,8 @@ class UserPostsViewerAdapter(
     }
 
     companion object {
+        private const val PAYLOAD_ACTIVE = "payload_active"
+
         private val POST_DIFF_CALLBACK = object : DiffUtil.ItemCallback<Data>() {
             override fun areItemsTheSame(oldItem: Data, newItem: Data): Boolean {
                 return oldItem.Id == newItem.Id
@@ -537,8 +627,13 @@ class UserPostsViewerAdapter(
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
-        // Release all ExoPlayers
-        exoPlayers.values.forEach { it.release() }
+        exoPlayers.values.forEach {
+            it.playWhenReady = false
+            it.pause()
+            it.seekTo(0)
+            it.stop()
+            it.release()
+        }
         exoPlayers.clear()
         postStates.clear()
     }

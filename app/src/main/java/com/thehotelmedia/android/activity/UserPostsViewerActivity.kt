@@ -37,6 +37,9 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     private var initialPostId: String? = null
     private var filterMediaType: String? = null // "image" or "video" to filter posts
     private var currentExoPlayer: ExoPlayer? = null
+    private var activePosition: Int = RecyclerView.NO_POSITION
+    private lateinit var layoutManager: LinearLayoutManager
+    private lateinit var snapHelper: PagerSnapHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,16 +81,29 @@ class UserPostsViewerActivity : DarkBaseActivity() {
             ::onCommentUpdated
         )
 
-        val layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
         binding.postsRecyclerView.layoutManager = layoutManager
         binding.postsRecyclerView.adapter = adapter.withLoadStateFooter(footer = LoaderAdapter())
 
         // Use PagerSnapHelper for Reel-like snap scrolling
-        val snapHelper = PagerSnapHelper()
+        snapHelper = PagerSnapHelper()
         snapHelper.attachToRecyclerView(binding.postsRecyclerView)
 
         // Enable nested scrolling for smooth vertical scrolling
         binding.postsRecyclerView.isNestedScrollingEnabled = true
+
+        binding.postsRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    val snapView = snapHelper.findSnapView(layoutManager) ?: return
+                    val position = layoutManager.getPosition(snapView)
+                    if (position != RecyclerView.NO_POSITION) {
+                        updateActivePosition(position)
+                    }
+                }
+            }
+        })
     }
 
     private fun loadPosts() {
@@ -117,6 +133,12 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                     // Scroll to initial post after data is loaded
                     initialPostId?.let { postId ->
                         scrollToPost(postId)
+                    } ?: run {
+                        binding.postsRecyclerView.post {
+                            if (adapter.itemCount > 0) {
+                                updateActivePosition(0)
+                            }
+                        }
                     }
                 }
             }
@@ -134,6 +156,9 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                     val position = adapter.findPostPosition(postId)
                     if (position >= 0) {
                         binding.postsRecyclerView.scrollToPosition(position)
+                        binding.postsRecyclerView.post {
+                            updateActivePosition(position)
+                        }
                         return@launch
                     }
                 }
@@ -149,7 +174,11 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         // Set current player
         currentExoPlayer = exoPlayer
         // Play current player
-        exoPlayer?.play()
+        if (position == activePosition) {
+            exoPlayer?.play()
+        } else {
+            exoPlayer?.pause()
+        }
     }
 
     private fun onLikeUpdated(postId: String, isLiked: Boolean, likeCount: Int) {
@@ -162,6 +191,25 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         adapter.updateCommentCount(postId, commentCount)
     }
 
+    private fun updateActivePosition(position: Int) {
+        if (position == activePosition || position < 0) return
+        val itemCount = adapter.itemCount
+        if (itemCount == 0 || position >= itemCount) return
+        val previous = activePosition
+        activePosition = position
+        adapter.setActivePosition(position)
+        if (previous != RecyclerView.NO_POSITION && previous != position) {
+            val previousHolder = binding.postsRecyclerView.findViewHolderForAdapterPosition(previous)
+            if (previousHolder is UserPostsViewerAdapter.PostViewHolder) {
+                previousHolder.updateActiveState(false)
+            }
+        }
+        val currentHolder = binding.postsRecyclerView.findViewHolderForAdapterPosition(position)
+        if (currentHolder is UserPostsViewerAdapter.PostViewHolder) {
+            currentHolder.updateActiveState(true)
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         currentExoPlayer?.pause()
@@ -169,7 +217,9 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        currentExoPlayer?.play()
+        if (activePosition != RecyclerView.NO_POSITION) {
+            currentExoPlayer?.play()
+        }
     }
 
     override fun onDestroy() {
