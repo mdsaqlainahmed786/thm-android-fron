@@ -103,14 +103,14 @@
         </androidx.appcompat.widget.LinearLayoutCompat>
 
         <TextView
-            android:id="@+id/mockOtpHint"
+            android:id="@+id/otpInfoText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/_24sdp"
             android:layout_marginTop="@dimen/_8sdp"
             android:layout_marginEnd="@dimen/_24sdp"
             android:fontFamily="@font/comic_regular"
-            android:text="@string/mock_otp_hint"
+            android:text="@string/phone_otp_info"
             android:textColor="@color/text_color_60"
             android:textSize="12sp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -132,7 +132,7 @@
             android:textSize="16sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/mockOtpHint" />
+            app:layout_constraintTop_toBottomOf="@id/otpInfoText" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>

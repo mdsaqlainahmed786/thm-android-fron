@@ -620,7 +620,7 @@
     <string name="phone_sign_in_subtitle">Enter your mobile number to receive an OTP</string>
     <string name="phone_number_hint">Enter phone number</string>
     <string name="send_otp">Send OTP</string>
-    <string name="mock_otp_hint">Use 123456 as the OTP for now.</string>
+    <string name="phone_otp_info">We\'ll send a verification code to this number.</string>
     <string name="add_profession">Add Profession</string>
     <string name="try_changing_location">Try changing location!</string>
     <string name="book_table">Book Table</string>
