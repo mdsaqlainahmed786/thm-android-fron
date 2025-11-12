@@ -241,9 +241,15 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         individualViewModal.followUserResult.observe(this) { result ->
             if (result.status == true) {
                 val status = result.data?.status?.lowercase(Locale.getDefault())
-                val isRequested = status == "pending"
-                val isFollowing = !isRequested
                 val targetId = result.data?.following ?: userId
+                val isFollowingStatus = status == "accepted" || status == "connected"
+                val isRequestedStatus = status == "pending" || status == "requested" || status == "sent"
+
+                val (isFollowing, isRequested) = when {
+                    isFollowingStatus -> true to false
+                    isRequestedStatus -> false to true
+                    else -> false to true
+                }
                 adapter.setUserFollowState(targetId, isFollowing, isRequested)
             }
         }

@@ -451,37 +451,46 @@ class UserPostsViewerAdapter(
             val button = binding.reelFollowButton
             val white = ContextCompat.getColor(context, R.color.white)
             val black = ContextCompat.getColor(context, R.color.black)
-            val transparent = ContextCompat.getColor(context, android.R.color.transparent)
             val outlineWidth = context.resources.getDimensionPixelSize(R.dimen.follow_button_outline_width)
             val cornerRadius = context.resources.getDimensionPixelSize(R.dimen.follow_button_corner_radius)
             val rippleColor = ContextCompat.getColor(context, R.color.white_40)
+            val outlineDrawable = ContextCompat.getDrawable(context, R.drawable.bg_follow_outline_dark)
+            val filledDrawable = ContextCompat.getDrawable(context, R.drawable.bg_follow_filled_white)
 
             button.cornerRadius = cornerRadius
             button.rippleColor = ColorStateList.valueOf(rippleColor)
+            val horizontalPadding = context.resources.getDimensionPixelSize(R.dimen.follow_button_padding_horizontal)
+            val verticalPadding = context.resources.getDimensionPixelSize(R.dimen.follow_button_padding_vertical)
+            button.setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
+            button.iconPadding = 0
 
             button.icon = null
+
+            val transparent = ContextCompat.getColor(context, android.R.color.transparent)
 
             when {
                 isRequested -> {
                     button.text = context.getString(R.string.requested)
                     button.strokeWidth = outlineWidth
                     button.strokeColor = ColorStateList.valueOf(white)
-                    button.backgroundTintList = ColorStateList.valueOf(transparent)
                     button.setTextColor(white)
+                    button.backgroundTintList = ColorStateList.valueOf(transparent)
                 }
                 isFollowing -> {
                     button.text = context.getString(R.string.unfollow)
-                    button.strokeWidth = 0
-                    button.strokeColor = ColorStateList.valueOf(transparent)
-                    button.backgroundTintList = ColorStateList.valueOf(white)
-                    button.setTextColor(black)
+                    button.strokeWidth = outlineWidth
+                    button.strokeColor = ColorStateList.valueOf(white)
+                    button.setTextColor(white)
+                    button.backgroundTintList = ColorStateList.valueOf(transparent)
+                    button.background = filledDrawable
                 }
                 else -> {
                     button.text = context.getString(R.string.follow)
                     button.strokeWidth = outlineWidth
                     button.strokeColor = ColorStateList.valueOf(white)
-                    button.backgroundTintList = ColorStateList.valueOf(transparent)
                     button.setTextColor(white)
+                    button.backgroundTintList = ColorStateList.valueOf(transparent)
+                    button.background = outlineDrawable
                 }
             }
         }

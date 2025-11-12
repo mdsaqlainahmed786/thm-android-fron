@@ -3,4 +3,6 @@
     <dimen name="drawable_size" >14dp</dimen>
     <dimen name="follow_button_corner_radius">24dp</dimen>
     <dimen name="follow_button_outline_width">1dp</dimen>
+    <dimen name="follow_button_padding_horizontal">12dp</dimen>
+    <dimen name="follow_button_padding_vertical">4dp</dimen>
 </resources>
