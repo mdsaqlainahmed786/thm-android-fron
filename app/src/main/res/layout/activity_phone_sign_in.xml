@@ -85,6 +85,7 @@
                 android:paddingBottom="0dp"
                 android:layout_gravity="center_vertical"
                 app:ccp_contentColor="@color/text_color"
+                app:ccpDialog_backgroundColor="@color/msg_background"
                 app:ccp_defaultNameCode="IN"
                 app:ccp_showFlag="true"
                 app:ccp_showFullName="false"

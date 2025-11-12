@@ -15,11 +15,11 @@ import android.util.Patterns
 import android.view.MotionEvent
 import android.widget.EditText
 import android.widget.Toast
-import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import com.google.gson.Gson
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -103,47 +103,33 @@ class SignInActivity : BaseActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     // ActivityResultLauncher for handling sign-in result
     private val signInLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-        ActivityResultCallback { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // If the result is OK, get the intent data
-                val data: Intent? = result.data
-                // Get the GoogleSignInAccount from the intent data
-                val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
-                handleSignInResult(task)
-            }else{
-                CustomSnackBar.showSnackBar(binding.root,MessageStore.somethingWentWrong(this))
-                // Check if there's an error in the extras
-                result.data?.extras?.let { bundle ->
-                    // Log each extra key-value pair for debugging
-                    for (key in bundle.keySet()) {
-                        Log.d(TAG, "Extra: $key = ${bundle[key]}")
-                    }
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
+            handleSignInResult(task)
+        } else {
+            CustomSnackBar.showSnackBar(binding.root, MessageStore.somethingWentWrong(this))
+            result.data?.extras?.let { bundle ->
+                for (key in bundle.keySet()) {
+                    Log.d(TAG, "Extra: $key = ${bundle[key]}")
                 }
             }
         }
-    )
+    }
 
     private val phoneSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { activityResult ->
         if (activityResult.resultCode == Activity.RESULT_OK) {
             val data = activityResult.data
-            val dialCode = data?.getStringExtra(PhoneSignInActivity.EXTRA_DIAL_CODE).orEmpty()
-            val phoneNumber = data?.getStringExtra(PhoneSignInActivity.EXTRA_PHONE_NUMBER).orEmpty()
-
-            if (dialCode.isNotEmpty() && phoneNumber.isNotEmpty()) {
-                authViewModel.verifyOtpLogin(
-                    dialCode = dialCode,
-                    phoneNumber = phoneNumber,
-                    deviceID = deviceId,
-                    notificationToken = fcmToken,
-                    lat = userLat,
-                    lng = userLng,
-                    language = currentLanguage
-                )
+            val loginResultJson = data?.getStringExtra(PhoneSignInActivity.EXTRA_LOGIN_RESULT)
+            if (!loginResultJson.isNullOrEmpty()) {
+                val loginModal = Gson().fromJson(loginResultJson, LoginModal::class.java)
+                handleLoginResult(loginModal)
             } else {
-                CustomSnackBar.showSnackBar(binding.root, "Unable to verify phone number. Please try again.")
+                CustomSnackBar.showSnackBar(binding.root, "Unable to login via phone. Please try again.")
             }
         }
     }
@@ -388,7 +374,13 @@ class SignInActivity : BaseActivity() {
         }
 
         binding.phoneBtn.setOnClickListener {
-            val intent = Intent(this, PhoneSignInActivity::class.java)
+            val intent = Intent(this, PhoneSignInActivity::class.java).apply {
+                putExtra(PhoneSignInActivity.EXTRA_DEVICE_ID, deviceId)
+                putExtra(PhoneSignInActivity.EXTRA_NOTIFICATION_TOKEN, fcmToken)
+                putExtra(PhoneSignInActivity.EXTRA_LAT, userLat)
+                putExtra(PhoneSignInActivity.EXTRA_LNG, userLng)
+                putExtra(PhoneSignInActivity.EXTRA_LANGUAGE, currentLanguage)
+            }
             phoneSignInLauncher.launch(intent)
         }
 

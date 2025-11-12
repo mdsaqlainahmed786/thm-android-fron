@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.CountDownTimer
 import android.view.LayoutInflater
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
@@ -36,6 +37,7 @@ class OtpDialogManager(private val context: Context) {
     private var currentDialCode: String = "+91"
     private var currentPhoneNumber: String = ""
     private var verifyOtpBinding: DialogVerifyOtpBinding? = null
+    private var dismissDialogOnSuccess: Boolean = true
 
     /**
      * Public entry point to start the OTP verification flow.
@@ -43,8 +45,10 @@ class OtpDialogManager(private val context: Context) {
     fun startPhoneVerificationFlow(
         initialDialCode: String?,
         initialPhoneNumber: String?,
+        dismissOnSuccess: Boolean = true,
         onOtpVerified: (String, String) -> Unit
     ) {
+        dismissDialogOnSuccess = dismissOnSuccess
         val safeDialCode = initialDialCode?.takeIf { it.isNotBlank() } ?: selectedCountryCode
         val safePhoneNumber = initialPhoneNumber?.takeIf { it.isNotBlank() } ?: ""
         showSendOtpDialog(safeDialCode, safePhoneNumber) { dialCode, phoneNumber ->
@@ -82,6 +86,9 @@ class OtpDialogManager(private val context: Context) {
             selectedCountryCode = binding.countryCodePicker.selectedCountryCodeWithPlus
             binding.countryFlagImageView.setImageResource(binding.countryCodePicker.selectedCountryFlagResourceId)
         }
+        binding.countryCodePicker.setDialogBackgroundColor(ContextCompat.getColor(context, R.color.msg_background))
+        binding.countryCodePicker.setDialogTextColor(ContextCompat.getColor(context, R.color.selected_text_color))
+        binding.countryCodePicker.setDialogSearchEditTextTintColor(ContextCompat.getColor(context, R.color.selected_text_color))
 
         binding.proceedBtn.setOnClickListener {
             val phoneNumber = binding.contactEt.text.toString().trim()
@@ -253,7 +260,10 @@ class OtpDialogManager(private val context: Context) {
                 progressBar.hide()
                 if (task.isSuccessful) {
                     context.showToast("OTP verified successfully.")
-                    verifyOtpDialog?.dismiss()
+                    if (dismissDialogOnSuccess) {
+                        verifyOtpDialog?.dismiss()
+                        sendOtpDialog?.dismiss()
+                    }
                     onOtpVerifiedCallback?.invoke(currentDialCode, currentPhoneNumber)
                     onOtpVerifiedCallback = null
                     pendingCredential = null
@@ -285,5 +295,10 @@ class OtpDialogManager(private val context: Context) {
         val sanitizedDialCode = if (dialCode.startsWith("+")) dialCode else "+$dialCode"
         val sanitizedNumber = phoneNumber.replace("\\s+".toRegex(), "")
         return sanitizedDialCode + sanitizedNumber
+    }
+
+    fun dismissDialogs() {
+        verifyOtpDialog?.dismiss()
+        sendOtpDialog?.dismiss()
     }
 }
