@@ -32,6 +32,7 @@ import com.thehotelmedia.android.extensions.setEmailTextWatcher
 import com.thehotelmedia.android.modals.authentication.individual.signUp.IndividualSignUpModal
 import com.thehotelmedia.android.repository.AuthRepo
 import com.thehotelmedia.android.viewModal.authViewModel.AuthViewModel
+import com.thehotelmedia.android.customDialog.OtpDialogManager
 
 data class ValidationResult(val isValid: Boolean, val errorMessage: String?)
 class IndividualInfoActivity : BaseActivity() {
@@ -56,13 +57,19 @@ class IndividualInfoActivity : BaseActivity() {
     private var isPasswordVisible = false
     private var selectedCountryCode = "+91"
     private lateinit var authViewModel: AuthViewModel
+    private lateinit var progressBar: CustomProgressBar
+    private lateinit var otpDialogManager: OtpDialogManager
     private val activity = this@IndividualInfoActivity
-
-
 
     private var selectedProfessions: String = ""
     private var finalSelectedProfession: String = ""
     private var currentLanguage = ""
+
+    private var pendingDialCode: String = ""
+    private var pendingPhoneNumber: String = ""
+    private var pendingFullName: String = ""
+    private var pendingEmail: String = ""
+    private var pendingPassword: String = ""
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -104,7 +111,8 @@ class IndividualInfoActivity : BaseActivity() {
 
         val authRepo = AuthRepo(activity)
         authViewModel = ViewModelProvider(activity, ViewModelFactory(authRepo))[AuthViewModel::class.java]
-        val progressBar = CustomProgressBar(activity) // 'this' refers to the context
+        progressBar = CustomProgressBar(activity)
+        otpDialogManager = OtpDialogManager(this)
         setPasswordEt()
 
         getProfessions()
@@ -135,10 +143,7 @@ class IndividualInfoActivity : BaseActivity() {
 //            startActivity(intent)
             val result = validateFields(binding.nameEt, binding.emailEt, binding.passwordEt, binding.contactEt)
             if (result.isValid) {
-
-                individualLogin()
-
-                // Proceed with form submission
+                handleSignupSubmission()
             } else {
                 // Focus will automatically be set on the first invalid field
                 CustomSnackBar.showSnackBar(binding.root, result.errorMessage.toString())
@@ -186,6 +191,7 @@ class IndividualInfoActivity : BaseActivity() {
         authViewModel.toast.observe(activity){
             Toast.makeText(activity,it,Toast.LENGTH_SHORT).show()
         }
+
     }
 
     private fun getProfessions() {
@@ -219,12 +225,36 @@ class IndividualInfoActivity : BaseActivity() {
         startActivity(intent)
     }
 
-    private fun individualLogin() {
-        val fullName = binding.nameEt.text.toString().trim()
-        val email = binding.emailEt.text.toString().trim()
-        val password = binding.passwordEt.text.toString().trim()
-        val phoneNumber = binding.contactEt.text.toString().trim()
-        authViewModel.individualSignUp("individual",email,selectedCountryCode,phoneNumber,fullName,password,finalSelectedProfession,userLat,userLng,currentLanguage)
+    private fun individualSignup() {
+        authViewModel.individualSignUp(
+            "individual",
+            pendingEmail,
+            pendingDialCode,
+            pendingPhoneNumber,
+            pendingFullName,
+            pendingPassword,
+            finalSelectedProfession,
+            userLat,
+            userLng,
+            currentLanguage
+        )
+    }
+
+    private fun handleSignupSubmission() {
+        pendingFullName = binding.nameEt.text.toString().trim()
+        pendingEmail = binding.emailEt.text.toString().trim()
+        pendingPassword = binding.passwordEt.text.toString().trim()
+        pendingPhoneNumber = binding.contactEt.text.toString().trim()
+        pendingDialCode = selectedCountryCode
+
+        otpDialogManager.startPhoneVerificationFlow(
+            initialDialCode = pendingDialCode,
+            initialPhoneNumber = pendingPhoneNumber
+        ) { verifiedDialCode, verifiedPhoneNumber ->
+            pendingDialCode = verifiedDialCode
+            pendingPhoneNumber = verifiedPhoneNumber
+            individualSignup()
+        }
     }
 
     private fun validateFields(
@@ -344,6 +374,5 @@ class IndividualInfoActivity : BaseActivity() {
             else -> ValidationResult(true, null)
         }
     }
-
 
 }

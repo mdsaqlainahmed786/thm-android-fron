@@ -121,13 +121,12 @@ class RoomDetailsActivity : BaseActivity() {
             if (isNumberVerified){
                 moveToBookingConfirmationScreen()
             }else{
-                otpDialogManager.showSendOtpDialog (phoneNumber){ newDialCode,newPhoneNumber ->
-                    otpDialogManager.showVerifyOtpDialog(newDialCode,newPhoneNumber) { finalDialCode,finalPhoneNumber ->
-                        isNumberVerified = true
-                        dialCode = finalDialCode
-                        phoneNumber = finalPhoneNumber
+                val initialDialCode = if (dialCode.isNotEmpty()) dialCode else "+91"
+                otpDialogManager.startPhoneVerificationFlow(initialDialCode, phoneNumber) { finalDialCode, finalPhoneNumber ->
+                    isNumberVerified = true
+                    dialCode = finalDialCode
+                    phoneNumber = finalPhoneNumber
 //                        moveToBookingConfirmationScreen()
-                    }
                 }
             }
 

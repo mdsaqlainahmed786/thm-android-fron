@@ -50,12 +50,9 @@ android {
             buildConfigField("String","BASE_URL","\"https://staging.thehotelmedia.com/api/v1/\"")
             buildConfigField("String", "RAZORPAY_API_KEY", "\"rzp_test_IXF6sTTP8dPZXN\"")
             buildConfigField("String", "MAPS_API_KEY", "\"AIzaSyCoDc7bhRp94TgvpG00jafqzyqo2ljh2IM\"")
-            buildConfigField("String", "FACEBOOK_CLIENT_SECRETE", "\"1e611684a335f755229c3358cdac03a1\"")
             manifestPlaceholders["razorpayApiKey"] = "rzp_test_IXF6sTTP8dPZXN"
             manifestPlaceholders["mapsApiKey"] = "AIzaSyCoDc7bhRp94TgvpG00jafqzyqo2ljh2IM"
             manifestPlaceholders["DEEP_LINK_HOST"] = "thehotelmedia.com"
-            manifestPlaceholders["facebook_app_id"] = "1647659986117806"
-            manifestPlaceholders["facebook_client_secrete"] = "1e611684a335f755229c3358cdac03a1"
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -67,12 +64,9 @@ android {
             buildConfigField("String","BASE_URL","\"https://api.thehotelmedia.com/api/v1/\"")
             buildConfigField("String", "RAZORPAY_API_KEY", "\"rzp_live_oItyf902ER4IXW\"")
             buildConfigField("String", "MAPS_API_KEY", "\"AIzaSyCoDc7bhRp94TgvpG00jafqzyqo2ljh2IM\"")
-            buildConfigField("String", "FACEBOOK_CLIENT_SECRETE", "\"1e611684a335f755229c3358cdac03a1\"")
             manifestPlaceholders["razorpayApiKey"] = "rzp_live_oItyf902ER4IXW"
             manifestPlaceholders["mapsApiKey"] = "AIzaSyCoDc7bhRp94TgvpG00jafqzyqo2ljh2IM"
             manifestPlaceholders["DEEP_LINK_HOST"] = "thehotelmedia.com"
-            manifestPlaceholders["facebook_app_id"] = "1647659986117806"
-            manifestPlaceholders["facebook_client_secrete"] = "1e611684a335f755229c3358cdac03a1"
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -237,10 +231,6 @@ dependencies {
     implementation ("com.google.android.exoplayer:exoplayer:2.19.1")
     implementation ("com.google.android.exoplayer:exoplayer-hls:2.19.1")
     implementation ("com.google.android.exoplayer:exoplayer-ui:2.19.1")  // For UI components like SimpleExoPlayerView
-
-
-    implementation ("com.facebook.android:facebook-login:16.0.0")
-
 
 
     // This dependency is downloaded from the Google’s Maven repository.

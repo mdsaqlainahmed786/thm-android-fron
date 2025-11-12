@@ -620,7 +620,12 @@
     <string name="job_application_message">Hi, I’d like to apply for the job you shared. Let me know the next steps!</string>
     <string name="select_vacancies">Select vacancies</string>
     <string name="sure_want_to_post_job">Are you really want to post job?</string>
-    <string name="login_with_social">Login with social</string>
+    <string name="login_with_social">Continue with</string>
+    <string name="phone_sign_in_title">Sign in with phone</string>
+    <string name="phone_sign_in_subtitle">Enter your mobile number to receive an OTP</string>
+    <string name="phone_number_hint">Enter phone number</string>
+    <string name="send_otp">Send OTP</string>
+    <string name="phone_otp_info">We\'ll send a verification code to this number.</string>
     <string name="add_profession">Add Profession</string>
     <string name="try_changing_location">Try changing location!</string>
     <string name="book_table">Book Table</string>

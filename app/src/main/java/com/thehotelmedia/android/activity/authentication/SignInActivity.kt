@@ -15,12 +15,11 @@ import android.util.Patterns
 import android.view.MotionEvent
 import android.widget.EditText
 import android.widget.Toast
-import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
-import com.facebook.CallbackManager
+import com.google.gson.Gson
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -53,7 +52,6 @@ import com.thehotelmedia.android.customClasses.CustomSnackBar
 import com.thehotelmedia.android.customClasses.DocumentVerificationGiff
 import com.thehotelmedia.android.customClasses.MessageStore
 import com.thehotelmedia.android.customClasses.PreferenceManager
-import com.thehotelmedia.android.customClasses.facebook.FacebookLoginHelper
 import com.thehotelmedia.android.customDialog.ProfessionDialog
 import com.thehotelmedia.android.databinding.ActivitySignInBinding
 import com.thehotelmedia.android.extensions.LocationHelper
@@ -72,10 +70,6 @@ class SignInActivity : BaseActivity() {
 
     private var retryCount = 0
     private val maxRetries = 3
-
-    private lateinit var facebookLoginHelper: FacebookLoginHelper
-    private lateinit var callbackManager: CallbackManager
-
 
     private lateinit var locationHelper: LocationHelper
     private var userLat = 0.0
@@ -109,26 +103,36 @@ class SignInActivity : BaseActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     // ActivityResultLauncher for handling sign-in result
     private val signInLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-        ActivityResultCallback { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // If the result is OK, get the intent data
-                val data: Intent? = result.data
-                // Get the GoogleSignInAccount from the intent data
-                val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
-                handleSignInResult(task)
-            }else{
-                CustomSnackBar.showSnackBar(binding.root,MessageStore.somethingWentWrong(this))
-                // Check if there's an error in the extras
-                result.data?.extras?.let { bundle ->
-                    // Log each extra key-value pair for debugging
-                    for (key in bundle.keySet()) {
-                        Log.d(TAG, "Extra: $key = ${bundle[key]}")
-                    }
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            val task: Task<GoogleSignInAccount> = GoogleSignIn.getSignedInAccountFromIntent(data)
+            handleSignInResult(task)
+        } else {
+            CustomSnackBar.showSnackBar(binding.root, MessageStore.somethingWentWrong(this))
+            result.data?.extras?.let { bundle ->
+                for (key in bundle.keySet()) {
+                    Log.d(TAG, "Extra: $key = ${bundle[key]}")
                 }
             }
         }
-    )
+    }
+
+    private val phoneSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { activityResult ->
+        if (activityResult.resultCode == Activity.RESULT_OK) {
+            val data = activityResult.data
+            val loginResultJson = data?.getStringExtra(PhoneSignInActivity.EXTRA_LOGIN_RESULT)
+            if (!loginResultJson.isNullOrEmpty()) {
+                val loginModal = Gson().fromJson(loginResultJson, LoginModal::class.java)
+                handleLoginResult(loginModal)
+            } else {
+                CustomSnackBar.showSnackBar(binding.root, "Unable to login via phone. Please try again.")
+            }
+        }
+    }
 
 
 
@@ -255,30 +259,9 @@ class SignInActivity : BaseActivity() {
 
         checkAndRequestNotificationPermission()
 
-        // Initialize Facebook Callback Manager
-        callbackManager = CallbackManager.Factory.create()
-
-
-        facebookLoginHelper = FacebookLoginHelper(this) { token ->
-            if (token != null) {
-                Log.d("FB_LOGIN", "Received Token: $token")
-                socialLogin(token ,"facebook")
-            } else {
-                Log.e("FB_LOGIN", "Login failed or cancelled")
-            }
-        }
-
-
-
         initUi()
 
     }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        facebookLoginHelper.getCallbackManager().onActivityResult(requestCode, resultCode, data)
-    }
-
 
     private fun checkAndRequestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -390,6 +373,17 @@ class SignInActivity : BaseActivity() {
             startActivity(intent)
         }
 
+        binding.phoneBtn.setOnClickListener {
+            val intent = Intent(this, PhoneSignInActivity::class.java).apply {
+                putExtra(PhoneSignInActivity.EXTRA_DEVICE_ID, deviceId)
+                putExtra(PhoneSignInActivity.EXTRA_NOTIFICATION_TOKEN, fcmToken)
+                putExtra(PhoneSignInActivity.EXTRA_LAT, userLat)
+                putExtra(PhoneSignInActivity.EXTRA_LNG, userLng)
+                putExtra(PhoneSignInActivity.EXTRA_LANGUAGE, currentLanguage)
+            }
+            phoneSignInLauncher.launch(intent)
+        }
+
         binding.forgetPassword.setOnClickListener {
             val intent = Intent(this, ResetPasswordActivity::class.java)
             startActivity(intent)
@@ -398,11 +392,6 @@ class SignInActivity : BaseActivity() {
         binding.googleBtn.setOnClickListener {
             googleSignIn()
         }
-        binding.facebookBtn.setOnClickListener {
-            facebookLoginHelper.login()
-        }
-
-
         binding.btnNext.setOnClickListener {
             val result = validateFields(binding.emailEt, binding.passwordEt)
             if (result.isValid) {

@@ -218,6 +218,31 @@ class AuthViewModel (private val authRepo: AuthRepo): ViewModel(){
         }
     }
 
+    fun verifyOtpLogin(dialCode: String, phoneNumber: String, deviceID: String, notificationToken: String, lat: Double, lng: Double, language: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = authRepo.verifyOtpLogin(dialCode, phoneNumber, deviceID, notificationToken, lat, lng, language)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _socialLoginResult.postValue(response.body())
+                    Log.wtf(tag, response.body().toString())
+                    _loading.postValue(false)
+                } else {
+                    Log.wtf(tag + "ELSE", response.message().toString())
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
 
     //ReSend-Otp
     private val _reSendOtpResult = MutableLiveData<LoginModal>()

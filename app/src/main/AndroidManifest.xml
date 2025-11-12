@@ -448,6 +448,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".activity.authentication.PhoneSignInActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activity.authentication.SignInActivity"
             android:configChanges="uiMode"
             android:exported="false" />
@@ -491,14 +496,6 @@
             </intent-filter>
         </service>
 
-        <meta-data
-            android:name="com.facebook.sdk.ApplicationId"
-            android:value="${facebook_app_id}" />
-        <meta-data
-            android:name="com.facebook.sdk.ClientToken"
-            android:value="${facebook_client_secrete}" />
-
-        <activity android:name="com.facebook.FacebookActivity" />
     </application>
 
 </manifest>

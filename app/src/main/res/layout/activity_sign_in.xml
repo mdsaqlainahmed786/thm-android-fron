@@ -269,13 +269,12 @@
                 app:layout_constraintStart_toStartOf="parent">
 
                 <RelativeLayout
-                    android:id="@+id/facebookBtn"
+                    android:id="@+id/phoneBtn"
                     android:layout_width="@dimen/_40sdp"
                     android:layout_height="@dimen/_40sdp"
                     android:background="@drawable/round_shape_selected"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toStartOf="@+id/googleBtn"
-                    app:layout_constraintHorizontal_bias="0.5"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent">
 
@@ -284,7 +283,7 @@
                         android:layout_height="wrap_content"
                         android:layout_centerInParent="true"
                         android:layout_gravity="center"
-                        android:src="@drawable/ic_facebook_icon" />
+                        android:src="@drawable/ic_phone_login" />
 
                 </RelativeLayout>
 
@@ -295,8 +294,7 @@
                     android:background="@drawable/round_shape_selected"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintHorizontal_bias="0.5"
-                    app:layout_constraintStart_toEndOf="@+id/facebookBtn"
+                    app:layout_constraintStart_toEndOf="@+id/phoneBtn"
                     app:layout_constraintTop_toTopOf="parent">
 
                     <ImageView
