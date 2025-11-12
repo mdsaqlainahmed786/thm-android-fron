@@ -17,6 +17,7 @@ import com.thehotelmedia.android.modals.authentication.individual.uploadProfileP
 import com.thehotelmedia.android.modals.authentication.individual.verifyEmail.IndividualVerifyEmailModal
 import com.thehotelmedia.android.modals.authentication.logOut.LogOutModal
 import com.thehotelmedia.android.modals.authentication.login.LoginModal
+import com.thehotelmedia.android.requestModel.auth.VerifyOtpRequest
 import com.thehotelmedia.android.modals.authentication.refreshToken.RefreshTokenModal
 import com.thehotelmedia.android.modals.getProfessions.GetProfessionModal
 import okhttp3.MultipartBody
@@ -101,6 +102,11 @@ interface Authentication {
         @Field("lat") lat: Double,
         @Field("lng") lng: Double,
         @Field("language") language: String
+    ): Call<LoginModal>
+
+    @POST("auth/otp-login")
+    fun verifyOtpLogin(
+        @Body request: VerifyOtpRequest
     ): Call<LoginModal>
 
     @POST("auth/resend-otp")

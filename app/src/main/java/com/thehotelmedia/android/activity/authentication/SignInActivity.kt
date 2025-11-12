@@ -124,6 +124,30 @@ class SignInActivity : BaseActivity() {
         }
     )
 
+    private val phoneSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { activityResult ->
+        if (activityResult.resultCode == Activity.RESULT_OK) {
+            val data = activityResult.data
+            val dialCode = data?.getStringExtra(PhoneSignInActivity.EXTRA_DIAL_CODE).orEmpty()
+            val phoneNumber = data?.getStringExtra(PhoneSignInActivity.EXTRA_PHONE_NUMBER).orEmpty()
+
+            if (dialCode.isNotEmpty() && phoneNumber.isNotEmpty()) {
+                authViewModel.verifyOtpLogin(
+                    dialCode = dialCode,
+                    phoneNumber = phoneNumber,
+                    deviceID = deviceId,
+                    notificationToken = fcmToken,
+                    lat = userLat,
+                    lng = userLng,
+                    language = currentLanguage
+                )
+            } else {
+                CustomSnackBar.showSnackBar(binding.root, "Unable to verify phone number. Please try again.")
+            }
+        }
+    }
+
 
 
     // Method to handle the result of the sign-in intent
@@ -365,7 +389,7 @@ class SignInActivity : BaseActivity() {
 
         binding.phoneBtn.setOnClickListener {
             val intent = Intent(this, PhoneSignInActivity::class.java)
-            startActivity(intent)
+            phoneSignInLauncher.launch(intent)
         }
 
         binding.forgetPassword.setOnClickListener {

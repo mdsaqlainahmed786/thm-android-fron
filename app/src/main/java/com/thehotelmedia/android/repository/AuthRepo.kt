@@ -22,6 +22,7 @@ import com.thehotelmedia.android.modals.authentication.individual.verifyEmail.In
 import com.thehotelmedia.android.modals.authentication.logOut.LogOutModal
 import com.thehotelmedia.android.modals.authentication.login.LoginModal
 import com.thehotelmedia.android.modals.authentication.refreshToken.RefreshTokenModal
+import com.thehotelmedia.android.requestModel.auth.VerifyOtpRequest
 import com.thehotelmedia.android.modals.getProfessions.GetProfessionModal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -92,6 +93,23 @@ class AuthRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.authApiService(context).create(Authentication::class.java)
             return@withContext call.socialLogin(socialType, token,dialCode,phoneNumber,deviceID,"android",notificationToken,lat,lng,language).execute()
+        }
+    }
+
+    suspend fun verifyOtpLogin(dialCode: String, phoneNumber: String, deviceID: String, notificationToken: String, lat: Double, lng: Double, language: String): Response<LoginModal> {
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.authApiService(context).create(Authentication::class.java)
+            val request = VerifyOtpRequest(
+                phoneNumber = phoneNumber,
+                dialCode = dialCode,
+                deviceID = deviceID,
+                devicePlatform = "android",
+                notificationToken = notificationToken,
+                lat = lat,
+                lng = lng,
+                language = language
+            )
+            return@withContext call.verifyOtpLogin(request).execute()
         }
     }
 

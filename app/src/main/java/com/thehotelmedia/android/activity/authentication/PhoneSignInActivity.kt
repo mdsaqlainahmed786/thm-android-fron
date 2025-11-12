@@ -4,16 +4,14 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.core.widget.addTextChangedListener
 import com.thehotelmedia.android.activity.BaseActivity
-import com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity
 import com.thehotelmedia.android.customClasses.CustomSnackBar
-import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.ActivityPhoneSignInBinding
 import com.thehotelmedia.android.customDialog.OtpDialogManager
+import android.app.Activity
 
 class PhoneSignInActivity : BaseActivity() {
 
     private lateinit var binding: ActivityPhoneSignInBinding
-    private lateinit var preferenceManager: PreferenceManager
     private lateinit var otpDialogManager: OtpDialogManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,7 +19,6 @@ class PhoneSignInActivity : BaseActivity() {
         binding = ActivityPhoneSignInBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        preferenceManager = PreferenceManager.getInstance(this)
         otpDialogManager = OtpDialogManager(this)
 
         setupListeners()
@@ -65,18 +62,19 @@ class PhoneSignInActivity : BaseActivity() {
     }
 
     private fun onOtpVerified(dialCode: String, phoneNumber: String) {
-        preferenceManager.putString(PreferenceManager.Keys.USER_DIAL_CODE, dialCode)
-        preferenceManager.putString(PreferenceManager.Keys.USER_PHONE_NUMBER, phoneNumber)
-
         CustomSnackBar.showSnackBar(binding.root, "Phone verified successfully.")
-        navigateToFeeds()
+
+        val resultIntent = Intent().apply {
+            putExtra(EXTRA_DIAL_CODE, dialCode)
+            putExtra(EXTRA_PHONE_NUMBER, phoneNumber)
+        }
+        setResult(Activity.RESULT_OK, resultIntent)
+        finish()
     }
 
-    private fun navigateToFeeds() {
-        val intent = Intent(this, BottomNavigationIndividualMainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-        startActivity(intent)
-        finish()
+    companion object {
+        const val EXTRA_DIAL_CODE = "extra_dial_code"
+        const val EXTRA_PHONE_NUMBER = "extra_phone_number"
     }
 }
 
