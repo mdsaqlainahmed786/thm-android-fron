@@ -36,13 +36,17 @@ class VideoImageViewerAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(mediaItem: MediaItems) {
-
-
             when (mediaItem.type) {
                 MediaType.IMAGE -> {
                     binding.imageView.visibility = View.VISIBLE
                     binding.videoLayout.visibility = View.GONE
                     binding.videoThumbnail.visibility = View.GONE
+                    binding.playPauseOverlay.visibility = View.GONE
+                    (binding.playerView.tag as? Player.Listener)?.let {
+                        exoPlayer.removeListener(it)
+                        binding.playerView.tag = null
+                    }
+                    binding.playerView.setOnClickListener(null)
                     onMediaTypeChanged(Constants.IMAGE)
                     Glide.with(context)
                         .load(mediaItem.uri)
@@ -57,42 +61,77 @@ class VideoImageViewerAdapter(
                     onMediaTypeChanged(Constants.VIDEO)
 
                     binding.imageView.visibility = View.GONE
-                    binding.videoThumbnail.visibility = View.GONE
+                    binding.videoThumbnail.visibility = View.VISIBLE
+                    Glide.with(context)
+                        .load(mediaItem.uri)
+                        .placeholder(R.drawable.ic_post_placeholder)
+                        .into(binding.videoThumbnail)
                     binding.videoLayout.visibility = View.VISIBLE
+                    binding.playPauseOverlay.visibility = View.GONE
 
                     binding.playerView.player = exoPlayer
+                    binding.playerView.useController = false
+                    controllerVisible(false)
 
-                    binding.playerView.setControllerVisibilityListener { visibility ->
-                        if (visibility == View.VISIBLE) {
-                            // Controller is visible
-                            controllerVisible(true)
-                        } else {
-                            // Controller is hidden
-                            controllerVisible(false)
-                        }
-                    }
-
-
+                    exoPlayer.clearMediaItems()
+                    exoPlayer.volume = 1f
+                    exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
                     val media = MediaItem.fromUri(mediaItem.uri)
                     exoPlayer.setMediaItem(media)
                     exoPlayer.prepare()
-                    exoPlayer.play()
+                    exoPlayer.seekTo(0)
+                    exoPlayer.playWhenReady = false
 
-                    // Add listener to handle playback state
-                    exoPlayer.addListener(object : Player.Listener {
-                        override fun onPlaybackStateChanged(state: Int) {
-                            if (state == Player.STATE_ENDED) {
-                //            binding.playPauseButton.setImageResource(R.drawable.ic_play_videos)
+                    (binding.playerView.tag as? Player.Listener)?.let { exoPlayer.removeListener(it) }
+                    val listener = object : Player.Listener {
+                        override fun onIsPlayingChanged(isPlaying: Boolean) {
+                            if (isPlaying) {
+                                binding.playPauseOverlay.visibility = View.GONE
+                            } else {
+                                binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
+                                binding.playPauseOverlay.visibility = View.VISIBLE
                             }
                         }
-                    })
 
-//                    binding.volumeSeekBar.progress = (exoPlayer.volume * 100).toInt()
+                        override fun onRenderedFirstFrame() {
+                            binding.videoThumbnail.visibility = View.GONE
+                        }
+                    }
+                    exoPlayer.addListener(listener)
+                    binding.playerView.tag = listener
+
+                    binding.playerView.setOnClickListener {
+                        if (exoPlayer.isPlaying) {
+                            exoPlayer.pause()
+                            binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
+                            binding.playPauseOverlay.visibility = View.VISIBLE
+                        } else {
+                            exoPlayer.play()
+                            binding.playPauseOverlay.setImageResource(R.drawable.ic_pause_circle)
+                            binding.playPauseOverlay.visibility = View.GONE
+                        }
+                    }
                 }
             }
         }
 
 
+    }
+
+    fun play() {
+        exoPlayer.playWhenReady = true
+        exoPlayer.play()
+    }
+
+    fun pause() {
+        exoPlayer.playWhenReady = false
+        exoPlayer.pause()
+    }
+
+    fun stopAndReset() {
+        exoPlayer.stop()
+        exoPlayer.seekTo(0)
+        exoPlayer.playWhenReady = false
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MediaViewHolder {

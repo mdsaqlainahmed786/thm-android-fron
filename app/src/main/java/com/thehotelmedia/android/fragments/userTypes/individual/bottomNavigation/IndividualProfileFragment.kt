@@ -218,6 +218,7 @@ class IndividualProfileFragment : Fragment() {
         val bundle = Bundle()
         bundle.putString("USER_ID", userId)
         bundle.putString("FROM", "Profile")
+        bundle.putBoolean("IS_CONNECTED", true)
         fragment.arguments = bundle
         // Clear the back stack
         childFragmentManager.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)

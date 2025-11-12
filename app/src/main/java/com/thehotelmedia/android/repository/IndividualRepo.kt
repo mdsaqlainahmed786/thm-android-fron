@@ -58,6 +58,7 @@ import com.thehotelmedia.android.modals.search.SearchModel
 import com.thehotelmedia.android.modals.share.shareProfile.ShareProfileModal
 import com.thehotelmedia.android.modals.storiesActions.DeleteStoryModal
 import com.thehotelmedia.android.modals.storiesActions.likeStory.LikesModal
+import com.thehotelmedia.android.modals.storiesActions.publishStory.PublishStoryModal
 import com.thehotelmedia.android.modals.storiesActions.likeViewStory.StoryActionModal
 import com.thehotelmedia.android.modals.subscriptionDetails.SubscriptionData
 import com.thehotelmedia.android.modals.subscriptions.CancelSubscriptions
@@ -593,6 +594,22 @@ class IndividualRepo (private val context: Context){
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
                 accessTokenBody, imagePart,videoPart
+            ).execute()
+        }
+    }
+
+    suspend fun publishPostToStory(postId: String): Response<PublishStoryModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        val bearerToken = "Bearer $accessToken"
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.publishPostToStory(
+                bearerToken,
+                postId,
+                emptyMap()
             ).execute()
         }
     }

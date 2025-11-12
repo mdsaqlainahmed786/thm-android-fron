@@ -31,18 +31,21 @@ class ProfilePostsFragment : Fragment() {
     private lateinit var postAdapter: SavedFeedAdapter
     private var userId: String = ""
     private var from: String = ""
+    private var viewerFollowsOwner: Boolean = false
     private lateinit var individualViewModal: IndividualViewModal
     private lateinit var progressBar: CustomProgressBar
 
     private var ownerUserId = ""
     private lateinit var preferenceManager : PreferenceManager
     private var activePosition = 0 // No active position initially
+    private var pendingStoryPostId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
             userId = it.getString("USER_ID") ?: ""
             from = it.getString("FROM") ?: ""
+            viewerFollowsOwner = it.getBoolean("IS_CONNECTED", false)
         }
     }
 
@@ -106,6 +109,29 @@ class ProfilePostsFragment : Fragment() {
         individualViewModal.reportToast.observe(viewLifecycleOwner){
             CustomSnackBar.showSnackBar(binding.root,it)
         }
+        individualViewModal.toast.observe(viewLifecycleOwner) { message ->
+            if (message.isNullOrBlank()) {
+                return@observe
+            }
+            progressBar.hide()
+            if (pendingStoryPostId != null && message.contains("already", ignoreCase = true)) {
+                pendingStoryPostId?.let { postAdapter.markPostShared(it) }
+            }
+            pendingStoryPostId = null
+            CustomSnackBar.showSnackBar(binding.root, message)
+        }
+        individualViewModal.publishStoryResult.observe(viewLifecycleOwner) { result ->
+            progressBar.hide()
+            if (result?.status == true) {
+                val successMessage = result.message?.takeIf { it.isNotBlank() }
+                    ?: getString(R.string.story_publish_success)
+                pendingStoryPostId?.let { postId ->
+                    postAdapter.markPostShared(postId)
+                }
+                CustomSnackBar.showSnackBar(binding.root, successMessage)
+            }
+            pendingStoryPostId = null
+        }
 
     }
 
@@ -122,7 +148,21 @@ class ProfilePostsFragment : Fragment() {
 //            }
 //        }
 
-        postAdapter = SavedFeedAdapter(requireContext(), individualViewModal, childFragmentManager,ownerUserId,from,this.lifecycleScope)
+        postAdapter = SavedFeedAdapter(
+            requireContext(),
+            individualViewModal,
+            childFragmentManager,
+            ownerUserId,
+            from,
+            this.lifecycleScope,
+            enableStoryShare = true,
+            viewerFollowsOwner = viewerFollowsOwner
+        )
+        postAdapter.onStoryShareRequested = { postId ->
+            pendingStoryPostId = postId
+            progressBar.show()
+            individualViewModal.publishPostToStory(postId)
+        }
         binding.postRecyclerView.adapter = postAdapter.withLoadStateFooter(footer = LoaderAdapter())
         binding.postRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         // Optimize RecyclerView performance
@@ -220,9 +260,10 @@ class ProfilePostsFragment : Fragment() {
         }
     }
 
-
-
-
-
-
+    fun updateViewerFollowState(isFollowing: Boolean) {
+        viewerFollowsOwner = isFollowing
+        if (this::postAdapter.isInitialized) {
+            postAdapter.updateViewerFollowState(isFollowing)
+        }
+    }
 }

@@ -61,6 +61,7 @@ import com.thehotelmedia.android.modals.share.shareProfile.ShareProfileModal
 import com.thehotelmedia.android.modals.storiesActions.DeleteStoryModal
 import com.thehotelmedia.android.modals.storiesActions.likeStory.LikeData
 import com.thehotelmedia.android.modals.storiesActions.likeViewStory.StoryActionModal
+import com.thehotelmedia.android.modals.storiesActions.publishStory.PublishStoryModal
 import com.thehotelmedia.android.modals.subscriptionDetails.SubscriptionData
 import com.thehotelmedia.android.modals.subscriptions.CancelSubscriptions
 import com.thehotelmedia.android.modals.subscriptions.SubscriptionsModal
@@ -102,6 +103,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import retrofit2.Response
 import java.io.File
+import org.json.JSONObject
 
 
 
@@ -872,6 +874,36 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
             } catch (t: Throwable) {
                 _loading.postValue(false)
                 toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
+    private val _publishStoryResult = MutableLiveData<PublishStoryModal>()
+    val publishStoryResult: LiveData<PublishStoryModal> = _publishStoryResult
+    fun publishPostToStory(postId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val response = individualRepo.publishPostToStory(postId)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _publishStoryResult.postValue(res)
+                    Log.wtf(tag, res.toString())
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.wtf(tag + "ELSE", "${response.code()} $errorBody")
+                    val message = try {
+                        JSONObject(errorBody ?: "{}").optString("message")
+                    } catch (e: Exception) {
+                        null
+                    }
+                    toastMessageLiveData.postValue(message?.takeIf { it.isNotBlank() } ?: response.message())
+                    _publishStoryResult.postValue(null)
+                }
+            } catch (t: Throwable) {
+                toastMessageLiveData.postValue(t.message)
+                _publishStoryResult.postValue(null)
                 Log.wtf(tag + "ERROR", t.message.toString())
             }
         }

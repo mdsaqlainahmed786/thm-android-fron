@@ -12,6 +12,7 @@ data class BusinessProfileRef (
     @SerializedName("rating"             ) var businessRating        : Double?             = null,
     @SerializedName("address"            ) var address               : Address?            = Address(),
     @SerializedName("businessTypeRef"    ) var businessTypeRef       : BusinessTypeRef?    = BusinessTypeRef(),
-    @SerializedName("businessSubtypeRef" ) var businessSubtypeRef    : BusinessSubtypeRef? = BusinessSubtypeRef()
+    @SerializedName("businessSubtypeRef" ) var businessSubtypeRef    : BusinessSubtypeRef? = BusinessSubtypeRef(),
+    @SerializedName("isFollowedByMe"     ) var isFollowedByMe        : Boolean?            = null
 
 )

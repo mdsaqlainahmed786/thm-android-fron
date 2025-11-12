@@ -87,7 +87,9 @@ class SavedPostActivity : BaseActivity() {
             supportFragmentManager,
             ownerUserId,
             "",
-            this.lifecycleScope
+            this.lifecycleScope,
+            enableStoryShare = false,
+            viewerFollowsOwner = false
         )
         binding.savedPostRv.adapter = savedFeedAdapter.withLoadStateFooter(footer = LoaderAdapter())
 
