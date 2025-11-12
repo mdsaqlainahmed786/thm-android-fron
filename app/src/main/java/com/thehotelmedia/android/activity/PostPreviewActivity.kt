@@ -57,6 +57,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 class PostPreviewActivity : BaseActivity() {
 
@@ -464,7 +465,7 @@ class PostPreviewActivity : BaseActivity() {
 
 
         binding.menuBtn.setOnClickListener { view ->
-            showMenuDialog(view,postId)
+            showMenuDialog(view, postId, data, canShareToStory = true)
         }
 
     }
@@ -611,7 +612,7 @@ class PostPreviewActivity : BaseActivity() {
         }
 
         binding.menuBtnReview.setOnClickListener { view ->
-            showMenuDialog(view, postId)
+            showMenuDialog(view, postId, data, canShareToStory = false)
         }
 
     }
@@ -653,7 +654,7 @@ class PostPreviewActivity : BaseActivity() {
             startActivity(intent)
     }
 
-    private fun showMenuDialog(view: View?, postId: String) {
+    private fun showMenuDialog(view: View?, postId: String, post: Data? = null, canShareToStory: Boolean = false) {
         // Inflate the dropdown menu layout
         val inflater = this.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val dropdownView = inflater.inflate(R.layout.single_post_menu_dropdown_item, null)
@@ -668,13 +669,20 @@ class PostPreviewActivity : BaseActivity() {
 
         // Find TextViews and set click listeners
 //        val blockBtn: TextView = dropdownView.findViewById(R.id.blockBtn)
-        val reportBtn: TextView = dropdownView.findViewById(R.id.reportBtn)
+        val reportBtn: TextView? = dropdownView.findViewById(R.id.reportBtn)
+        val addToStoryBtn: TextView? = dropdownView.findViewById(R.id.addToStoryBtn)
 //        val shareBtn: TextView = dropdownView.findViewById(R.id.shareBtn)
 
 
-
-        reportBtn.setOnClickListener {
+        reportBtn?.setOnClickListener {
             reportPost(postId)
+            popupWindow.dismiss()
+        }
+
+        val shouldShowAddToStory = canShareToStory && isStoryShareEligible(post)
+        addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
+        addToStoryBtn?.setOnClickListener {
+            publishPostToStory(postId)
             popupWindow.dismiss()
         }
 
@@ -689,6 +697,40 @@ class PostPreviewActivity : BaseActivity() {
         popupWindow.setOnDismissListener {
             // Handle any actions you want to perform when the popup is dismissed
         }
+    }
+
+    private fun isStoryShareEligible(post: Data?): Boolean {
+        if (post == null) return false
+        if (isMyPost(post)) return false
+        if (!hasShareableMedia(post)) return false
+        val isFollowing = post.postedBy?.isFollowedByMe == true ||
+                post.postedBy?.businessProfileRef?.isFollowedByMe == true
+        return isFollowing
+    }
+
+    private fun hasShareableMedia(post: Data): Boolean {
+        if (post.mediaRef.isEmpty()) return false
+        return post.mediaRef.any { media ->
+            val type = media.mediaType?.lowercase(Locale.getDefault())
+            val mimeType = media.mimeType?.lowercase(Locale.getDefault())
+            val isImage = type == "image" || (mimeType?.startsWith("image") == true)
+            val isVideo = type == "video" || (mimeType?.startsWith("video") == true)
+            val hasSource = !media.sourceUrl.isNullOrBlank()
+            (isImage || isVideo) && hasSource
+        }
+    }
+
+    private fun isMyPost(post: Data): Boolean {
+        if (ownerUserId.isBlank()) return false
+        val directOwnerId = post.userID
+        val postedById = post.postedBy?.Id
+        return ownerUserId.equals(directOwnerId, ignoreCase = true) ||
+                ownerUserId.equals(postedById, ignoreCase = true)
+    }
+
+    private fun publishPostToStory(postId: String) {
+        if (postId.isBlank()) return
+        individualViewModal.publishPostToStory(postId)
     }
 
 

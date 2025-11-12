@@ -354,6 +354,7 @@
     <string name="send">Send</string>
     <string name="scroll_down">Scroll down</string>
     <string name="report">Report</string>
+    <string name="add_to_story">Add this to your story</string>
     <string name="report_description">Your report is anonymous if someone is in immediate danger. call the local emergency services - don\'t wait.</string>
     <string name="cancel_subscription_text">Sure you want to Cancel Subscription?</string>
     <string name="no_cancel">No, Cancel</string>

@@ -308,11 +308,15 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
                     binding.followBtn.isEnabled = true
                     binding.followBtn.visibility = View.VISIBLE
                     binding.unFollowBtn.visibility = View.GONE
+                    notifyPostsFragmentFollowState()
                 }else{
                     binding.followTv.text = getString(R.string.following)
+                    isConnected = true
+                    isRequested = false
                     binding.followBtn.isEnabled = false
                     binding.followBtn.visibility = View.GONE
                     binding.unFollowBtn.visibility = View.VISIBLE
+                    notifyPostsFragmentFollowState()
                 }
             }else{
                 val msg = result.message.toString()
@@ -329,6 +333,7 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
 
                 binding.followBtn.visibility = View.VISIBLE
                 binding.unFollowBtn.visibility = View.GONE
+                notifyPostsFragmentFollowState()
 
             }else{
                 val msg = result.message.toString()
@@ -437,7 +442,7 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
 
         isConnected = result?.data?.isConnected ?: false
         isRequested = result?.data?.isRequested ?: false
-        isBlocked = result?.data?.isBlockedByMe ?: false
+        notifyPostsFragmentFollowState()
         val bookingType = result?.data?.booking ?: ""
 
         when (bookingType) {
@@ -711,6 +716,13 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
 
     }
 
+    private fun notifyPostsFragmentFollowState() {
+        val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        if (fragment is ProfilePostsFragment) {
+            fragment.updateViewerFollowState(isConnected)
+        }
+    }
+
     private fun reachAccount() {
         if (businessProfileId.isNotEmpty()){
             individualViewModal.accountReach(businessProfileId)
@@ -849,6 +861,7 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         // Create a Bundle to pass the userId
         val bundle = Bundle()
         bundle.putString("USER_ID", userId)
+        bundle.putBoolean("IS_CONNECTED", isConnected)
         fragment.arguments = bundle
 
         // Clear the back stack

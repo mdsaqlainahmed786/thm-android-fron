@@ -352,6 +352,7 @@
     <string name="send">Send</string>
     <string name="scroll_down">Scroll down</string>
     <string name="report">Report</string>
+    <string name="add_to_story">Add this to your story</string>
     <string name="report_description">Your report is anonymous if someone is in immediate danger. call the local emergency services - don\'t wait.</string>
     <string name="cancel_subscription_text">Sure you want to Cancel Subscription?</string>
     <string name="no_cancel">No, Cancel</string>
@@ -359,6 +360,7 @@
 
 
     <string name="something_went_wrong">Something went wrong</string>
+    <string name="story_publish_success">Post published as story successfully.</string>
     <string name="google_login_failed">Google Login Failed</string>
     <string name="please_select_type_first">Please select type first</string>
     <string name="enter_full_name">Enter your full name</string>

@@ -49,6 +49,7 @@ import com.thehotelmedia.android.modals.search.SearchModel
 import com.thehotelmedia.android.modals.share.shareProfile.ShareProfileModal
 import com.thehotelmedia.android.modals.storiesActions.DeleteStoryModal
 import com.thehotelmedia.android.modals.storiesActions.likeStory.LikesModal
+import com.thehotelmedia.android.modals.storiesActions.publishStory.PublishStoryModal
 import com.thehotelmedia.android.modals.storiesActions.likeViewStory.StoryActionModal
 import com.thehotelmedia.android.modals.subscriptionDetails.SubscriptionData
 import com.thehotelmedia.android.modals.subscriptions.CancelSubscriptions
@@ -605,6 +606,14 @@ interface Application {
         @Query("pageNumber") pageNumber: Int,
         @Query("documentLimit") documentLimit: Int,
     ): Call<LikesModal>
+
+    @retrofit2.http.Headers("Content-Type: application/json")
+    @POST("posts/{postID}/publish-as-story")
+    fun publishPostToStory(
+        @Header("Authorization") authorization: String,
+        @Path(value = "postID", encoded = true) postId: String,
+        @retrofit2.http.Body body: Map<String, @JvmSuppressWildcards Any>
+    ): Call<PublishStoryModal>
 
     @Multipart
     @POST("user/messaging/media-message")

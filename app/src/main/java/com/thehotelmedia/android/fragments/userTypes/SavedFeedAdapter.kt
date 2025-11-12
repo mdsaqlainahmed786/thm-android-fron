@@ -73,7 +73,11 @@ class SavedFeedAdapter(
     private val ownerUserId: String,
     private val from: String,
     private val lifecycleScope: LifecycleCoroutineScope,
+    private var enableStoryShare: Boolean,
+    private var viewerFollowsOwner: Boolean,
 ) : PagingDataAdapter<Data, RecyclerView.ViewHolder>(SAVED_FEED_DIFF_CALLBACK()) {
+    var onStoryShareRequested: ((String) -> Unit)? = null
+    private val sharedStoryPostIds = mutableSetOf<String>()
     private var dotsIndicator: SpringDotsIndicator? = null
     companion object {
         private const val VIEW_TYPE_POST = 0
@@ -613,7 +617,7 @@ class SavedFeedAdapter(
         binding.deleteBtn.visibility = View.GONE
 
         binding.menuBtn.setOnClickListener { view ->
-            showMenuDialog(view, postId, itemData, post)
+            showMenuDialog(view, postId, itemData, post, canShareToStory = enableStoryShare)
         }
         } catch (e: Exception) {
             // Catch any exceptions to prevent crashes
@@ -1132,7 +1136,7 @@ class SavedFeedAdapter(
 //    }
 
 
-    private fun showMenuDialog(view: View?, postId: String, itemData: Data?, post: Data?) {
+    private fun showMenuDialog(view: View?, postId: String, itemData: Data?, post: Data?, canShareToStory: Boolean = false) {
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
 
         // Check if user is the owner of the post
@@ -1158,6 +1162,7 @@ class SavedFeedAdapter(
             val editBtn: TextView? = dropdownView.findViewById(R.id.editBtn)
             val deleteBtn: TextView? = dropdownView.findViewById(R.id.deleteBtn)
             val reportBtn: TextView? = dropdownView.findViewById(R.id.reportBtn)
+            val addToStoryBtn: TextView? = dropdownView.findViewById(R.id.addToStoryBtn)
 
             // Show/hide edit and delete buttons based on ownership
             editBtn?.visibility = if (isOwner) View.VISIBLE else View.GONE
@@ -1209,10 +1214,26 @@ class SavedFeedAdapter(
                 reportPost(postId)
                 popupWindow.dismiss()
             }
+
+            val shouldShowAddToStory = canShareToStory && !isOwner && isStoryShareEligible(post)
+            addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
+            addToStoryBtn?.setOnClickListener {
+                onStoryShareRequested?.invoke(postId)
+                popupWindow.dismiss()
+            }
         } else {
-            val reportBtn: TextView = dropdownView.findViewById(R.id.reportBtn)
-            reportBtn.setOnClickListener {
+            val reportBtn: TextView? = dropdownView.findViewById(R.id.reportBtn)
+            val addToStoryBtn: TextView? = dropdownView.findViewById(R.id.addToStoryBtn)
+
+            reportBtn?.setOnClickListener {
                 reportPost(postId)
+                popupWindow.dismiss()
+            }
+
+            val shouldShowAddToStory = canShareToStory && isStoryShareEligible(post)
+            addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
+            addToStoryBtn?.setOnClickListener {
+                onStoryShareRequested?.invoke(postId)
                 popupWindow.dismiss()
             }
         }
@@ -1228,6 +1249,53 @@ class SavedFeedAdapter(
             // Handle any actions you want to perform when the popup is dismissed
         }
     }
+
+    private fun isStoryShareEligible(post: Data?): Boolean {
+        if (post == null) return false
+        if (isMyPost(post)) return false
+        if (!hasShareableMedia(post)) return false
+        if (!post.Id.isNullOrBlank() && sharedStoryPostIds.contains(post.Id)) return false
+        val isFollowing = viewerFollowsOwner ||
+                post.postedBy?.isFollowedByMe == true ||
+                post.postedBy?.businessProfileRef?.isFollowedByMe == true
+        return isFollowing
+    }
+
+    private fun hasShareableMedia(post: Data): Boolean {
+        if (post.mediaRef.isEmpty()) return false
+        return post.mediaRef.any { media ->
+            val type = media.mediaType?.lowercase(Locale.getDefault())
+            val mimeType = media.mimeType?.lowercase(Locale.getDefault())
+            val isImage = type == "image" || (mimeType?.startsWith("image") == true)
+            val isVideo = type == "video" || (mimeType?.startsWith("video") == true)
+            val hasSource = !media.sourceUrl.isNullOrBlank()
+            (isImage || isVideo) && hasSource
+        }
+    }
+
+    fun updateViewerFollowState(isFollowing: Boolean) {
+        viewerFollowsOwner = isFollowing
+        notifyDataSetChanged()
+    }
+
+    fun markPostShared(postId: String) {
+        sharedStoryPostIds.add(postId)
+        notifyDataSetChanged()
+    }
+
+    private fun isMyPost(post: Data): Boolean {
+        if (ownerUserId.isBlank()) return false
+        val directOwnerId = post.userID
+        val postedById = post.postedBy?.Id
+        return ownerUserId.equals(directOwnerId, ignoreCase = true) ||
+                ownerUserId.equals(postedById, ignoreCase = true)
+    }
+
+    private fun publishPostToStory(postId: String) {
+        if (postId.isBlank()) return
+        individualViewModal.publishPostToStory(postId)
+    }
+
 
     private fun reportPost(postId: String) {
 
