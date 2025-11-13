@@ -73,7 +73,14 @@ class ViewStoriesActivity : BaseActivity() {
             val storiesList = Gson().fromJson(jsonString, Array<Stories>::class.java).toList()
             println("sadjfgajsg  Retrieved storiesList: $storiesList")
 
-            setViewPager(storiesList)
+            // Ensure stories inside each user are ordered from oldest to newest
+            val chronologicallySortedStories = storiesList.map { stories ->
+                val sortedStoriesRef = stories.storiesRef
+                    .sortedBy { it.createdAt ?: "" }
+                stories.copy(storiesRef = ArrayList(sortedStoriesRef))
+            }
+
+            setViewPager(chronologicallySortedStories)
             // Now, you can access the story object data and bind it to your views
             // Example: binding.textViewStoryName.text = story.name
         } else {
