@@ -34,6 +34,7 @@ import com.thehotelmedia.android.adapters.LoaderAdapter
 import com.thehotelmedia.android.adapters.comments.CommentsAdapter
 import com.thehotelmedia.android.adapters.userTypes.individual.home.MediaPagerAdapter
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.SharePostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.TagPeopleBottomSheetFragment
 import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.customClasses.CustomProgressBar
@@ -459,8 +460,24 @@ class PostPreviewActivity : BaseActivity() {
 
         // Share button click
         binding.shareBtn.setOnClickListener {
+            if (postId.isNotBlank() && ownerUserId.isNotBlank()) {
+                val selectedMedia = if (mediaList.isNotEmpty()) {
+                    val currentIndex = binding.viewPager.currentItem.coerceIn(0, mediaList.size - 1)
+                    mediaList.getOrNull(currentIndex)
+                } else null
 
-            this.sharePostWithDeepLink(postId,ownerUserId)
+                val mediaType = selectedMedia?.mediaType?.lowercase(Locale.getDefault())
+                SharePostBottomSheetFragment.newInstance(
+                    postId = postId,
+                    ownerUserId = ownerUserId,
+                    mediaType = mediaType,
+                    mediaUrl = selectedMedia?.sourceUrl,
+                    thumbnailUrl = selectedMedia?.thumbnailUrl,
+                    mediaId = selectedMedia?.Id
+                ).show(supportFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
+            } else {
+                this.sharePostWithDeepLink(postId, ownerUserId)
+            }
         }
 
 
@@ -608,7 +625,7 @@ class PostPreviewActivity : BaseActivity() {
 
         // Share button click
         binding.shareBtnReview.setOnClickListener {
-            this.sharePostWithDeepLink(postId,ownerUserId)
+            this.sharePostWithDeepLink(postId, ownerUserId)
         }
 
         binding.menuBtnReview.setOnClickListener { view ->

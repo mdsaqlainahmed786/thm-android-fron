@@ -4,6 +4,7 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -15,6 +16,7 @@ import com.thehotelmedia.android.adapters.MediaType
 import com.thehotelmedia.android.adapters.VideoImageViewerAdapter
 import com.thehotelmedia.android.adapters.userTypes.individual.home.MediaActionCallback
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.SharePostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment
 import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.customClasses.Constants.VIDEO
@@ -94,6 +96,7 @@ class VideoImageViewer : DarkBaseActivity() {
         val mediaUrl = intent.getStringExtra("MEDIA_URL") ?: ""
         val mediaId = intent.getStringExtra("MEDIA_ID") ?: ""
         postId = intent.getStringExtra("POST_ID") ?: ""
+        val mediaThumbnailUrl = intent.getStringExtra("THUMBNAIL_URL") ?: ""
         val from = intent.getStringExtra("FROM") ?: ""
         isLikedByMe = intent.getBooleanExtra("LIKED_BY_ME",false)
         likeCount = intent.getIntExtra("LIKE_COUNT",0)
@@ -176,7 +179,26 @@ class VideoImageViewer : DarkBaseActivity() {
 
         // Share button click
         binding.shareBtn.setOnClickListener {
-            sharePostWithDeepLink(postId,ownerUserId)
+            val normalizedType = mediaType?.lowercase(Locale.getDefault()) ?: ""
+            val shareThumbnail = when (normalizedType) {
+                Constants.VIDEO -> mediaThumbnailUrl
+                else -> mediaThumbnailUrl.ifBlank { mediaUrl }
+            }
+
+            if (mediaUrl.isNotBlank() && normalizedType.isNotBlank()) {
+                SharePostBottomSheetFragment.newInstance(
+                    postId = postId,
+                    ownerUserId = ownerUserId,
+                    mediaType = normalizedType,
+                    mediaUrl = mediaUrl,
+                    thumbnailUrl = shareThumbnail,
+                    mediaId = mediaId
+                ).show(supportFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
+            } else if (postId.isNotBlank() && ownerUserId.isNotBlank()) {
+                sharePostWithDeepLink(postId, ownerUserId)
+            } else {
+                Toast.makeText(this, R.string.something_went_wrong, Toast.LENGTH_SHORT).show()
+            }
         }
 
 

@@ -216,7 +216,7 @@ class SearchReviewsAdapter(
 
             // Share button click
             binding.shareBtn.setOnClickListener {
-                context.sharePostWithDeepLink(postId,ownerUserId)
+                context.sharePostWithDeepLink(postId, ownerUserId)
             }
 
             binding.menuBtn.setOnClickListener { view ->

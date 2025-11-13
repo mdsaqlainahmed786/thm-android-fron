@@ -59,7 +59,7 @@ class MediaPagerAdapter(
 
 
                 }else{
-                    setupImageView(mediaItem.sourceUrl, mediaItem.Id, postId) // Default to image handling
+                    setupImageView(mediaItem, postId) // Default to image handling
                 }
                 return
             }
@@ -72,19 +72,20 @@ class MediaPagerAdapter(
 
             if (mediaItem.mediaType == VIDEO) {
                 val player = VideoPlayerManager.initializePlayer(context, mediaItem.sourceUrl)
-                setupVideoPlayer(mediaItem.sourceUrl, player,mediaItem.Id?: "",postId)
+                setupVideoPlayer(mediaItem, player, postId)
             } else {
-                setupImageView(mediaItem.sourceUrl,mediaItem.Id ?: "",postId)
+                setupImageView(mediaItem, postId)
             }
         }
 
         private fun setupVideoPlayer(
-            sourceUrl: String?,
+            mediaItem: MediaRef,
             player: ExoPlayer,
-            id: String,
             postId: String
         ) {
+            val sourceUrl = mediaItem.sourceUrl
             if (sourceUrl.isNullOrEmpty()) return
+            val id = mediaItem.Id ?: ""
 
             binding.videoLayout.visibility = View.VISIBLE
             binding.imageView.visibility = View.GONE
@@ -131,6 +132,7 @@ class MediaPagerAdapter(
                             putExtra("MEDIA_TYPE", VIDEO)
                             putExtra("MEDIA_ID", id)
                             putExtra("POST_ID", postId)
+                            putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl)
                             putExtra("LIKED_BY_ME", isPostLiked)
                             putExtra("LIKE_COUNT", likeCount)
                             putExtra("COMMENT_COUNT", commentCount)
@@ -173,7 +175,9 @@ class MediaPagerAdapter(
             }
         }
 
-        private fun setupImageView(sourceUrl: String?, id: String?, postId: String) {
+        private fun setupImageView(mediaItem: MediaRef, postId: String) {
+            val sourceUrl = mediaItem.sourceUrl
+            val id = mediaItem.Id
             binding.videoLayout.visibility = View.GONE
             binding.imageView.visibility = View.VISIBLE
 //            binding.imageView.loadImageInBackground(context, sourceUrl.orEmpty(), R.drawable.ic_post_placeholder)
@@ -190,6 +194,7 @@ class MediaPagerAdapter(
                     putExtra("MEDIA_TYPE", IMAGE)
                     putExtra("MEDIA_ID", id)
                     putExtra("POST_ID", postId)
+                    putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl ?: sourceUrl)
                     putExtra("LIKED_BY_ME", isPostLiked)
                     putExtra("LIKE_COUNT", likeCount)
                     putExtra("COMMENT_COUNT", commentCount)
