@@ -434,7 +434,7 @@ class StoryPagerAdapter(
                 mediaDuration = getVideoDuration(mediaUrl)
                 playVideo(mediaUrl, mediaDuration.toLong(), binding,users)
             } else {
-                mediaDuration = 10_000 // Fixed 10 seconds for images
+                mediaDuration = 15_000 // Fixed 15 seconds for images
                 showImage(mediaUrl, mediaDuration.toLong(), binding,users)
             }
         }
