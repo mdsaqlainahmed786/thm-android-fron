@@ -197,16 +197,24 @@ class ProfilePostsFragment : Fragment() {
                 lastUpdateTime = currentTime
 
                 val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
-                val firstVisibleItem = layoutManager.findFirstCompletelyVisibleItemPosition()
+                var candidatePosition = layoutManager.findFirstCompletelyVisibleItemPosition()
+                if (candidatePosition == RecyclerView.NO_POSITION) {
+                    candidatePosition = layoutManager.findFirstVisibleItemPosition()
+                }
 
-                if (firstVisibleItem != RecyclerView.NO_POSITION && firstVisibleItem != activePosition) {
-                    updateActivePosition(firstVisibleItem)
+                if (candidatePosition != RecyclerView.NO_POSITION && candidatePosition != activePosition) {
+                    updateActivePosition(candidatePosition)
                 }
             }
         })
 
-
-
+        // Ensure the initially visible item is marked active
+        (binding.postRecyclerView.layoutManager as? LinearLayoutManager)?.let { layoutManager ->
+            val initialPosition = layoutManager.findFirstVisibleItemPosition()
+            if (initialPosition != RecyclerView.NO_POSITION) {
+                updateActivePosition(initialPosition)
+            }
+        }
     }
 
     private fun updateActivePosition(newPosition: Int) {
