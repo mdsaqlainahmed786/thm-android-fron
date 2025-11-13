@@ -5,7 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
@@ -13,7 +13,9 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import android.view.Gravity
 import android.view.View
+import android.view.MotionEvent
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -22,6 +24,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -51,8 +54,11 @@ import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import com.yalantis.ucrop.UCrop
 import com.yalantis.ucrop.model.AspectRatio
+import ja.burhanrashid52.photoeditor.OnPhotoEditorListener
 import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.PhotoFilter
+import ja.burhanrashid52.photoeditor.TextStyleBuilder
+import ja.burhanrashid52.photoeditor.ViewType
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -62,7 +68,7 @@ class CreateStoryActivity : BaseActivity() {
     private lateinit var binding: ActivityCreateStoryBinding
     private val activity = this@CreateStoryActivity
     private var croppedImageUri: Uri? = null
-    private var selectedBackgroundResId: Int = android.R.color.transparent
+    private var selectedBackgroundResId: Int = R.drawable.text_background_transparent
     private lateinit var photoEditor: PhotoEditor
     private var businessesType = ""
     private lateinit var preferenceManager : PreferenceManager
@@ -70,6 +76,9 @@ class CreateStoryActivity : BaseActivity() {
     private lateinit var giffProgressBar : GiffProgressBar
     private lateinit var successGiff: SuccessGiff
     private lateinit var individualViewModal: IndividualViewModal
+    private lateinit var textEntryDialog: CustomTextEntryDialog
+    private var activeTextOverlay: View? = null
+    private var lastSelectedTextColor: Int = Color.WHITE
 
 
     private val pickMediaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -112,6 +121,7 @@ class CreateStoryActivity : BaseActivity() {
         photoEditor = PhotoEditor.Builder(this, binding.photoEditorView)
             .setPinchTextScalable(true)
             .build()
+        setupPhotoEditorListener()
         binding.filterLayout.visibility = View.GONE
 
         inItUi()
@@ -126,6 +136,16 @@ class CreateStoryActivity : BaseActivity() {
         giffProgressBar = GiffProgressBar(activity) // 'this' refers to the context
         successGiff = SuccessGiff(activity) // 'this' refers to the context
         progressBar = CustomProgressBar(activity) // 'this' refers to the context
+        textEntryDialog = CustomTextEntryDialog(this) { text, color, backgroundResId ->
+            lastSelectedTextColor = color
+            selectedBackgroundResId = backgroundResId
+            activeTextOverlay?.let {
+                updateExistingTextOverlay(it, text, color, backgroundResId)
+            } ?: run {
+                addTextOverlay(text, color, backgroundResId)
+            }
+            activeTextOverlay = null
+        }
 
         // Check and request necessary permissions
         checkPermissions()
@@ -156,11 +176,11 @@ class CreateStoryActivity : BaseActivity() {
             emojiEntryDialog.show()
         }
         binding.addTextButton.setOnClickListener {
-            val textEntryDialog = CustomTextEntryDialog(this) { text, color, backgroundResId ->
-                selectedBackgroundResId = backgroundResId
-                addTextWithBackground(text, color)
-            }
-            textEntryDialog.show()
+            activeTextOverlay = null
+            textEntryDialog.show(
+                initialColor = lastSelectedTextColor,
+                initialBackgroundResId = selectedBackgroundResId
+            )
         }
 
 
@@ -499,40 +519,115 @@ class CreateStoryActivity : BaseActivity() {
         binding.filterRecyclerView.adapter = filterAdapter
     }
 
+    private fun setupPhotoEditorListener() {
+        photoEditor.setOnPhotoEditorListener(object : OnPhotoEditorListener {
+            override fun onEditTextChangeListener(rootView: View?, text: String?, colorCode: Int) {
+                rootView ?: return
+                binding.photoEditorView.post {
+                    configureTextOverlay(rootView)
+                }
+            }
+
+            override fun onAddViewListener(viewType: ViewType?, numberOfAddedViews: Int) {
+                if (viewType == ViewType.TEXT) {
+                    binding.photoEditorView.post {
+                        getLatestTextOverlay()?.let { configureTextOverlay(it) }
+                    }
+                }
+            }
+
+            override fun onRemoveViewListener(viewType: ViewType?, numberOfAddedViews: Int) {
+                if (viewType == ViewType.TEXT && activeTextOverlay != null) {
+                    val stillPresent = (0 until binding.photoEditorView.childCount)
+                        .map { binding.photoEditorView.getChildAt(it) }
+                        .any { it == activeTextOverlay }
+                    if (!stillPresent) {
+                        activeTextOverlay = null
+                    }
+                }
+            }
+
+            override fun onStartViewChangeListener(viewType: ViewType?) {}
+
+            override fun onStopViewChangeListener(viewType: ViewType?) {}
+
+            override fun onTouchSourceImage(event: MotionEvent?) {}
+        })
+    }
+
     // Add emoji to the image
     private fun addEmoji(emoji: String) {
         photoEditor.addEmoji(emoji)
     }
-    private fun addTextWithBackground(text: String, color: Int) {
-        val textWithBackgroundBitmap = createTextBitmap(text, color, selectedBackgroundResId)
-        // Add the bitmap to the image using PhotoEditor
-        photoEditor.addImage(textWithBackgroundBitmap)
-//        Toast.makeText(this, "Text with background added", Toast.LENGTH_SHORT).show()
+    private fun addTextOverlay(text: String, color: Int, backgroundResId: Int) {
+        val textStyleBuilder = TextStyleBuilder().apply {
+            withTextColor(color)
+            ContextCompat.getDrawable(activity, backgroundResId)?.let { withBackgroundDrawable(it) }
+            ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
+            withGravity(Gravity.CENTER)
+        }
+        photoEditor.addText(text, textStyleBuilder)
+        binding.photoEditorView.post {
+            getLatestTextOverlay()?.let { overlay ->
+                overlay.setTag(R.id.story_text_background_res_id, backgroundResId)
+                configureTextOverlay(overlay)
+            }
+        }
     }
 
-    private fun createTextBitmap(text: String, color: Int, backgroundResId: Int): Bitmap {
-        val view = layoutInflater.inflate(R.layout.text_with_background, null)
-        val textView = view.findViewById<TextView>(R.id.text_view)
+    private fun updateExistingTextOverlay(overlay: View, text: String, color: Int, backgroundResId: Int) {
+        val textStyleBuilder = TextStyleBuilder().apply {
+            withTextColor(color)
+            ContextCompat.getDrawable(activity, backgroundResId)?.let { withBackgroundDrawable(it) }
+            ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
+            withGravity(Gravity.CENTER)
+        }
+        overlay.setTag(R.id.story_text_background_res_id, backgroundResId)
+        photoEditor.editText(overlay, text, textStyleBuilder)
+        binding.photoEditorView.post {
+            configureTextOverlay(overlay)
+        }
+    }
 
-        // Set the text color and background
-        textView.text = text
-        textView.setTextColor(color)
-        textView.setBackgroundResource(backgroundResId)
+    private fun getLatestTextOverlay(): View? {
+        val parent = binding.photoEditorView
+        for (index in parent.childCount - 1 downTo 0) {
+            val child = parent.getChildAt(index)
+            if (child.findViewById<TextView>(R.id.tvPhotoEditorText) != null) {
+                return child
+            }
+        }
+        return null
+    }
 
-        // Set the max width programmatically to ensure text wrapping
-        val maxWidth = (300 * resources.displayMetrics.density).toInt() // 300dp to pixels
-        textView.maxWidth = maxWidth
+    private fun configureTextOverlay(overlay: View) {
+        val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText) ?: return
+        val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
 
-        // Measure and layout the view
-        view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
-        view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+        val detectedBackgroundRes = (overlay.getTag(R.id.story_text_background_res_id) as? Int) ?: run {
+            val currentBackground = textView.background
+            val transparent = ContextCompat.getDrawable(this, R.drawable.text_background_transparent)
+            val white = ContextCompat.getDrawable(this, R.drawable.text_background_white)
+            val black = ContextCompat.getDrawable(this, R.drawable.text_background_black)
+            when (currentBackground?.constantState) {
+                white?.constantState -> R.drawable.text_background_white
+                black?.constantState -> R.drawable.text_background_black
+                else -> R.drawable.text_background_transparent
+            }
+        }
+        overlay.setTag(R.id.story_text_background_res_id, detectedBackgroundRes)
 
-        // Create bitmap and draw the view onto it
-        val bitmap = Bitmap.createBitmap(view.measuredWidth, view.measuredHeight, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        view.draw(canvas)
+        textView.background = ContextCompat.getDrawable(this, detectedBackgroundRes)
+        editIcon?.visibility = View.VISIBLE
 
-        return bitmap
+        editIcon?.setOnClickListener {
+            activeTextOverlay = overlay
+            textEntryDialog.show(
+                initialText = textView.text.toString(),
+                initialColor = textView.currentTextColor,
+                initialBackgroundResId = detectedBackgroundRes
+            )
+        }
     }
 
     private fun saveEditedImage() {

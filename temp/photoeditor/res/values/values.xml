@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PhotoEditor</string>
+    <declare-styleable name="PhotoEditorView">
+        <attr format="integer" name="photo_src"/>
+    </declare-styleable>
+</resources>
