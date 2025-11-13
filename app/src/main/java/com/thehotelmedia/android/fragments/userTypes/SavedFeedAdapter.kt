@@ -34,6 +34,7 @@ import com.thehotelmedia.android.adapters.userTypes.individual.home.MediaPagerAd
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.EditPostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.SharePostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.TagPeopleBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment
 import com.thehotelmedia.android.customClasses.Constants
@@ -41,7 +42,6 @@ import com.thehotelmedia.android.customClasses.MessageStore
 import com.thehotelmedia.android.databinding.EventItemsLayoutBinding
 import com.thehotelmedia.android.databinding.PostItemsLayoutBinding
 import com.thehotelmedia.android.databinding.ReviewItemsLayoutBinding
-import com.thehotelmedia.android.extensions.EncryptionHelper
 import com.thehotelmedia.android.extensions.blurTheView
 import com.thehotelmedia.android.extensions.calculateDaysAgo
 import com.thehotelmedia.android.extensions.formatCount
@@ -210,18 +210,6 @@ class SavedFeedAdapter(
             else -> throw IllegalArgumentException("Invalid item")
         }
     }
-
-    private fun generateDeepLink(encryptedId: String, encryptedName: String): String {
-        val baseUrl = "https://thehotelmedia.com/post"
-        return "$baseUrl?type=$encryptedId&name=$encryptedName"
-    }
-    private fun shareContent(text: String) {
-        val intent = Intent(Intent.ACTION_SEND)
-        intent.type = "text/plain"
-        intent.putExtra(Intent.EXTRA_TEXT, text)
-        context.startActivity(Intent.createChooser(intent, "Share via"))
-    }
-
 
     private fun moveToBusinessProfileDetailsActivity(userId: String) {
             val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
@@ -600,16 +588,24 @@ class SavedFeedAdapter(
 
         // Share button click
         binding.shareBtn.setOnClickListener {
-            val encryptedId = EncryptionHelper.encrypt("categoryId")
-            val encryptedName = EncryptionHelper.encrypt("categoryName")
-            val link = generateDeepLink(encryptedId, encryptedName)
-            val message = "Hey there, Look post here:\n\n$link"
-            shareContent(message)
-        }
+            if (postId.isNotBlank() && ownerUserId.isNotBlank()) {
+                val selectedMedia = if (mediaList.isNotEmpty()) {
+                    val currentIndex = binding.viewPager.currentItem.coerceIn(0, mediaList.size - 1)
+                    mediaList.getOrNull(currentIndex)
+                } else null
 
-        // Share button click
-        binding.shareBtn.setOnClickListener {
-            context.sharePostWithDeepLink(postId,ownerUserId)
+                val mediaType = selectedMedia?.mediaType?.lowercase(Locale.getDefault())
+                SharePostBottomSheetFragment.newInstance(
+                    postId = postId,
+                    ownerUserId = ownerUserId,
+                    mediaType = mediaType,
+                    mediaUrl = selectedMedia?.sourceUrl,
+                    thumbnailUrl = selectedMedia?.thumbnailUrl,
+                    mediaId = selectedMedia?.Id
+                ).show(parentFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
+            } else {
+                context.sharePostWithDeepLink(postId, ownerUserId)
+            }
         }
 
         // Hide edit and delete buttons - they are now in the menu
@@ -770,7 +766,7 @@ class SavedFeedAdapter(
         }
         // Share button click
         binding.shareBtn.setOnClickListener {
-            context.sharePostWithDeepLink(postId,ownerUserId)
+            context.sharePostWithDeepLink(postId, ownerUserId)
         }
 
         binding.menuBtn.setOnClickListener { view ->

@@ -38,6 +38,7 @@ import com.thehotelmedia.android.adapters.userTypes.individual.home.MediaPagerAd
 import com.thehotelmedia.android.adapters.userTypes.individual.home.StoryAdapter
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.SharePostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.TagPeopleBottomSheetFragment
 import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.databinding.EventItemsLayoutBinding
@@ -791,8 +792,24 @@ class FeedAdapter(
 
         // Share button click
         binding.shareBtn.setOnClickListener {
+            if (postId.isNotBlank() && ownerUserId.isNotBlank()) {
+                val selectedMedia = if (mediaList.isNotEmpty()) {
+                    val currentIndex = binding.viewPager.currentItem.coerceIn(0, mediaList.size - 1)
+                    mediaList.getOrNull(currentIndex)
+                } else null
 
-            context.sharePostWithDeepLink(postId,ownerUserId)
+                val mediaType = selectedMedia?.mediaType?.lowercase(Locale.getDefault())
+                SharePostBottomSheetFragment.newInstance(
+                    postId = postId,
+                    ownerUserId = ownerUserId,
+                    mediaType = mediaType,
+                    mediaUrl = selectedMedia?.sourceUrl,
+                    thumbnailUrl = selectedMedia?.thumbnailUrl,
+                    mediaId = selectedMedia?.Id
+                ).show(parentFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
+            } else {
+                context.sharePostWithDeepLink(postId, ownerUserId)
+            }
         }
 
 
@@ -957,7 +974,12 @@ class FeedAdapter(
 
         // Share button click
         binding.shareBtn.setOnClickListener {
-            context.sharePostWithDeepLink(postId,ownerUserId)
+            if (postId.isNotBlank() && ownerUserId.isNotBlank()) {
+                SharePostBottomSheetFragment.newInstance(postId, ownerUserId)
+                    .show(parentFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
+            } else {
+                context.sharePostWithDeepLink(postId, ownerUserId)
+            }
         }
 
         binding.menuBtn.setOnClickListener { view ->

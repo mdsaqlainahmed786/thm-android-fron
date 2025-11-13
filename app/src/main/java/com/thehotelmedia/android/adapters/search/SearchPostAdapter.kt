@@ -32,6 +32,7 @@ import com.thehotelmedia.android.activity.BusinessProfileDetailsActivity
 import com.thehotelmedia.android.adapters.userTypes.individual.home.MediaPagerAdapter
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.SharePostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.TagPeopleBottomSheetFragment
 import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.databinding.PostItemsLayoutBinding
@@ -48,6 +49,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 
 class SearchPostAdapter(
@@ -271,7 +273,24 @@ class SearchPostAdapter(
 
             // Share button click
             binding.shareBtn.setOnClickListener {
-                context.sharePostWithDeepLink(postId,ownerUserId)
+                if (postId.isNotBlank() && ownerUserId.isNotBlank()) {
+                    val selectedMedia = if (mediaList.isNotEmpty()) {
+                        val currentIndex = binding.viewPager.currentItem.coerceIn(0, mediaList.size - 1)
+                        mediaList.getOrNull(currentIndex)
+                    } else null
+
+                    val mediaType = selectedMedia?.mediaType?.lowercase(Locale.getDefault())
+                    SharePostBottomSheetFragment.newInstance(
+                        postId = postId,
+                        ownerUserId = ownerUserId,
+                        mediaType = mediaType,
+                        mediaUrl = selectedMedia?.sourceUrl,
+                        thumbnailUrl = selectedMedia?.thumbnailUrl,
+                        mediaId = selectedMedia?.Id
+                    ).show(childFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
+                } else {
+                    context.sharePostWithDeepLink(postId, ownerUserId)
+                }
             }
 
             binding.menuBtn.setOnClickListener { view ->

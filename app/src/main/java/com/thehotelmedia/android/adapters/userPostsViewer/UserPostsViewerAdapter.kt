@@ -20,6 +20,7 @@ import com.thehotelmedia.android.adapters.MediaItems
 import com.thehotelmedia.android.adapters.MediaType
 import com.thehotelmedia.android.adapters.VideoImageViewerAdapter
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.SharePostBottomSheetFragment
 import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.databinding.ItemUserPostViewerBinding
 import com.thehotelmedia.android.extensions.calculateDaysAgo
@@ -273,7 +274,27 @@ class UserPostsViewerAdapter(
 
         private fun setupShareButton(userId: String) {
             val listener = View.OnClickListener {
-                context.sharePostWithDeepLink(postId, userId)
+                if (postId.isNotBlank() && userId.isNotBlank()) {
+                    val mediaList = currentPost?.mediaRef
+                    val selectedMedia = mediaList?.let { list ->
+                        if (list.isNotEmpty()) {
+                            val currentIndex = binding.mediaViewPager.currentItem.coerceIn(0, list.size - 1)
+                            list.getOrNull(currentIndex)
+                        } else null
+                    }
+
+                    val mediaType = selectedMedia?.mediaType?.lowercase(Locale.getDefault())
+                    SharePostBottomSheetFragment.newInstance(
+                        postId = postId,
+                        ownerUserId = userId,
+                        mediaType = mediaType,
+                        mediaUrl = selectedMedia?.sourceUrl,
+                        thumbnailUrl = selectedMedia?.thumbnailUrl,
+                        mediaId = selectedMedia?.Id
+                    ).show(fragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
+                } else {
+                    context.sharePostWithDeepLink(postId, userId)
+                }
             }
             binding.reelShareBtn.setOnClickListener(listener)
             binding.photoShareBtn.setOnClickListener(listener)
