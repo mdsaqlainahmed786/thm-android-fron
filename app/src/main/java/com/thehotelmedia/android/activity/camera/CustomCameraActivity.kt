@@ -1,6 +1,7 @@
 package com.thehotelmedia.android.activity.camera
 
 import android.Manifest
+import android.animation.ObjectAnimator
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -67,6 +68,7 @@ class CustomCameraActivity : BaseActivity() {
     private var initialZoomRatio = 1f
     private var minZoomRatio = 1f
     private var maxZoomRatio = 1f
+    private var recordingIndicatorAnimator: ObjectAnimator? = null
     private val longPressRunnable = Runnable {
         longPressTriggered = true
         startRecording()
@@ -101,6 +103,7 @@ class CustomCameraActivity : BaseActivity() {
         videoRecordingTimer?.cancel()
         captureCountdown?.cancel()
         longPressHandler.removeCallbacks(longPressRunnable)
+        recordingIndicatorAnimator?.cancel()
         cameraExecutor.shutdown()
     }
 
@@ -275,8 +278,8 @@ class CustomCameraActivity : BaseActivity() {
     private fun startCaptureCountdown(durationMillis: Long) {
         captureCountdown?.cancel()
         isTimerRunning = true
-        binding.recordingProgress.visibility = View.GONE
-        binding.recordingTimer.visibility = View.VISIBLE
+        binding.recordingStatusLayout.visibility = View.VISIBLE
+        binding.recordingIndicator.visibility = View.GONE
         captureCountdown = object : CountDownTimer(durationMillis, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
                 val seconds = ((millisUntilFinished + 999L) / 1000L).toInt()
@@ -285,7 +288,7 @@ class CustomCameraActivity : BaseActivity() {
             }
 
             override fun onFinish() {
-                binding.recordingTimer.visibility = View.GONE
+                binding.recordingStatusLayout.visibility = View.GONE
                 binding.actionHint.setText(R.string.camera_hint_photo)
                 isTimerRunning = false
                 takePhoto()
@@ -328,9 +331,9 @@ class CustomCameraActivity : BaseActivity() {
             isRecording = true
             captureCountdown?.cancel()
             isTimerRunning = false
-            binding.recordingTimer.visibility = View.VISIBLE
-            binding.recordingProgress.visibility = View.VISIBLE
-            binding.recordingProgress.isIndeterminate = true
+            binding.recordingStatusLayout.visibility = View.VISIBLE
+            binding.recordingIndicator.visibility = View.GONE
+            showRecordingIndicator()
             binding.actionHint.setText(R.string.camera_hint_video_hold)
             videoRecordingTimer?.cancel()
             videoRecordingTimer = object : CountDownTimer(MAX_VIDEO_DURATION_MS, 1000L) {
@@ -354,8 +357,8 @@ class CustomCameraActivity : BaseActivity() {
         activeRecording = null
         runOnUiThread {
             isRecording = false
-            binding.recordingTimer.visibility = View.GONE
-            binding.recordingProgress.visibility = View.GONE
+            binding.recordingStatusLayout.visibility = View.GONE
+            hideRecordingIndicator()
             binding.actionHint.setText(R.string.camera_hint_photo)
         }
 
@@ -375,6 +378,7 @@ class CustomCameraActivity : BaseActivity() {
         if (isRecording) {
             activeRecording?.stop()
             longPressTriggered = false
+            hideRecordingIndicator()
         }
     }
 
@@ -405,6 +409,24 @@ class CustomCameraActivity : BaseActivity() {
             binding.filterOverlay.alpha = filterStyle.overlayAlpha
             binding.filterButton.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.blue))
         }
+    }
+
+    private fun showRecordingIndicator() {
+        binding.recordingIndicator.visibility = View.VISIBLE
+        recordingIndicatorAnimator?.cancel()
+        recordingIndicatorAnimator = ObjectAnimator.ofFloat(binding.recordingIndicator, View.ALPHA, 1f, 0.2f).apply {
+            duration = 500
+            repeatMode = ObjectAnimator.REVERSE
+            repeatCount = ObjectAnimator.INFINITE
+            start()
+        }
+    }
+
+    private fun hideRecordingIndicator() {
+        recordingIndicatorAnimator?.cancel()
+        recordingIndicatorAnimator = null
+        binding.recordingIndicator.visibility = View.GONE
+        binding.recordingIndicator.alpha = 1f
     }
 
     private fun toggleCamera() {

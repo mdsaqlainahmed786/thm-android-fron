@@ -26,24 +26,6 @@
         app:layout_constraintStart_toStartOf="@id/cameraPreview"
         app:layout_constraintEnd_toEndOf="@id/cameraPreview" />
 
-    <View
-        android:id="@+id/topGradient"
-        android:layout_width="0dp"
-        android:layout_height="120dp"
-        android:background="@drawable/bg_camera_top_gradient"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <View
-        android:id="@+id/bottomGradient"
-        android:layout_width="0dp"
-        android:layout_height="150dp"
-        android:background="@drawable/bg_camera_bottom_gradient"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="0dp"
@@ -124,34 +106,33 @@
 
     </LinearLayout>
 
-    <com.google.android.material.progressindicator.LinearProgressIndicator
-        android:id="@+id/recordingProgress"
-        style="@style/Widget.MaterialComponents.LinearProgressIndicator"
-        android:layout_width="0dp"
-        android:layout_height="6dp"
-        android:layout_marginStart="40dp"
-        android:layout_marginEnd="40dp"
-        android:indeterminate="false"
-        android:progress="0"
-        android:visibility="gone"
-        app:indicatorColor="@color/blue"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <TextView
-        android:id="@+id/recordingTimer"
+    <LinearLayout
+        android:id="@+id/recordingStatusLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:fontFamily="@font/comic_regular"
-        android:text="00:00"
-        android:textColor="@android:color/white"
-        android:textSize="14sp"
+        android:gravity="center_vertical"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/recordingProgress"
+        app:layout_constraintTop_toBottomOf="@id/topBar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <View
+            android:id="@+id/recordingIndicator"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
+            android:background="@drawable/bg_camera_record_indicator" />
+
+        <TextView
+            android:id="@+id/recordingTimer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:fontFamily="@font/comic_regular"
+            android:text="00:00"
+            android:textColor="@android:color/white"
+            android:textSize="14sp" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/captureButtonContainer"
