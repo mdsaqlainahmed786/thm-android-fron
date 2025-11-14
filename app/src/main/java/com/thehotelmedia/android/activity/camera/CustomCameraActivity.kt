@@ -8,7 +8,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +29,9 @@ import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.util.Consumer
@@ -48,9 +54,19 @@ class CustomCameraActivity : BaseActivity() {
     private var videoCapture: VideoCapture<Recorder>? = null
     private var activeRecording: Recording? = null
     private var camera: Camera? = null
-    private var captureMode: CaptureMode = CaptureMode.PHOTO
     private var flashState: FlashState = FlashState.AUTO
-    private var recordingTimer: CountDownTimer? = null
+    private var videoRecordingTimer: CountDownTimer? = null
+    private var captureCountdown: CountDownTimer? = null
+    private val longPressHandler = Handler(Looper.getMainLooper())
+    private var longPressTriggered = false
+    private var isRecording = false
+    private var isTimerRunning = false
+    private var timerOption: TimerOption = TimerOption.OFF
+    private var filterStyle: FilterStyle = FilterStyle.NONE
+    private val longPressRunnable = Runnable {
+        longPressTriggered = true
+        startRecording()
+    }
 
     private val galleryLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -78,7 +94,9 @@ class CustomCameraActivity : BaseActivity() {
     override fun onDestroy() {
         super.onDestroy()
         activeRecording?.close()
-        recordingTimer?.cancel()
+        videoRecordingTimer?.cancel()
+        captureCountdown?.cancel()
+        longPressHandler.removeCallbacks(longPressRunnable)
         cameraExecutor.shutdown()
     }
 
@@ -92,12 +110,13 @@ class CustomCameraActivity : BaseActivity() {
         flashButton.setOnClickListener { toggleFlash() }
         switchCameraButton.setOnClickListener { toggleCamera() }
         galleryButton.setOnClickListener { openGallery() }
-        captureButton.setOnClickListener { handleCapture() }
-        photoMode.setOnClickListener { setCaptureMode(CaptureMode.PHOTO) }
-        videoMode.setOnClickListener { setCaptureMode(CaptureMode.VIDEO) }
+        captureButton.setOnTouchListener { _, event -> handleCaptureTouch(event) }
+        timerButton.setOnClickListener { cycleTimerOption() }
+        filterButton.setOnClickListener { cycleFilterStyle() }
 
-        updateModeUi()
         updateFlashIcon()
+        binding.actionHint.setText(R.string.camera_hint_photo)
+        applyFilterStyle()
     }
 
     private fun startCamera() {
@@ -148,15 +167,53 @@ class CustomCameraActivity : BaseActivity() {
         }
     }
 
-    private fun handleCapture() {
-        when (captureMode) {
-            CaptureMode.PHOTO -> takePhoto()
-            CaptureMode.VIDEO -> toggleRecording()
+    private fun handleCaptureTouch(event: MotionEvent): Boolean {
+        if (isTimerRunning) return true
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                if (isRecording) return true
+                longPressTriggered = false
+                binding.captureInnerCircle.animate()
+                    .scaleX(0.92f)
+                    .scaleY(0.92f)
+                    .setDuration(120)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+                longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_DURATION)
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                binding.captureInnerCircle.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(120)
+                    .setInterpolator(AccelerateDecelerateInterpolator())
+                    .start()
+                longPressHandler.removeCallbacks(longPressRunnable)
+                if (longPressTriggered) {
+                    stopRecording()
+                } else {
+                    triggerPhotoCapture()
+                }
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun triggerPhotoCapture() {
+        if (isRecording) return
+        longPressTriggered = false
+        if (timerOption.durationMillis > 0) {
+            startCaptureCountdown(timerOption.durationMillis)
+        } else {
+            takePhoto()
         }
     }
 
     private fun takePhoto() {
         val capture = imageCapture ?: return
+        binding.actionHint.setText(R.string.camera_hint_photo)
         val photoFile = File(cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
@@ -179,14 +236,30 @@ class CustomCameraActivity : BaseActivity() {
             }
         )
     }
+    private fun startCaptureCountdown(durationMillis: Long) {
+        captureCountdown?.cancel()
+        isTimerRunning = true
+        binding.recordingProgress.visibility = View.GONE
+        binding.recordingTimer.visibility = View.VISIBLE
+        captureCountdown = object : CountDownTimer(durationMillis, 1000L) {
+            override fun onTick(millisUntilFinished: Long) {
+                val seconds = ((millisUntilFinished + 999L) / 1000L).toInt()
+                binding.recordingTimer.text = seconds.toString()
+                binding.actionHint.text = getString(R.string.camera_timer_running, seconds)
+            }
 
-    private fun toggleRecording() {
+            override fun onFinish() {
+                binding.recordingTimer.visibility = View.GONE
+                binding.actionHint.setText(R.string.camera_hint_photo)
+                isTimerRunning = false
+                takePhoto()
+            }
+        }.start()
+    }
+
+    private fun startRecording() {
+        if (isRecording || isTimerRunning) return
         val capture = videoCapture ?: return
-        val currentRecording = activeRecording
-        if (currentRecording != null) {
-            stopRecording()
-            return
-        }
 
         val outputDirectory = getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: filesDir
         val videoFile = File(outputDirectory, "camera_video_${System.currentTimeMillis()}.mp4")
@@ -211,12 +284,15 @@ class CustomCameraActivity : BaseActivity() {
 
     private fun onRecordingStarted() {
         runOnUiThread {
+            isRecording = true
+            captureCountdown?.cancel()
+            isTimerRunning = false
             binding.recordingTimer.visibility = View.VISIBLE
             binding.recordingProgress.visibility = View.VISIBLE
             binding.recordingProgress.isIndeterminate = true
-            binding.actionHint.text = getString(R.string.camera_hint_video)
-            recordingTimer?.cancel()
-            recordingTimer = object : CountDownTimer(MAX_VIDEO_DURATION_MS, 1000L) {
+            binding.actionHint.setText(R.string.camera_hint_video_hold)
+            videoRecordingTimer?.cancel()
+            videoRecordingTimer = object : CountDownTimer(MAX_VIDEO_DURATION_MS, 1000L) {
                 var elapsed = 0
                 override fun onTick(millisUntilFinished: Long) {
                     elapsed++
@@ -233,12 +309,13 @@ class CustomCameraActivity : BaseActivity() {
     }
 
     private fun onRecordingFinished(event: VideoRecordEvent.Finalize, outputUri: Uri) {
-        recordingTimer?.cancel()
+        videoRecordingTimer?.cancel()
         activeRecording = null
         runOnUiThread {
+            isRecording = false
             binding.recordingTimer.visibility = View.GONE
             binding.recordingProgress.visibility = View.GONE
-            binding.actionHint.text = getString(R.string.camera_hint_photo)
+            binding.actionHint.setText(R.string.camera_hint_photo)
         }
 
         if (event.hasError()) {
@@ -254,24 +331,39 @@ class CustomCameraActivity : BaseActivity() {
     }
 
     private fun stopRecording() {
-        activeRecording?.stop()
-        activeRecording = null
-    }
-
-    private fun setCaptureMode(mode: CaptureMode) {
-        if (captureMode == mode) return
-        captureMode = mode
-        updateModeUi()
-        binding.actionHint.text = if (mode == CaptureMode.PHOTO) {
-            getString(R.string.camera_hint_photo)
-        } else {
-            getString(R.string.camera_hint_video)
+        if (isRecording) {
+            activeRecording?.stop()
+            longPressTriggered = false
         }
     }
 
-    private fun updateModeUi() = with(binding) {
-        photoMode.isSelected = captureMode == CaptureMode.PHOTO
-        videoMode.isSelected = captureMode == CaptureMode.VIDEO
+    private fun cycleTimerOption() {
+        timerOption = timerOption.next()
+        val tintColor = if (timerOption == TimerOption.OFF) {
+            Color.WHITE
+        } else {
+            ContextCompat.getColor(this, R.color.blue)
+        }
+        binding.timerButton.imageTintList = ColorStateList.valueOf(tintColor)
+        Toast.makeText(this, getString(timerOption.messageRes), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun cycleFilterStyle() {
+        filterStyle = filterStyle.next()
+        applyFilterStyle()
+        Toast.makeText(this, getString(filterStyle.messageRes), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun applyFilterStyle() {
+        if (filterStyle == FilterStyle.NONE) {
+            binding.filterOverlay.visibility = View.GONE
+            binding.filterButton.imageTintList = ColorStateList.valueOf(Color.WHITE)
+        } else {
+            binding.filterOverlay.visibility = View.VISIBLE
+            binding.filterOverlay.setBackgroundColor(filterStyle.overlayColor)
+            binding.filterOverlay.alpha = filterStyle.overlayAlpha
+            binding.filterButton.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.blue))
+        }
     }
 
     private fun toggleCamera() {
@@ -351,14 +443,34 @@ class CustomCameraActivity : BaseActivity() {
         }
     }
 
-    private enum class CaptureMode {
-        PHOTO, VIDEO
-    }
-
     private enum class FlashState(val imageCaptureMode: Int) {
         AUTO(ImageCapture.FLASH_MODE_AUTO),
         ON(ImageCapture.FLASH_MODE_ON),
         OFF(ImageCapture.FLASH_MODE_OFF)
+    }
+
+    private enum class TimerOption(val durationMillis: Long, val messageRes: Int) {
+        OFF(0L, R.string.camera_timer_off),
+        THREE(3_000L, R.string.camera_timer_three),
+        TEN(10_000L, R.string.camera_timer_ten);
+
+        fun next(): TimerOption = when (this) {
+            OFF -> THREE
+            THREE -> TEN
+            TEN -> OFF
+        }
+    }
+
+    private enum class FilterStyle(val overlayColor: Int, val overlayAlpha: Float, val messageRes: Int) {
+        NONE(Color.TRANSPARENT, 0f, R.string.camera_filter_none),
+        WARM(Color.parseColor("#FFB74D"), 0.25f, R.string.camera_filter_warm),
+        COOL(Color.parseColor("#64B5F6"), 0.25f, R.string.camera_filter_cool);
+
+        fun next(): FilterStyle = when (this) {
+            NONE -> WARM
+            WARM -> COOL
+            COOL -> NONE
+        }
     }
 
     companion object {
@@ -369,6 +481,8 @@ class CustomCameraActivity : BaseActivity() {
         const val MEDIA_TYPE_VIDEO = "video"
         private const val REQUEST_CAMERA_PERMISSION = 4001
         private const val MAX_VIDEO_DURATION_MS = 30_000L
+
+        private const val LONG_PRESS_DURATION = 350L
 
         private val REQUIRED_PERMISSIONS = buildList {
             add(Manifest.permission.CAMERA)

@@ -647,12 +647,18 @@
     <string name="camera_flash_toggle">Toggle flash</string>
     <string name="camera_timer">Timer</string>
     <string name="camera_filter">Filters</string>
-    <string name="camera_mode_photo">Photo</string>
-    <string name="camera_mode_video">Video</string>
     <string name="camera_open_gallery">Open gallery</string>
     <string name="camera_switch">Switch camera</string>
     <string name="camera_hint_photo">Tap to capture a photo</string>
     <string name="camera_hint_video">Tap to start recording</string>
+    <string name="camera_hint_video_hold">Hold to record a video</string>
+    <string name="camera_timer_off">Timer off</string>
+    <string name="camera_timer_three">Timer set to 3 seconds</string>
+    <string name="camera_timer_ten">Timer set to 10 seconds</string>
+    <string name="camera_timer_running">Capturing in %1$ds</string>
+    <string name="camera_filter_none">Filter off</string>
+    <string name="camera_filter_warm">Warm filter on</string>
+    <string name="camera_filter_cool">Cool filter on</string>
     <string name="camera_recording_saved">Recording saved</string>
 
 </resources>
