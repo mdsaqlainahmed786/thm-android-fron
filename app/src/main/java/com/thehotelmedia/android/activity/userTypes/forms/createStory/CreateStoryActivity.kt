@@ -33,10 +33,10 @@ import com.bumptech.glide.request.transition.Transition
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
-import com.thehotelmedia.android.activity.authentication.individual.IndividualMediaActivity.Companion.CAMERA_PERMISSION_CODE
 import com.thehotelmedia.android.activity.userTypes.forms.CreatePostActivity.Companion.PERMISSION_REQUEST_CODE_READ_EXTERNAL_STORAGE
 import com.thehotelmedia.android.activity.userTypes.forms.CreatePostActivity.Companion.PERMISSION_REQUEST_CODE_WRITE_EXTERNAL_STORAGE
 import com.thehotelmedia.android.activity.userTypes.forms.VideoTrimmerActivity
+import com.thehotelmedia.android.activity.camera.CustomCameraActivity
 import com.thehotelmedia.android.adapters.imageEditor.FilterAdapter
 import com.thehotelmedia.android.customClasses.Constants.business_type_individual
 import com.thehotelmedia.android.customClasses.CustomProgressBar
@@ -99,16 +99,17 @@ class CreateStoryActivity : BaseActivity() {
         }
     }
 
-    private val cameraLauncher: ActivityResultLauncher<Intent> =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val imageBitmap = result.data?.extras?.get("data") as Bitmap
-                val savedUri = saveImageToStorage(imageBitmap)
-                savedUri?.let { uri ->
-                    startCropActivity(uri)
-                }
+    private val customCameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val mediaUri = result.data?.getStringExtra(CustomCameraActivity.RESULT_MEDIA_URI)?.let { Uri.parse(it) } ?: return@registerForActivityResult
+            val mediaType = result.data?.getStringExtra(CustomCameraActivity.RESULT_MEDIA_TYPE)
+            if (mediaType == CustomCameraActivity.MEDIA_TYPE_VIDEO) {
+                checkVideoDurationAndTrim(mediaUri)
+            } else {
+                startCropActivity(mediaUri)
             }
         }
+    }
 
 
 
@@ -311,7 +312,7 @@ class CreateStoryActivity : BaseActivity() {
             photoIconResId = R.drawable.ic_gallery_blue,
             videoIconResId = R.drawable.ic_camera_blue,
             photoClickListener = { pickMultipleMedia() },
-            videoClickListener = { pickCameraPhotos() },
+            videoClickListener = { launchCustomCamera() },
             onDismissListener = {
                 // Handle dialog dismiss event
 //                println("Dialog dismissed")
@@ -394,22 +395,11 @@ class CreateStoryActivity : BaseActivity() {
         startActivity(intent)
     }
 
-    private fun pickCameraPhotos() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.CAMERA),
-                CAMERA_PERMISSION_CODE
-            )
-        } else {
-            captureImageFromCamera()
+    private fun launchCustomCamera() {
+        val intent = Intent(this, CustomCameraActivity::class.java).apply {
+            putExtra(CustomCameraActivity.EXTRA_CAMERA_TITLE, getString(R.string.create_story_large))
         }
-    }
-    private fun captureImageFromCamera() {
-        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        cameraLauncher.launch(cameraIntent)
+        customCameraLauncher.launch(intent)
     }
 
     private fun startCropActivity(uri: Uri) {
@@ -686,22 +676,6 @@ class CreateStoryActivity : BaseActivity() {
 
     private fun postStory(imageFile: File) {
         individualViewModal.createStory(imageFile,null)
-    }
-
-
-    private fun saveImageToStorage(bitmap: Bitmap): Uri? {
-        val folder = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-        val file = File(folder, "edited_image_${System.currentTimeMillis()}.jpg")
-        return try {
-            val stream = FileOutputStream(file)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-            stream.flush()
-            stream.close()
-            Uri.fromFile(file)
-        } catch (e: IOException) {
-            Log.e("SaveImage", "Error saving image: ${e.message}")
-            null
-        }
     }
 
 

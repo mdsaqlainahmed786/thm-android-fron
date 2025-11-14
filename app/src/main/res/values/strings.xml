@@ -641,4 +641,18 @@
     <string name="no_room_available">No room available</string>
     <string name="reject">Reject</string>
 
+    <string name="close">Close</string>
+    <string name="camera_title_story">Create story</string>
+    <string name="camera_title_post">Create post</string>
+    <string name="camera_flash_toggle">Toggle flash</string>
+    <string name="camera_timer">Timer</string>
+    <string name="camera_filter">Filters</string>
+    <string name="camera_mode_photo">Photo</string>
+    <string name="camera_mode_video">Video</string>
+    <string name="camera_open_gallery">Open gallery</string>
+    <string name="camera_switch">Switch camera</string>
+    <string name="camera_hint_photo">Tap to capture a photo</string>
+    <string name="camera_hint_video">Tap to start recording</string>
+    <string name="camera_recording_saved">Recording saved</string>
+
 </resources>
