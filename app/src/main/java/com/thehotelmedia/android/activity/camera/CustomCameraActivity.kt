@@ -63,6 +63,10 @@ class CustomCameraActivity : BaseActivity() {
     private var isTimerRunning = false
     private var timerOption: TimerOption = TimerOption.OFF
     private var filterStyle: FilterStyle = FilterStyle.NONE
+    private var initialTouchY = 0f
+    private var initialZoomRatio = 1f
+    private var minZoomRatio = 1f
+    private var maxZoomRatio = 1f
     private val longPressRunnable = Runnable {
         longPressTriggered = true
         startRecording()
@@ -161,6 +165,11 @@ class CustomCameraActivity : BaseActivity() {
                 imageCapture,
                 videoCapture
             )
+            // Get zoom range
+            camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
+                minZoomRatio = zoomState.minZoomRatio
+                maxZoomRatio = zoomState.maxZoomRatio
+            }
             applyFlashStateToTorch()
         } catch (ex: Exception) {
             Toast.makeText(this, ex.localizedMessage ?: getString(R.string.something_went_wrong), Toast.LENGTH_SHORT).show()
@@ -171,7 +180,14 @@ class CustomCameraActivity : BaseActivity() {
         if (isTimerRunning) return true
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                if (isRecording) return true
+                initialTouchY = event.y
+                if (isRecording) {
+                    // Get current zoom when starting a new drag gesture during recording
+                    camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
+                        initialZoomRatio = zoomState.zoomRatio
+                    }
+                    return true
+                }
                 longPressTriggered = false
                 binding.captureInnerCircle.animate()
                     .scaleX(0.92f)
@@ -182,6 +198,26 @@ class CustomCameraActivity : BaseActivity() {
                 longPressHandler.postDelayed(longPressRunnable, LONG_PRESS_DURATION)
                 return true
             }
+            MotionEvent.ACTION_MOVE -> {
+                if (isRecording) {
+                    // Calculate zoom based on vertical drag
+                    val deltaY = initialTouchY - event.y // Positive when dragging up (zoom in)
+                    val screenHeight = binding.root.height.toFloat()
+                    if (screenHeight > 0) {
+                        // Use a sensitivity factor for smoother zoom control
+                        val sensitivity = 2.0f // Adjust this to make zoom more/less sensitive
+                        val dragRatio = (deltaY / screenHeight) * sensitivity
+                        
+                        // Calculate new zoom ratio (drag up = zoom in, drag down = zoom out)
+                        val zoomRange = maxZoomRatio - minZoomRatio
+                        val newZoomRatio = (initialZoomRatio + (dragRatio * zoomRange)).coerceIn(minZoomRatio, maxZoomRatio)
+                        
+                        // Apply zoom
+                        camera?.cameraControl?.setZoomRatio(newZoomRatio)
+                    }
+                    return true
+                }
+            }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 binding.captureInnerCircle.animate()
                     .scaleX(1f)
@@ -190,7 +226,7 @@ class CustomCameraActivity : BaseActivity() {
                     .setInterpolator(AccelerateDecelerateInterpolator())
                     .start()
                 longPressHandler.removeCallbacks(longPressRunnable)
-                if (longPressTriggered) {
+                if (longPressTriggered || isRecording) {
                     stopRecording()
                 } else {
                     triggerPhotoCapture()
@@ -260,6 +296,11 @@ class CustomCameraActivity : BaseActivity() {
     private fun startRecording() {
         if (isRecording || isTimerRunning) return
         val capture = videoCapture ?: return
+
+        // Capture initial zoom ratio when recording starts
+        camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
+            initialZoomRatio = zoomState.zoomRatio
+        }
 
         val outputDirectory = getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: filesDir
         val videoFile = File(outputDirectory, "camera_video_${System.currentTimeMillis()}.mp4")
