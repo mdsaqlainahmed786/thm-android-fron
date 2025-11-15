@@ -2,6 +2,7 @@ package com.thehotelmedia.android.activity.userTypes.forms.createStory
 
 import android.Manifest
 import android.app.Activity
+import android.content.ContentResolver
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -11,11 +12,10 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.provider.MediaStore
 import android.util.Log
 import android.view.Gravity
-import android.view.View
 import android.view.MotionEvent
+import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -30,13 +30,16 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.transition.Transition
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
+import com.thehotelmedia.android.activity.camera.CustomCameraActivity
 import com.thehotelmedia.android.activity.userTypes.forms.CreatePostActivity.Companion.PERMISSION_REQUEST_CODE_READ_EXTERNAL_STORAGE
 import com.thehotelmedia.android.activity.userTypes.forms.CreatePostActivity.Companion.PERMISSION_REQUEST_CODE_WRITE_EXTERNAL_STORAGE
 import com.thehotelmedia.android.activity.userTypes.forms.VideoTrimmerActivity
-import com.thehotelmedia.android.activity.camera.CustomCameraActivity
 import com.thehotelmedia.android.adapters.imageEditor.FilterAdapter
 import com.thehotelmedia.android.customClasses.Constants.business_type_individual
 import com.thehotelmedia.android.customClasses.CustomProgressBar
@@ -79,6 +82,9 @@ class CreateStoryActivity : BaseActivity() {
     private lateinit var textEntryDialog: CustomTextEntryDialog
     private var activeTextOverlay: View? = null
     private var lastSelectedTextColor: Int = Color.WHITE
+    private var currentVideoUri: Uri? = null
+    private var videoPlayer: ExoPlayer? = null
+    private var isFilterAvailable = true
 
 
     private val pickMediaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -104,7 +110,7 @@ class CreateStoryActivity : BaseActivity() {
             val mediaUri = result.data?.getStringExtra(CustomCameraActivity.RESULT_MEDIA_URI)?.let { Uri.parse(it) } ?: return@registerForActivityResult
             val mediaType = result.data?.getStringExtra(CustomCameraActivity.RESULT_MEDIA_TYPE)
             if (mediaType == CustomCameraActivity.MEDIA_TYPE_VIDEO) {
-                checkVideoDurationAndTrim(mediaUri)
+                showVideoPreview(mediaUri)
             } else {
                 startCropActivity(mediaUri)
             }
@@ -160,6 +166,10 @@ class CreateStoryActivity : BaseActivity() {
         }
 
         binding.filterButton.setOnClickListener {
+            if (!isFilterAvailable) {
+                Toast.makeText(activity, "Filters are available for photos only", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             if (binding.filterLayout.visibility == View.VISIBLE){
                 binding.filterLayout.visibility = View.GONE
                 binding.filterTv.setTextColor(ContextCompat.getColor(activity, R.color.white_60))
@@ -343,27 +353,15 @@ class CreateStoryActivity : BaseActivity() {
         }
         // Check if the MIME type starts with "video/"
         else if (mimeType?.startsWith("video/") == true) {
-            checkVideoDurationAndTrim(uri)
+            showVideoPreview(uri)
         }
     }
     private fun checkVideoDurationAndTrim(uri: Uri) {
-        val projection = arrayOf(MediaStore.Video.Media.DURATION)
-        val cursor = contentResolver.query(uri, projection, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-//                val durationMillis = it.getLong(it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION))
-//                val durationSeconds = durationMillis / 1000
-
-                val savedVideoUri = saveVideo(uri)
-
-                // Launch the video trimmer with the saved video URI
-                if (savedVideoUri != null) {
-                    showVideoTrimmer(savedVideoUri)
-                }
-            }
-        } ?: run {
-            Log.e("CreatePostActivity", "Failed to retrieve video duration")
+        val savedVideoUri = saveVideo(uri) ?: run {
+            Toast.makeText(this, "Unable to prepare video", Toast.LENGTH_SHORT).show()
+            return
         }
+        showVideoTrimmer(savedVideoUri)
     }
 
     private fun saveVideo(uri: Uri): Uri? {
@@ -451,6 +449,8 @@ class CreateStoryActivity : BaseActivity() {
     }
 
     private fun loadImage(uri: Uri) {
+        hideVideoPreview()
+        updateFilterAvailability(true)
         Glide.with(this)
             .asBitmap()
             .load(uri)
@@ -579,6 +579,70 @@ class CreateStoryActivity : BaseActivity() {
         }
     }
 
+    private fun showVideoPreview(uri: Uri) {
+        currentVideoUri = uri
+        binding.photoEditorView.visibility = View.GONE
+        binding.videoPreview.visibility = View.VISIBLE
+        updateFilterAvailability(false)
+
+        val playableUri = normalizeVideoUri(uri) ?: run {
+            Toast.makeText(this, "Video file not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Log.d("CreateStoryActivity", "Showing video at $playableUri")
+
+        val player = videoPlayer ?: ExoPlayer.Builder(this).build().also {
+            videoPlayer = it
+            binding.videoPreview.player = it
+        }
+        player.setMediaItem(MediaItem.fromUri(playableUri))
+        player.repeatMode = Player.REPEAT_MODE_ONE
+        player.prepare()
+        player.playWhenReady = true
+        player.play()
+    }
+
+    private fun hideVideoPreview() {
+        videoPlayer?.pause()
+        videoPlayer?.stop()
+        binding.videoPreview.player = null
+        videoPlayer?.release()
+        videoPlayer = null
+        binding.videoPreview.visibility = View.GONE
+        binding.photoEditorView.visibility = View.VISIBLE
+        currentVideoUri = null
+    }
+
+    private fun updateFilterAvailability(isAvailable: Boolean) {
+        isFilterAvailable = isAvailable
+        binding.filterButton.alpha = if (isAvailable) 1f else 0.5f
+        if (isAvailable) {
+            binding.filterTv.setTextColor(ContextCompat.getColor(activity, R.color.text_color_60))
+            binding.filterIv.setImageDrawable(ContextCompat.getDrawable(activity, R.drawable.ic_image_filter))
+        } else {
+            binding.filterLayout.visibility = View.GONE
+            binding.filterTv.setTextColor(ContextCompat.getColor(activity, R.color.white_60))
+            binding.filterIv.setImageDrawable(ContextCompat.getDrawable(activity, R.drawable.ic_image_filter))
+        }
+    }
+
+    private fun normalizeVideoUri(uri: Uri): Uri? {
+        return when {
+            uri.scheme.isNullOrEmpty() -> {
+                val path = uri.path ?: return null
+                val file = File(path)
+                if (file.exists()) Uri.fromFile(file) else null
+            }
+            uri.scheme == ContentResolver.SCHEME_FILE -> {
+                val path = uri.path ?: return null
+                val file = File(path)
+                if (file.exists()) uri else null
+            }
+            else -> uri
+        }
+    }
+
     private fun getLatestTextOverlay(): View? {
         val parent = binding.photoEditorView
         for (index in parent.childCount - 1 downTo 0) {
@@ -621,6 +685,10 @@ class CreateStoryActivity : BaseActivity() {
     }
 
     private fun saveEditedImage() {
+        currentVideoUri?.let { uri ->
+            checkVideoDurationAndTrim(uri)
+            return
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             // Request storage permission for Android 9 and below
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -653,7 +721,7 @@ class CreateStoryActivity : BaseActivity() {
                             imageFile
                         )
 
-                        postStory(imageFile) // Upload or share the image
+                        postStory(imageFile, null) // Upload or share the image
 
                         // Return URI as result
                         val resultIntent = Intent().apply {
@@ -674,9 +742,27 @@ class CreateStoryActivity : BaseActivity() {
         }, 300)
     }
 
-    private fun postStory(imageFile: File) {
-        individualViewModal.createStory(imageFile,null)
+    private fun postStory(imageFile: File?, videoFile: File?) {
+        individualViewModal.createStory(imageFile, videoFile)
     }
 
+    override fun onPause() {
+        super.onPause()
+        if (binding.videoPreview.visibility == View.VISIBLE) {
+            videoPlayer?.pause()
+        }
+    }
 
+    override fun onResume() {
+        super.onResume()
+        if (binding.videoPreview.visibility == View.VISIBLE && currentVideoUri != null) {
+            videoPlayer?.playWhenReady = true
+        }
+    }
+
+    override fun onDestroy() {
+        videoPlayer?.release()
+        videoPlayer = null
+        super.onDestroy()
+    }
 }

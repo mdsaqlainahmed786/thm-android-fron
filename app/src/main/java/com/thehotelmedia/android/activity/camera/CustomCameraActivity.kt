@@ -549,6 +549,7 @@ class CustomCameraActivity : BaseActivity() {
 
         private val REQUIRED_PERMISSIONS = buildList {
             add(Manifest.permission.CAMERA)
+            add(Manifest.permission.RECORD_AUDIO)
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                 add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
