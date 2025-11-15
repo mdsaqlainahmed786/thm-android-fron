@@ -11,6 +11,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
 import com.thehotelmedia.android.customClasses.*
@@ -40,6 +43,7 @@ class VideoTrimmerActivity : BaseActivity() {
     private lateinit var giffProgressBar: GiffProgressBar
     private lateinit var successGiff: SuccessGiff
     private lateinit var individualViewModal: IndividualViewModal
+    private var exoPlayer: ExoPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,33 +83,18 @@ class VideoTrimmerActivity : BaseActivity() {
         successGiff = SuccessGiff(this)
         progressBar = CustomProgressBar(this)
 
+        setSavingState(false)
         binding.back.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        binding.save.setOnClickListener { handleSaveAction() }
 
         if (from == "CreateStory") {
             videoDuration = 30
         }
 
-        // Immediately proceed without trimming
-        videoUri?.let { uri ->
-            if (from == "CreateStory") {
-                val videoFile = copyUriToTempFile(uri)
-                if (videoFile != null) {
-                    individualViewModal.createStory(null, videoFile)
-                } else {
-                    showToast("Unable to prepare video")
-                    finish()
-                    return
-                }
-            } else {
-                val resultIntent = Intent().apply {
-                    putExtra("trimmed_video_uri", uri.toString())
-                }
-                setResult(RESULT_OK, resultIntent)
-                finish()
-            }
-        }
+        initializePlayer()
 
         individualViewModal.createStoryResult.observe(this) { result ->
+            setSavingState(false)
             if (result.status == true) {
                 result.message?.let { msg ->
                     runOnUiThread {
@@ -161,5 +150,61 @@ class VideoTrimmerActivity : BaseActivity() {
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun initializePlayer() {
+        val uri = videoUri ?: return
+        exoPlayer = ExoPlayer.Builder(this).build().also { player ->
+            binding.playerView.player = player
+            player.setMediaItem(MediaItem.fromUri(uri))
+            player.repeatMode = Player.REPEAT_MODE_ONE
+            player.prepare()
+            player.playWhenReady = true
+        }
+    }
+
+    private fun releasePlayer() {
+        binding.playerView.player = null
+        exoPlayer?.release()
+        exoPlayer = null
+    }
+
+    private fun handleSaveAction() {
+        val uri = videoUri
+        if (uri == null) {
+            showToast("Video not available")
+            return
+        }
+        if (from == "CreateStory") {
+            setSavingState(true)
+            val videoFile = copyUriToTempFile(uri)
+            if (videoFile != null) {
+                individualViewModal.createStory(null, videoFile)
+            } else {
+                setSavingState(false)
+                showToast("Unable to prepare video")
+            }
+        } else {
+            val resultIntent = Intent().apply {
+                putExtra("trimmed_video_uri", uri.toString())
+            }
+            setResult(RESULT_OK, resultIntent)
+            finish()
+        }
+    }
+
+    private fun setSavingState(isSaving: Boolean) {
+        binding.save.isEnabled = !isSaving
+        binding.save.alpha = if (isSaving) 0.4f else 1f
+    }
+
+    override fun onPause() {
+        super.onPause()
+        exoPlayer?.pause()
+    }
+
+    override fun onDestroy() {
+        releasePlayer()
+        super.onDestroy()
     }
 }

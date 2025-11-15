@@ -10,7 +10,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -35,12 +34,12 @@ import com.google.android.flexbox.JustifyContent
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
-import com.thehotelmedia.android.activity.authentication.individual.IndividualMediaActivity.Companion.CAMERA_PERMISSION_CODE
 import com.thehotelmedia.android.activity.userTypes.business.bottomNavigation.BottomNavigationBusinessMainActivity
 import com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity
 import com.thehotelmedia.android.activity.userTypes.forms.createPost.FeelingActivity
 import com.thehotelmedia.android.activity.userTypes.forms.createPost.TagPeople
 import com.thehotelmedia.android.activity.userTypes.forms.createPost.TagPeopleActivity
+import com.thehotelmedia.android.activity.camera.CustomCameraActivity
 import com.thehotelmedia.android.adapters.userTypes.individual.forms.AttachedMediaAdapter
 import com.thehotelmedia.android.adapters.userTypes.individual.forms.TagsAdapter
 import com.thehotelmedia.android.customClasses.Constants
@@ -68,7 +67,6 @@ class CreatePostActivity : BaseActivity() {
     private lateinit var binding: ActivityCreatePostBinding
     private lateinit var attachedMediaAdapter: AttachedMediaAdapter
     private val mediaList = mutableListOf<String>()
-    private var cameraImageUri: Uri? = null
     private val REQUEST_CODE_TAG_PEOPLE = 1001
     private var selectedTagPeopleList = ArrayList<TagPeople>()
     private var selectedCollaborators = ArrayList<TagPeople>()
@@ -132,20 +130,20 @@ class CreatePostActivity : BaseActivity() {
     }
 
 
-    private val cameraLauncher: ActivityResultLauncher<Intent> =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                val imageBitmap = result.data?.extras?.get("data") as Bitmap
-                val savedUri = saveImageToStorage(imageBitmap)
-                savedUri?.let { uri ->
-                    val editIntent = Intent(this, EditImageActivity::class.java).apply {
-                        putExtra("image_uri", uri)
-                    }
-                    editImageLauncher.launch(editIntent)
-
+    private val customCameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val mediaUri = result.data?.getStringExtra(CustomCameraActivity.RESULT_MEDIA_URI)?.let { Uri.parse(it) } ?: return@registerForActivityResult
+            val mediaType = result.data?.getStringExtra(CustomCameraActivity.RESULT_MEDIA_TYPE)
+            if (mediaType == CustomCameraActivity.MEDIA_TYPE_VIDEO) {
+                checkVideoDurationAndTrim(mediaUri)
+            } else {
+                val editIntent = Intent(this, EditImageActivity::class.java).apply {
+                    putExtra("image_uri", mediaUri)
                 }
+                editImageLauncher.launch(editIntent)
             }
         }
+    }
 
 
     private val videoTrimmerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -466,22 +464,14 @@ class CreatePostActivity : BaseActivity() {
     }
 
     private fun checkCameraPermissions() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.CAMERA),
-                CAMERA_PERMISSION_CODE
-            )
-        } else {
-            captureImageFromCamera()
-        }
+        launchCustomCamera()
     }
 
-    private fun captureImageFromCamera() {
-        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        cameraLauncher.launch(cameraIntent)
+    private fun launchCustomCamera() {
+        val intent = Intent(this, CustomCameraActivity::class.java).apply {
+            putExtra(CustomCameraActivity.EXTRA_CAMERA_TITLE, getString(R.string.create_post))
+        }
+        customCameraLauncher.launch(intent)
     }
 
     private fun createImageFile(): File? {
@@ -576,11 +566,6 @@ class CreatePostActivity : BaseActivity() {
                     showPhotoVideoDialog()
                 }
             }
-            PERMISSION_REQUEST_CODE_CAMERA -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    captureImageFromCamera()
-                }
-            }
         }
     }
     private fun checkVideoDurationAndTrim(uri: Uri) {
@@ -646,26 +631,8 @@ class CreatePostActivity : BaseActivity() {
         videoTrimmerLauncher.launch(intent)
     }
 
-    private fun saveImageToStorage(bitmap: Bitmap): Uri? {
-        val imagesDir = File(this.applicationContext.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "HotelMediaImages")
-        if (!imagesDir.exists()) {
-            imagesDir.mkdirs()
-        }
-        val imageFile = File(imagesDir, "profile_image_${System.currentTimeMillis()}.jpg")
-        try {
-            FileOutputStream(imageFile).use { fos ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
-            }
-            return Uri.fromFile(imageFile)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return null
-    }
-
     companion object {
         const val PERMISSION_REQUEST_CODE_READ_EXTERNAL_STORAGE = 1001
-        private const val PERMISSION_REQUEST_CODE_CAMERA = 1002
         const val PERMISSION_REQUEST_CODE_WRITE_EXTERNAL_STORAGE = 102
     }
 

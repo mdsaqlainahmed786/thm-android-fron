@@ -9,6 +9,7 @@
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
@@ -230,6 +231,11 @@
         </activity>
         <activity
             android:name=".activity.userTypes.forms.createStory.CreateStoryActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".activity.camera.CustomCameraActivity"
             android:configChanges="uiMode"
             android:exported="false"
             android:screenOrientation="portrait" />
