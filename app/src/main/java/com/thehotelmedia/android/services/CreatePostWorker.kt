@@ -120,17 +120,63 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
 //        }.filterNotNull() // Null values remove karne ke liye
 
         val mediaParts = mediaList.mapIndexed { index, mediaPath ->
-            val file = if (mediaPath.startsWith("content://")) {
-                val filename = "temp_image_$index.jpg"
-                getFileFromContentUri(applicationContext, Uri.parse(mediaPath), filename)
-            } else {
-                File(mediaPath)
+            val file = when {
+                mediaPath.startsWith("content://") -> {
+                    // Handle content:// URIs
+                    val fileExtension = if (mediaPath.contains("video") || mediaPath.contains("mp4")) ".mp4" else ".jpg"
+                    val filename = "temp_media_$index$fileExtension"
+                    getFileFromContentUri(applicationContext, Uri.parse(mediaPath), filename)
+                }
+                mediaPath.startsWith("file://") || mediaPath.startsWith("file:") -> {
+                    // Handle file:// URIs - remove the prefix and get the actual path
+                    val cleanPath = mediaPath.replace("file://", "").replace("file:", "")
+                    val file = File(cleanPath)
+                    // Check if file exists, if not, try to get it from content URI
+                    if (file.exists()) {
+                        file
+                    } else {
+                        Log.w("CreatePostWorker", "File not found at path: $cleanPath, trying to get from URI")
+                        // Try to parse as URI and get file
+                        try {
+                            val uri = Uri.parse(mediaPath)
+                            if (uri.scheme == "file") {
+                                val path = uri.path ?: cleanPath
+                                File(path)
+                            } else {
+                                null
+                            }
+                        } catch (e: Exception) {
+                            Log.e("CreatePostWorker", "Failed to parse URI: $mediaPath", e)
+                            null
+                        }
+                    }
+                }
+                else -> {
+                    // Direct file path
+                    val file = File(mediaPath)
+                    if (file.exists()) {
+                        file
+                    } else {
+                        Log.w("CreatePostWorker", "File not found at path: $mediaPath")
+                        null
+                    }
+                }
             }
 
             file?.let {
-                val mimeType = Files.probeContentType(it.toPath()) ?: "application/octet-stream"
-                val requestBody = it.asRequestBody(mimeType.toMediaTypeOrNull())
-                MultipartBody.Part.createFormData("media", it.name, requestBody)
+                if (!it.exists()) {
+                    Log.e("CreatePostWorker", "File does not exist: ${it.absolutePath}")
+                    null
+                } else {
+                    try {
+                        val mimeType = Files.probeContentType(it.toPath()) ?: "application/octet-stream"
+                        val requestBody = it.asRequestBody(mimeType.toMediaTypeOrNull())
+                        MultipartBody.Part.createFormData("media", it.name, requestBody)
+                    } catch (e: Exception) {
+                        Log.e("CreatePostWorker", "Failed to create multipart for file: ${it.absolutePath}", e)
+                        null
+                    }
+                }
             }
         }.filterNotNull()
 
@@ -288,14 +334,34 @@ class CreatePostWorker(context: Context, workerParams: WorkerParameters) : Worke
 
     private fun getFileFromContentUri(context: Context, uri: Uri, fileName: String): File? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-            val file = File(context.cacheDir, fileName)
+            val inputStream = context.contentResolver.openInputStream(uri) ?: run {
+                Log.e("CreatePostWorker", "Failed to open input stream for URI: $uri")
+                return null
+            }
+            
+            // Use external files directory for videos to avoid cache size issues
+            val outputDir = if (fileName.endsWith(".mp4") || fileName.endsWith(".mov") || fileName.endsWith(".avi")) {
+                File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_MOVIES), "UploadCache").apply {
+                    if (!exists()) mkdirs()
+                }
+            } else {
+                context.cacheDir
+            }
+            
+            val file = File(outputDir, fileName)
             file.outputStream().use { output ->
                 inputStream.copyTo(output)
             }
+            
+            if (!file.exists() || file.length() == 0L) {
+                Log.e("CreatePostWorker", "File was not created or is empty: ${file.absolutePath}")
+                return null
+            }
+            
+            Log.d("CreatePostWorker", "Successfully copied file from URI to: ${file.absolutePath}, size: ${file.length()} bytes")
             file
         } catch (e: Exception) {
-            Log.e("CreatePostWorker", "Failed to get file from URI", e)
+            Log.e("CreatePostWorker", "Failed to get file from URI: $uri", e)
             null
         }
     }
