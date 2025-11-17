@@ -42,6 +42,10 @@ class ViewStoriesActivity : BaseActivity() {
         // Handle back button with OnBackPressedDispatcher
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                // Release players before navigating away
+                if (::storyPagerAdapter.isInitialized) {
+                    storyPagerAdapter.releaseAllPlayers()
+                }
                 storyPagerAdapter.moveToMainScreen()
                 // You can perform additional actions here if needed.
                 // Call finish() if you want to close the activity:
@@ -178,6 +182,30 @@ class ViewStoriesActivity : BaseActivity() {
         }
 
 
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Release ExoPlayer when activity is paused to stop audio
+        if (::storyPagerAdapter.isInitialized) {
+            storyPagerAdapter.releaseAllPlayers()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Release ExoPlayer when activity is destroyed
+        if (::storyPagerAdapter.isInitialized) {
+            storyPagerAdapter.releaseAllPlayers()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Release ExoPlayer when activity is stopped
+        if (::storyPagerAdapter.isInitialized) {
+            storyPagerAdapter.releaseAllPlayers()
+        }
     }
 
 

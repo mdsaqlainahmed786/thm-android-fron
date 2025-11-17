@@ -7,6 +7,12 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.ui.StyledPlayerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -61,6 +67,7 @@ class StoryPagerAdapter(
     private var previousPageIndex = -1
     private var userAccountType = ""
     private var verticalTwoOptionBottomSheet: TwoVerticalOptionBottomSheetFragment? = null
+    private var currentExoPlayer: ExoPlayer? = null
 
     inner class ViewHolder(val binding: StoryScreenLayoutBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -333,6 +340,8 @@ class StoryPagerAdapter(
     fun moveToMainScreen() {
         if (!isMovedToMainScreen){
             isMovedToMainScreen = true
+            // Release all players before navigating away
+            releaseAllPlayers()
             if (userAccountType == business_type_individual){
                 val intent = Intent(context, BottomNavigationIndividualMainActivity::class.java)
                 context.startActivity(intent)
@@ -343,6 +352,18 @@ class StoryPagerAdapter(
                 context.finish()
             }
         }
+    }
+    
+    fun releaseAllPlayers() {
+        // Stop and release current ExoPlayer
+        currentExoPlayer?.stop()
+        currentExoPlayer?.release()
+        currentExoPlayer = null
+        isVideoPlaying = false
+        
+        // Cancel any running animations
+        currentAnimator?.cancel()
+        currentAnimator = null
     }
 
     private fun showBottomSheet(storyId: String, binding: StoryScreenLayoutBinding) {
@@ -410,6 +431,9 @@ class StoryPagerAdapter(
 
         // Stop video playback if applicable
         if (isVideoPlaying) {
+            currentExoPlayer?.stop()
+            currentExoPlayer?.release()
+            currentExoPlayer = null
             isVideoPlaying = false
         }
     }
@@ -431,8 +455,9 @@ class StoryPagerAdapter(
 
             val mediaUrl = storyMedia[currentStoryIndex].sourceUrl ?: ""
             if (isVideo(mediaUrl)) {
-                mediaDuration = getVideoDuration(mediaUrl)
-                playVideo(mediaUrl, mediaDuration.toLong(), binding,users)
+                // Start with default duration, will update when video loads
+                mediaDuration = 15_000
+                playVideo(mediaUrl, binding, users)
             } else {
                 mediaDuration = 15_000 // Fixed 15 seconds for images
                 showImage(mediaUrl, mediaDuration.toLong(), binding,users)
@@ -440,17 +465,20 @@ class StoryPagerAdapter(
         }
     }
 
-    // Function to calculate video duration
-    private fun getVideoDuration(videoUrl: String): Int {
-        val mediaPlayer = MediaPlayer()
-        return try {
-            mediaPlayer.setDataSource(videoUrl)
-            mediaPlayer.prepare() // Synchronously fetch metadata
-            mediaPlayer.duration // Duration in milliseconds
+    // Function to calculate video duration asynchronously
+    private suspend fun getVideoDurationAsync(videoUrl: String): Int = withContext(Dispatchers.IO) {
+        val player = ExoPlayer.Builder(context).build()
+        return@withContext try {
+            val mediaItem = MediaItem.fromUri(videoUrl)
+            player.setMediaItem(mediaItem)
+            player.prepare()
+            val duration = player.duration
+            if (duration > 0) duration.toInt() else 15_000 // Default to 15 seconds if duration unknown
         } catch (e: Exception) {
-            0 // Return 0 if duration cannot be determined
+            Log.e("StoryPagerAdapter", "Error getting video duration: ${e.message}")
+            15_000 // Default to 15 seconds on error
         } finally {
-            mediaPlayer.release()
+            player.release()
         }
     }
 
@@ -464,8 +492,14 @@ class StoryPagerAdapter(
         binding: StoryScreenLayoutBinding,
         users: Stories
     ) {
+        // Release any video player
+        currentExoPlayer?.release()
+        currentExoPlayer = null
+        isVideoPlaying = false
+        
         // Ensure the correct UI visibility for image
-        binding.videoView.visibility = View.GONE
+        binding.videoView?.visibility = View.GONE
+        binding.root.findViewById<StyledPlayerView>(R.id.exoPlayerView)?.visibility = View.GONE
         binding.imageView.visibility = View.VISIBLE
 
         // Check if the context is still valid before loading the image
@@ -492,46 +526,97 @@ class StoryPagerAdapter(
 
     private fun playVideo(
         videoUrl: String,
-        duration: Long,
         binding: StoryScreenLayoutBinding,
         users: Stories
     ) {
+        // Release previous player if exists
+        currentExoPlayer?.release()
+        currentExoPlayer = null
+
         // Ensure the correct UI visibility for video
         binding.imageView.visibility = View.GONE
-        binding.videoView.visibility = View.VISIBLE
-
-        // Set video URI and start the video
-        val uri = Uri.parse(videoUrl)
-        binding.videoView.setVideoURI(uri)
-
-        binding.videoView.setOnPreparedListener { mediaPlayer ->
-            mediaPlayer.start()
-            isVideoPlaying = true
-
-            // Animate the progress bar for the video duration
-            animateProgressBar(duration, binding, users)
-
-            mediaPlayer.setOnCompletionListener {
-                moveToNextStory(binding,users)
-                isVideoPlaying = false
-            }
+        
+        // Check if VideoView exists and hide it, or if StyledPlayerView exists
+        try {
+            binding.videoView?.visibility = View.GONE
+        } catch (e: Exception) {
+            // VideoView might not exist, that's okay
         }
 
-        // Listener for buffering events
-        binding.videoView.setOnInfoListener { mediaPlayer, what, extra ->
-            when (what) {
-                MediaPlayer.MEDIA_INFO_BUFFERING_START -> {
-//                    pauseStory(binding)
-                    currentAnimator?.pause()
+        // Create ExoPlayer
+        val exoPlayer = ExoPlayer.Builder(context).build().apply {
+            val mediaItem = MediaItem.fromUri(videoUrl)
+            setMediaItem(mediaItem)
+            repeatMode = Player.REPEAT_MODE_ONE
+            playWhenReady = true
+            prepare()
+            
+            addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    when (playbackState) {
+                        Player.STATE_READY -> {
+                            isVideoPlaying = true
+                            val duration = this@apply.duration
+                            if (duration > 0) {
+                                // Animate the progress bar for the actual video duration
+                                animateProgressBar(duration, binding, users)
+                            } else {
+                                // Fallback to 15 seconds if duration unknown
+                                animateProgressBar(15_000L, binding, users)
+                            }
+                        }
+                        Player.STATE_BUFFERING -> {
+                            currentAnimator?.pause()
+                        }
+                        Player.STATE_ENDED -> {
+                            moveToNextStory(binding, users)
+                            isVideoPlaying = false
+                        }
+                    }
                 }
-                MediaPlayer.MEDIA_INFO_BUFFERING_END, MediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START -> {
-//                    resumeStory(binding)
-                    currentAnimator?.resume()
+            })
+        }
+        
+        currentExoPlayer = exoPlayer
+        
+        // Try to use StyledPlayerView if it exists, otherwise fall back to VideoView
+        try {
+            val playerView = binding.root.findViewById<StyledPlayerView>(R.id.exoPlayerView)
+            if (playerView != null) {
+                playerView.player = exoPlayer
+                playerView.visibility = View.VISIBLE
+            } else {
+                // Fallback: create and add StyledPlayerView dynamically
+                val styledPlayerView = StyledPlayerView(context).apply {
+                    id = R.id.exoPlayerView
+                    layoutParams = android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    useController = false
+                    resizeMode = com.google.android.exoplayer2.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                }
+                styledPlayerView.player = exoPlayer
+                (binding.root as? android.view.ViewGroup)?.addView(styledPlayerView, 0)
+            }
+        } catch (e: Exception) {
+            Log.e("StoryPagerAdapter", "Error setting up ExoPlayer: ${e.message}")
+            // Fallback to VideoView if ExoPlayer setup fails
+            binding.videoView?.let { videoView ->
+                videoView.visibility = View.VISIBLE
+                val uri = Uri.parse(videoUrl)
+                videoView.setVideoURI(uri)
+                videoView.setOnPreparedListener { mediaPlayer ->
+                    mediaPlayer.start()
+                    isVideoPlaying = true
+                    animateProgressBar(mediaPlayer.duration.toLong(), binding, users)
+                    mediaPlayer.setOnCompletionListener {
+                        moveToNextStory(binding, users)
+                        isVideoPlaying = false
+                    }
                 }
             }
-            true
         }
-
     }
 
 
@@ -699,7 +784,12 @@ class StoryPagerAdapter(
 
         // Pause video if it's playing
         if (isVideoPlaying) {
-            binding.videoView.pause()
+            currentExoPlayer?.pause()
+            try {
+                binding.videoView?.pause()
+            } catch (e: Exception) {
+                // VideoView might not exist
+            }
         }
     }
 
@@ -713,7 +803,12 @@ class StoryPagerAdapter(
 
         // Resume video if it's playing
         if (isVideoPlaying) {
-            binding.videoView.start()
+            currentExoPlayer?.play()
+            try {
+                binding.videoView?.start()
+            } catch (e: Exception) {
+                // VideoView might not exist
+            }
         }
     }
 
