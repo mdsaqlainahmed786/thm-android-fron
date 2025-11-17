@@ -473,9 +473,9 @@ class FeedAdapter(
         val createdAt = post.createdAt ?: ""
         val formatedCreatedAt = calculateDaysAgo(createdAt,context)
 
-        // Show/hide new post indicator (Instagram-style)
+        // Show/hide new post indicator next to timestamp
         val isRecent = isRecentPost(createdAt)
-        binding.newPostBadge.visibility = if (isRecent) View.VISIBLE else View.GONE
+        binding.newPostBadgeTime.visibility = if (isRecent) View.VISIBLE else View.GONE
 
         // Handle user details
         val postedBy = post.postedBy
