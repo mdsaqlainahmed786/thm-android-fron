@@ -781,7 +781,8 @@ class FeedAdapter(
                     commentCount++
                     post.comments = commentCount
                     binding.commentTv.text = formatCount(commentCount)
-                    notifyDataSetChanged()
+                    // Don't call notifyDataSetChanged() - it causes scroll position loss
+                    // PagingDataAdapter handles updates automatically via DiffUtil
                 }
             }
             bottomSheetFragment.show(parentFragmentManager, bottomSheetFragment.tag)
