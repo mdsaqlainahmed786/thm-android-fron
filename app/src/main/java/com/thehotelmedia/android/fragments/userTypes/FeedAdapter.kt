@@ -40,6 +40,8 @@ import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.SharePostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.TagPeopleBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment
+import com.thehotelmedia.android.customClasses.MessageStore
 import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.databinding.EventItemsLayoutBinding
 import com.thehotelmedia.android.databinding.FeedHeaderLayoutBinding
@@ -471,9 +473,9 @@ class FeedAdapter(
         val createdAt = post.createdAt ?: ""
         val formatedCreatedAt = calculateDaysAgo(createdAt,context)
 
-        // Show/hide new post indicator (Instagram-style)
+        // Show/hide new post indicator next to timestamp
         val isRecent = isRecentPost(createdAt)
-        binding.newPostBadge.visibility = if (isRecent) View.VISIBLE else View.GONE
+        binding.newPostBadgeTime.visibility = if (isRecent) View.VISIBLE else View.GONE
 
         // Handle user details
         val postedBy = post.postedBy
@@ -779,7 +781,8 @@ class FeedAdapter(
                     commentCount++
                     post.comments = commentCount
                     binding.commentTv.text = formatCount(commentCount)
-                    notifyDataSetChanged()
+                    // Don't call notifyDataSetChanged() - it causes scroll position loss
+                    // PagingDataAdapter handles updates automatically via DiffUtil
                 }
             }
             bottomSheetFragment.show(parentFragmentManager, bottomSheetFragment.tag)
@@ -983,7 +986,7 @@ class FeedAdapter(
         }
 
         binding.menuBtn.setOnClickListener { view ->
-            showMenuDialog(view, postId)
+            showMenuDialog(view, postId, review)
         }
     }
 
@@ -1116,7 +1119,7 @@ class FeedAdapter(
             context.shareEventsWithDeepLink(postId,ownerUserId)
         }
         binding.menuBtn.setOnClickListener { view ->
-            showMenuDialog(view, postId)
+            showMenuDialog(view, postId, event)
         }
 
 
@@ -1359,9 +1362,36 @@ class FeedAdapter(
 
 
     private fun showMenuDialog(view: View?, postId: String, post: Data? = null, canShareToStory: Boolean = false) {
-        // Inflate the dropdown menu layout
+        // Check if user is the owner of the post
+        if (post == null) {
+            // If post is null, show default menu (Report only)
+            val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+            val dropdownView = inflater.inflate(R.layout.single_post_menu_dropdown_item, null)
+            val popupWindow = PopupWindow(
+                dropdownView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+            val reportBtn: TextView? = dropdownView.findViewById(R.id.reportBtn)
+            reportBtn?.setOnClickListener {
+                reportPost(postId)
+                popupWindow.dismiss()
+            }
+            popupWindow.setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.popup_background))
+            popupWindow.showAsDropDown(view)
+            return
+        }
+        
+        val isOwner = isMyPost(post)
+        
+        // Decide which layout to use based on ownership
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        val dropdownView = inflater.inflate(R.layout.single_post_menu_dropdown_item, null)
+        val dropdownView = if (isOwner) {
+            inflater.inflate(R.layout.delete_edit_post_menu_dropdown_item, null)
+        } else {
+            inflater.inflate(R.layout.single_post_menu_dropdown_item, null)
+        }
 
         // Create the PopupWindow
         val popupWindow = PopupWindow(
@@ -1372,25 +1402,72 @@ class FeedAdapter(
         )
 
         // Find TextViews and set click listeners
-//        val blockBtn: TextView = dropdownView.findViewById(R.id.blockBtn)
         val reportBtn: TextView? = dropdownView.findViewById(R.id.reportBtn)
-//        val shareBtn: TextView = dropdownView.findViewById(R.id.shareBtn)
         val addToStoryBtn: TextView? = dropdownView.findViewById(R.id.addToStoryBtn)
+        val editBtn: TextView? = dropdownView.findViewById(R.id.editBtn)
+        val deleteBtn: TextView? = dropdownView.findViewById(R.id.deleteBtn)
 
+        if (isOwner) {
+            // Owner sees Edit and Delete options
+            editBtn?.visibility = View.VISIBLE
+            deleteBtn?.visibility = View.VISIBLE
+            reportBtn?.visibility = View.GONE
+            addToStoryBtn?.visibility = View.GONE
 
+            // Edit button click listener
+            editBtn?.setOnClickListener {
+                val currentContent = post?.content.orEmpty()
+                val currentFeeling = post?.feelings
+                val currentMedia = post?.mediaRef ?: emptyList()
+                val location = post?.location
+                val placeName = location?.placeName
+                val lat = location?.lat
+                val lng = location?.lng
+                
+                if (postId.isNotEmpty()) {
+                    com.thehotelmedia.android.activity.userTypes.forms.EditPostActivity.start(
+                        context,
+                        postId,
+                        currentContent,
+                        currentFeeling,
+                        currentMedia,
+                        placeName,
+                        lat,
+                        lng
+                    )
+                }
+                popupWindow.dismiss()
+            }
 
-        reportBtn?.setOnClickListener {
-            reportPost(postId)
-            popupWindow.dismiss()
+            // Delete button click listener
+            deleteBtn?.setOnClickListener {
+                val bottomSheet = com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment.newInstance(
+                    com.thehotelmedia.android.customClasses.MessageStore.sureWantToDeletePost(context)
+                )
+                bottomSheet.onYesClicked = {
+                    individualViewModal.deletePost(postId)
+                    popupWindow.dismiss()
+                }
+                bottomSheet.onNoClicked = {
+                    // User cancelled, do nothing
+                }
+                bottomSheet.show(parentFragmentManager, "YesOrNoBottomSheet")
+                popupWindow.dismiss()
+            }
+        } else {
+            // Others see only Report option
+            reportBtn?.setOnClickListener {
+                reportPost(postId)
+                popupWindow.dismiss()
+            }
+
+            val shouldShowAddToStory = canShareToStory && isStoryShareEligible(post)
+            addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
+            addToStoryBtn?.setOnClickListener {
+                publishPostToStory(postId)
+                popupWindow.dismiss()
+            }
         }
-
-        val shouldShowAddToStory = canShareToStory && isStoryShareEligible(post)
-        addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
-        addToStoryBtn?.setOnClickListener {
-            publishPostToStory(postId)
-            popupWindow.dismiss()
-        }
-
 
         // Set the background drawable to make the popup more visually appealing
         popupWindow.setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.popup_background))

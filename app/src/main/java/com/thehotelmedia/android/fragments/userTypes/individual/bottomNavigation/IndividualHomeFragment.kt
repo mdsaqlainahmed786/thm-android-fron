@@ -346,18 +346,17 @@ class IndividualHomeFragment : Fragment() {
         super.onResume()
         // Refresh the feed adapter when returning from other activities (like ViewStoriesActivity)
         // This ensures the story rings update immediately after viewing stories
-        if (binding.postRecyclerView.adapter != null) {
-            // Post to ensure the RecyclerView has finished layout
+        if (binding.postRecyclerView.adapter != null && !isScrolling) {
+            // Only refresh if not currently scrolling to avoid scroll position jumps
             binding.postRecyclerView.post {
-                // Get the header view holder and refresh story rings without re-fetching data
-                val headerViewHolder = binding.postRecyclerView.findViewHolderForAdapterPosition(0)
-                if (headerViewHolder is FeedAdapter.HeaderViewHolder) {
-                    // Use the new refresh method that doesn't re-submit data
-                    headerViewHolder.refreshStoryRings()
-                } else {
-                    // Fallback: notify item changed if view holder not available
-                    // This will trigger bind() which will then refresh the story rings
-                    feedAdapter.notifyItemChanged(0)
+                // Check if still not scrolling before refreshing
+                if (!isScrolling) {
+                    val headerViewHolder = binding.postRecyclerView.findViewHolderForAdapterPosition(0)
+                    if (headerViewHolder is FeedAdapter.HeaderViewHolder) {
+                        // Use the new refresh method that doesn't re-submit data
+                        headerViewHolder.refreshStoryRings()
+                    }
+                    // Removed notifyItemChanged(0) to prevent scroll jumps
                 }
             }
         }
@@ -371,19 +370,32 @@ class IndividualHomeFragment : Fragment() {
             binding.postRecyclerView.setItemViewCacheSize(10) // Increased cache size for smoother scrolling
             binding.postRecyclerView.setHasFixedSize(false) // Allow RecyclerView to optimize layout
             binding.postRecyclerView.itemAnimator = null
+            
+            // Add scroll listener only once when adapter is created
+            binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    isScrolling = true
+                    handler.removeCallbacks(debounceRunnable)
+                }
+                
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    super.onScrollStateChanged(recyclerView, newState)
+                    when (newState) {
+                        RecyclerView.SCROLL_STATE_IDLE -> {
+                            // Scrolling has stopped
+                            isScrolling = false
+                            handler.postDelayed(debounceRunnable, 100)
+                        }
+                        RecyclerView.SCROLL_STATE_DRAGGING, RecyclerView.SCROLL_STATE_SETTLING -> {
+                            // User is scrolling
+                            isScrolling = true
+                            handler.removeCallbacks(debounceRunnable)
+                        }
+                    }
+                }
+            })
         }
-
-        binding.postRecyclerView.viewTreeObserver.addOnScrollChangedListener {
-            handler.postDelayed(debounceRunnable, 100)
-        }
-
-        binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-                isScrolling = true
-                handler.removeCallbacks(debounceRunnable)
-            }
-        })
 
         individualViewModal.getFeeds(currentLat,currentLng).observe(viewLifecycleOwner) { data ->
             lifecycleScope.launch {
