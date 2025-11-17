@@ -684,11 +684,39 @@ class CreateStoryActivity : BaseActivity() {
         }
     }
 
+    private fun hideAllEditIcons() {
+        try {
+            val parent = binding.photoEditorView ?: return
+            val childCount = parent.childCount
+            for (index in 0 until childCount) {
+                try {
+                    val child = parent.getChildAt(index) ?: continue
+                    val editIcon = child.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
+                    editIcon?.visibility = View.GONE
+                } catch (e: Exception) {
+                    Log.e("CreateStoryActivity", "Error hiding edit icon at index $index: ${e.message}")
+                    // Continue with next child
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("CreateStoryActivity", "Error in hideAllEditIcons: ${e.message}", e)
+            // Don't crash if hiding icons fails, just log the error
+        }
+    }
+
     private fun saveEditedImage() {
         currentVideoUri?.let { uri ->
             checkVideoDurationAndTrim(uri)
             return
         }
+        
+        // Ensure photoEditorView is visible before saving
+        if (binding.photoEditorView.visibility != View.VISIBLE) {
+            Log.e("CreateStoryActivity", "Cannot save: photoEditorView is not visible")
+            Toast.makeText(this, "Please select an image first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             // Request storage permission for Android 9 and below
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -703,14 +731,19 @@ class CreateStoryActivity : BaseActivity() {
         }
 
         binding.photoEditorView.postDelayed({
-            val newDir = File(filesDir, "edited_images").apply {
-                if (!exists()) mkdirs()
-            }
+            // Hide all edit icons before saving
+            hideAllEditIcons()
+            
+            // Give a small delay to ensure UI updates are complete
+            binding.photoEditorView.postDelayed({
+                val newDir = File(filesDir, "edited_images").apply {
+                    if (!exists()) mkdirs()
+                }
 
-            val file = File(newDir, "edited_image_${System.currentTimeMillis()}.jpg")
+                val file = File(newDir, "edited_image_${System.currentTimeMillis()}.jpg")
 
-            try {
-                photoEditor.saveAsFile(file.absolutePath, object : PhotoEditor.OnSaveListener {
+                try {
+                    photoEditor.saveAsFile(file.absolutePath, object : PhotoEditor.OnSaveListener {
                     override fun onSuccess(imagePath: String) {
                         val imageFile = File(imagePath)
 
@@ -739,6 +772,7 @@ class CreateStoryActivity : BaseActivity() {
                 Log.e("EditImageActivity", "Permission issue: ${e.message}", e)
                 Toast.makeText(this, "Storage permission is required to save the image", Toast.LENGTH_SHORT).show()
             }
+                }, 100) // Small delay after hiding icons
         }, 300)
     }
 
