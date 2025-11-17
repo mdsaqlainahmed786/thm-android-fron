@@ -143,6 +143,15 @@
                     android:tint="@color/white" />
             </LinearLayout>
 
+            <ImageView
+                android:id="@+id/reelMenuBtn"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginTop="8dp"
+                android:src="@drawable/ic_three_dot_blue"
+                android:contentDescription="Menu"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <LinearLayout
@@ -329,6 +338,15 @@
                     android:textSize="12sp"
                     android:visibility="gone" />
             </LinearLayout>
+
+            <ImageView
+                android:id="@+id/photoMenuBtn"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_three_dot_blue"
+                android:contentDescription="Menu"
+                android:visibility="gone" />
 
         </LinearLayout>
 
