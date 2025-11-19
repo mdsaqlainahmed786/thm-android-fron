@@ -82,12 +82,20 @@ class VideoImageViewerAdapter(
                     exoPlayer.setMediaItem(media)
                     exoPlayer.prepare()
                     exoPlayer.seekTo(0)
-                    exoPlayer.playWhenReady = false
+                    exoPlayer.playWhenReady = true
+                    exoPlayer.play()
 
                     (binding.playerView.tag as? Player.Listener)?.let { exoPlayer.removeListener(it) }
                     val listener = object : Player.Listener {
                         override fun onRenderedFirstFrame() {
                             binding.videoThumbnail.visibility = View.GONE
+                        }
+                        
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            // Auto-play when the player is ready
+                            if (playbackState == Player.STATE_READY && !exoPlayer.isPlaying) {
+                                exoPlayer.play()
+                            }
                         }
                     }
                     exoPlayer.addListener(listener)
