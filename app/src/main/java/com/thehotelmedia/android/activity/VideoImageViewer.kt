@@ -209,7 +209,7 @@ class VideoImageViewer : DarkBaseActivity() {
             listOf(MediaItems(MediaType.IMAGE, mediaUrl,mediaId))
         }
 
-        adapter = VideoImageViewerAdapter(this, mediaList,exoPlayer!!,mediaId,postId,individualViewModal,::onControllerVisible,::onMediaTypeChanged)
+        adapter = VideoImageViewerAdapter(this, mediaList,exoPlayer!!,mediaId,postId,individualViewModal,::onControllerVisible,::onMediaTypeChanged, showControls = true)
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
 

@@ -202,7 +202,8 @@ class UserPostsViewerAdapter(
                         }
                         updateActiveState(isHolderActive)
                     }
-                }
+                },
+                showControls = false // Reels should not have controls
             )
 
             exoPlayer.volume = 1f

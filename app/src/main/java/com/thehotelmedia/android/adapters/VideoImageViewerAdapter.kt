@@ -28,7 +28,8 @@ class VideoImageViewerAdapter(
     private val postId: String,
     private val individualViewModal: IndividualViewModal,
     private val controllerVisible: (Boolean) -> Unit,
-    private val onMediaTypeChanged: (String) -> Unit
+    private val onMediaTypeChanged: (String) -> Unit,
+    private val showControls: Boolean = false // Default to false for reels-like experience
 ) : RecyclerView.Adapter<VideoImageViewerAdapter.MediaViewHolder>() {
 
 
@@ -70,10 +71,14 @@ class VideoImageViewerAdapter(
                     binding.playPauseOverlay.visibility = View.GONE
 
                     binding.playerView.player = exoPlayer
-                    binding.playerView.useController = true
-                    binding.playerView.controllerShowTimeoutMs = 3000
-                    binding.playerView.controllerAutoShow = true
-                    controllerVisible(true)
+                    binding.playerView.useController = showControls
+                    if (showControls) {
+                        binding.playerView.controllerShowTimeoutMs = 3000
+                        binding.playerView.controllerAutoShow = true
+                        controllerVisible(true)
+                    } else {
+                        controllerVisible(false)
+                    }
 
                     exoPlayer.clearMediaItems()
                     exoPlayer.volume = 1f
@@ -97,12 +102,39 @@ class VideoImageViewerAdapter(
                                 exoPlayer.play()
                             }
                         }
+                        
+                        override fun onIsPlayingChanged(isPlaying: Boolean) {
+                            // Update play/pause overlay for reels (when controls are disabled)
+                            if (!showControls) {
+                                if (isPlaying) {
+                                    binding.playPauseOverlay.visibility = View.GONE
+                                } else {
+                                    binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
+                                    binding.playPauseOverlay.visibility = View.VISIBLE
+                                }
+                            }
+                        }
                     }
                     exoPlayer.addListener(listener)
                     binding.playerView.tag = listener
                     
-                    // Remove custom click listener - let the controller handle play/pause
-                    binding.playerView.setOnClickListener(null)
+                    // Set click listener based on whether controls are enabled
+                    if (showControls) {
+                        // Let the controller handle play/pause
+                        binding.playerView.setOnClickListener(null)
+                    } else {
+                        // For reels: tap to play/pause
+                        binding.playerView.setOnClickListener {
+                            if (exoPlayer.isPlaying) {
+                                exoPlayer.pause()
+                                binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
+                                binding.playPauseOverlay.visibility = View.VISIBLE
+                            } else {
+                                exoPlayer.play()
+                                binding.playPauseOverlay.visibility = View.GONE
+                            }
+                        }
+                    }
                 }
             }
         }
