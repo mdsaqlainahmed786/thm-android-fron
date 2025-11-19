@@ -70,8 +70,10 @@ class VideoImageViewerAdapter(
                     binding.playPauseOverlay.visibility = View.GONE
 
                     binding.playerView.player = exoPlayer
-                    binding.playerView.useController = false
-                    controllerVisible(false)
+                    binding.playerView.useController = true
+                    binding.playerView.controllerShowTimeoutMs = 3000
+                    binding.playerView.controllerAutoShow = true
+                    controllerVisible(true)
 
                     exoPlayer.clearMediaItems()
                     exoPlayer.volume = 1f
@@ -80,37 +82,27 @@ class VideoImageViewerAdapter(
                     exoPlayer.setMediaItem(media)
                     exoPlayer.prepare()
                     exoPlayer.seekTo(0)
-                    exoPlayer.playWhenReady = false
+                    exoPlayer.playWhenReady = true
+                    exoPlayer.play()
 
                     (binding.playerView.tag as? Player.Listener)?.let { exoPlayer.removeListener(it) }
                     val listener = object : Player.Listener {
-                        override fun onIsPlayingChanged(isPlaying: Boolean) {
-                            if (isPlaying) {
-                                binding.playPauseOverlay.visibility = View.GONE
-                            } else {
-                                binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
-                                binding.playPauseOverlay.visibility = View.VISIBLE
-                            }
-                        }
-
                         override fun onRenderedFirstFrame() {
                             binding.videoThumbnail.visibility = View.GONE
+                        }
+                        
+                        override fun onPlaybackStateChanged(playbackState: Int) {
+                            // Auto-play when the player is ready
+                            if (playbackState == Player.STATE_READY && !exoPlayer.isPlaying) {
+                                exoPlayer.play()
+                            }
                         }
                     }
                     exoPlayer.addListener(listener)
                     binding.playerView.tag = listener
-
-                    binding.playerView.setOnClickListener {
-                        if (exoPlayer.isPlaying) {
-                            exoPlayer.pause()
-                            binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
-                            binding.playPauseOverlay.visibility = View.VISIBLE
-                        } else {
-                            exoPlayer.play()
-                            binding.playPauseOverlay.setImageResource(R.drawable.ic_pause_circle)
-                            binding.playPauseOverlay.visibility = View.GONE
-                        }
-                    }
+                    
+                    // Remove custom click listener - let the controller handle play/pause
+                    binding.playerView.setOnClickListener(null)
                 }
             }
         }
