@@ -794,16 +794,43 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
 
 
 
-    fun getFeeds(lat: Double,lng: Double): LiveData<PagingData<Data>> {
-
-        return Pager(
-            config = PagingConfig(
-                pageSize = 15, // Increase page size for fewer network requests
-                prefetchDistance = 5, // Start loading the next page when 1 items remain
-                enablePlaceholders = false // Disable placeholders for smoother scrolling
-            ),
-            pagingSourceFactory = { FeedPagingSource(individualRepo,lat,lng) }
-        ).liveData.cachedIn(viewModelScope)
+    // Store current feed location and LiveData for hard refresh
+    private var currentFeedLat: Double? = null
+    private var currentFeedLng: Double? = null
+    private var feedPagerLiveData: LiveData<PagingData<Data>>? = null
+    private val feedRefreshTrigger = MutableLiveData<Int>(0)
+    
+    fun getFeeds(lat: Double, lng: Double): LiveData<PagingData<Data>> {
+        // Store current location
+        val locationChanged = currentFeedLat != lat || currentFeedLng != lng
+        currentFeedLat = lat
+        currentFeedLng = lng
+        
+        // Create new Pager if location changed, this is first call, or LiveData was cleared (hard refresh)
+        if (feedPagerLiveData == null || locationChanged) {
+            feedPagerLiveData = Pager(
+                config = PagingConfig(
+                    pageSize = 15, // Increase page size for fewer network requests
+                    prefetchDistance = 5, // Start loading the next page when 1 items remain
+                    enablePlaceholders = false // Disable placeholders for smoother scrolling
+                ),
+                pagingSourceFactory = { FeedPagingSource(individualRepo, lat, lng) }
+            ).liveData.cachedIn(viewModelScope)
+        }
+        
+        return feedPagerLiveData!!
+    }
+    
+    /**
+     * Hard refresh: Invalidates feed cache and forces a complete reload.
+     * This will clear Paging 3 cache and trigger fresh API calls.
+     * Call getFeeds() again after this to get the recreated LiveData.
+     */
+    fun hardRefreshFeed() {
+        // Clear the cached LiveData to force recreation of Pager on next getFeeds() call
+        feedPagerLiveData = null
+        // Increment trigger to signal refresh (fragment can observe this if needed)
+        feedRefreshTrigger.value = (feedRefreshTrigger.value ?: 0) + 1
     }
 
 
