@@ -28,24 +28,15 @@
 
 
                 <LinearLayout
-                    android:id="@+id/homeLogoContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="horizontal"
-                    android:clickable="false"
-                    android:focusable="false"
-                    android:longClickable="true">
+                    android:orientation="horizontal">
 
                     <androidx.appcompat.widget.AppCompatImageView
-                        android:id="@+id/homeLogo"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:src="@drawable/home_logo"
-                        android:clickable="false"
-                        android:focusable="false"
-                        android:longClickable="false"
-                        android:contentDescription="@string/app_name"/>
+                        android:src="@drawable/home_logo"/>
                 </LinearLayout>
 
                 <androidx.appcompat.widget.LinearLayoutCompat
