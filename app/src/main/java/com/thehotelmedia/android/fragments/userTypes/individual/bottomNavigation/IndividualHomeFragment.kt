@@ -69,6 +69,7 @@ class IndividualHomeFragment : Fragment() {
     private val batchSize = 30
     private val handler = Handler(Looper.getMainLooper())
     private var isScrolling = false
+    private var isHardRefreshInProgress = false
     val debounceRunnable = Runnable {
         if (isScrolling) {
             val layoutManager = binding.postRecyclerView.layoutManager as LinearLayoutManager
@@ -188,6 +189,9 @@ class IndividualHomeFragment : Fragment() {
         getSetWeatherAndAQI()
 
         binding.weatherBtn.openWeatherApp()
+        
+        // Hard Refresh: Long-press on home logo to trigger hard refresh
+        setupHardRefreshTrigger()
 
         // Location services enabled check
         if (!isLocationEnabled()) {
@@ -409,9 +413,52 @@ class IndividualHomeFragment : Fragment() {
                         binding.postRecyclerView.scrollToPosition(0)
                     }
                 }
+                
+                // Show toast for hard refresh after data is loaded
+                if (refresh == "hard_refresh" && isHardRefreshInProgress) {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        Toast.makeText(requireContext(), "Hard refresh completed", Toast.LENGTH_SHORT).show()
+                        isHardRefreshInProgress = false
+                    }, 500)
+                }
                 // Remove notifyDataSetChanged() - PagingDataAdapter handles updates automatically via DiffUtil
             }
         }
+    }
+
+    /**
+     * Hard Refresh: Clears all feed-related caches and forces a complete reload.
+     * This is a deeper refresh than normal pull-to-refresh that:
+     * - Clears locally cached feed data
+     * - Clears pagination state
+     * - Clears memory and SharedPreferences caches
+     * - Resets ViewModel state
+     * - Forces fresh API calls
+     * - Resets scroll position to top
+     */
+    fun hardRefresh() {
+        // Set flag to track hard refresh in progress
+        isHardRefreshInProgress = true
+        
+        // Clear FeedAdapter caches (SharedPreferences)
+        FeedAdapter.clearFeedCaches(requireContext())
+        
+        // Clear in-memory caches in adapter
+        feedAdapter.clearInMemoryCaches()
+        
+        // Clear ViewModel Paging cache and recreate Pager
+        individualViewModal.hardRefreshFeed()
+        
+        // Scroll to top immediately
+        binding.postRecyclerView.scrollToPosition(0)
+        
+        // Clear RecyclerView cache to ensure fresh data is displayed
+        binding.postRecyclerView.itemAnimator = null
+        binding.postRecyclerView.recycledViewPool.clear()
+        
+        // Re-observe feed data (this will trigger fresh API calls with new LiveData)
+        // Use getFeedData() which handles loading states properly, with hard refresh flag
+        getFeedData("hard_refresh")
     }
 
     private fun updateActivePosition(newPosition: Int) {
@@ -495,6 +542,37 @@ class IndividualHomeFragment : Fragment() {
     private var swipeInitialY = 0f
     private var isHorizontalSwipe = false
     
+    /**
+     * Sets up the hard refresh trigger - long-press on home logo
+     * Prevents the default context menu (the "strange model") from appearing
+     */
+    private fun setupHardRefreshTrigger() {
+        // Completely disable context menu to prevent "strange model" dialog
+        binding.homeLogoContainer.setOnCreateContextMenuListener(null)
+        binding.homeLogo.setOnCreateContextMenuListener(null)
+        
+        // Add long-press listener - returning true prevents default context menu
+        binding.homeLogoContainer.setOnLongClickListener { view ->
+            // Provide haptic feedback
+            view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            // Trigger hard refresh
+            hardRefresh()
+            // Return true to consume event and prevent default context menu (strange model)
+            true
+        }
+        
+        // Forward ImageView long-press to container and prevent default behavior
+        binding.homeLogo.setOnLongClickListener {
+            binding.homeLogoContainer.performLongClick()
+            true // Consume to prevent any default behavior
+        }
+        
+        // Override onCreateContextMenu in the Fragment to prevent context menu
+        binding.homeLogoContainer.setOnCreateContextMenuListener { menu, v, menuInfo ->
+            // Do nothing - this prevents the context menu from appearing
+        }
+    }
+
     private fun setupRecyclerViewSwipeGestures() {
         val SWIPE_THRESHOLD = 150f // Increased threshold - must swipe at least 150px
         val DETECTION_THRESHOLD = 60f // Increased detection threshold - must move at least 60px horizontally

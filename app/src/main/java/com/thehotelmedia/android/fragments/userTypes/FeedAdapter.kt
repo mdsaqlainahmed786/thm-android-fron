@@ -126,6 +126,21 @@ class FeedAdapter(
         private const val VIEW_TYPE_REVIEW = 1
         private const val VIEW_TYPE_EVENT = 2
         private const val VIEW_ALL_SUGGESTION = 3
+        private const val PREFS_NAME = "collaborator_text_cache"
+        
+        /**
+         * Clears all feed-related caches from SharedPreferences.
+         * This should be called during hard refresh to ensure no stale data persists.
+         */
+        fun clearFeedCaches(context: Context) {
+            try {
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit().clear().apply()
+                android.util.Log.d("FeedAdapter", "Cleared all feed caches from SharedPreferences")
+            } catch (e: Exception) {
+                android.util.Log.e("FeedAdapter", "Error clearing feed caches: ${e.message}", e)
+            }
+        }
     }
 
     private var previousVisible = true // Track previous visibility status
@@ -1897,6 +1912,17 @@ class FeedAdapter(
 
     fun setActivePosition(position: Int) {
         activePosition = position
+    }
+    
+    /**
+     * Clears all in-memory caches in this adapter instance.
+     * Should be called during hard refresh along with clearFeedCaches().
+     */
+    fun clearInMemoryCaches() {
+        collaboratorsCache.clear()
+        originalNamesCache.clear()
+        collaboratorTextCache.clear()
+        android.util.Log.d("FeedAdapter", "Cleared all in-memory caches")
     }
 }
 
