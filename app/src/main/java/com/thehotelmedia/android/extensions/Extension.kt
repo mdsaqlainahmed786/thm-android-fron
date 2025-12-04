@@ -1068,14 +1068,20 @@ fun Context.moveToPostPreviewScreen(postId: String) {
 }
 
 fun Context.moveToUserPostsViewer(
-    userId: String, 
+    userId: String,
     initialPostId: String? = null,
-    filterMediaType: String? = null // "image" for photos only, "video" for videos only, null for all
+    filterMediaType: String? = null, // "image" for photos only, "video" for videos only, null for all
+    initialMediaId: String? = null, // Media ID to scroll to (used when post ID is not available)
+    initialMediaUrl: String? = null, // Media sourceUrl to scroll to (used as fallback for matching)
+    initialIndex: Int? = null // Index of the clicked media in the profile grid (used as a final fallback)
 ) {
     val intent = Intent(this, UserPostsViewerActivity::class.java).apply {
         putExtra("USER_ID", userId)
         initialPostId?.let { putExtra("INITIAL_POST_ID", it) }
         filterMediaType?.let { putExtra("FILTER_MEDIA_TYPE", it) }
+        initialMediaId?.let { putExtra("INITIAL_MEDIA_ID", it) }
+        initialMediaUrl?.let { putExtra("INITIAL_MEDIA_URL", it) }
+        initialIndex?.let { putExtra("INITIAL_INDEX", it) }
     }
     startActivity(intent)
 }

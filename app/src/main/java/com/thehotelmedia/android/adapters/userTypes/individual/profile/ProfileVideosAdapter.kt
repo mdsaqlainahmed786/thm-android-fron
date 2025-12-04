@@ -27,7 +27,7 @@ class ProfileVideosAdapter (private val context: Context, private val userId: St
 
     inner class ViewHolder(val binding: ProfileVideosItemsLayoutBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: Data) {
+        fun bind(item: Data, position: Int) {
             val mediaUri = item.sourceUrl ?: ""
             val thumbnailUrl = item.thumbnailUrl ?: ""
             val viewCount = item.views ?: 0
@@ -53,7 +53,9 @@ class ProfileVideosAdapter (private val context: Context, private val userId: St
             binding.root.setOnClickListener {
                 if (userId.isNotEmpty()) {
                     // Launch UserPostsViewerActivity with video filter - only scroll through videos
-                    context.moveToUserPostsViewer(userId, null, "video")
+                    // Pass media ID, sourceUrl, and position index for best-effort matching
+                    val mediaId = item.Id ?: ""
+                    context.moveToUserPostsViewer(userId, null, "video", mediaId, mediaUri, position)
                 } else {
                     // Fallback to old viewer if userId not available
                     context.moveToViewer(VIDEO, mediaUri)
@@ -78,7 +80,7 @@ class ProfileVideosAdapter (private val context: Context, private val userId: St
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
-        item?.let { holder.bind(it) }
+        item?.let { holder.bind(it, position) }
     }
     companion object {
         private val COMPARATOR = object : DiffUtil.ItemCallback<Data>() {

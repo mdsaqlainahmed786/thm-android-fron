@@ -24,7 +24,7 @@ class ProfilePhotosAdapter(
 
     inner class ViewHolder(val binding: ProfilePhotosItemsLayoutBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: ImageData) {
+        fun bind(item: ImageData, position: Int) {
             val mediaUri = item.sourceUrl.orEmpty()
             Glide.with(context)
                 .load(mediaUri)
@@ -38,7 +38,9 @@ class ProfilePhotosAdapter(
             binding.root.setOnClickListener {
                 if (userId.isNotEmpty()) {
                     // Launch UserPostsViewerActivity with image filter - only scroll through photos
-                    context.moveToUserPostsViewer(userId, null, "image")
+                    // Pass media ID, sourceUrl, and position index for best-effort matching
+                    val mediaId = item.Id ?: ""
+                    context.moveToUserPostsViewer(userId, null, "image", mediaId, mediaUri, position)
                 } else {
                     // Fallback to old viewer if userId not available
                     context.moveToViewer(IMAGE, mediaUri)
@@ -63,8 +65,7 @@ class ProfilePhotosAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
-        item?.let { holder.bind(it) }
-
+        item?.let { holder.bind(it, position) }
     }
     companion object {
         private val COMPARATOR = object : DiffUtil.ItemCallback<ImageData>() {
