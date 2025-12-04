@@ -66,25 +66,20 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
         }
         
         // Check 1: Check SharedPreferences first (immediate update after viewing)
-        // This ensures the ring disappears immediately after viewing, even before backend refreshes
-        val allViewedLocally = ViewedStoriesManager.areAllStoriesViewed(context, storyIds)
+        // This ensures the ring disappears immediately after viewing, even before backend refreshes.
+        // We scope this per logged-in user so multiple accounts do not share viewed state.
+        val allViewedLocally = ViewedStoriesManager.areAllStoriesViewed(context, currentUserId, storyIds)
         if (allViewedLocally) {
             android.util.Log.d("StoryAdapter", "✅ All ${storyIds.size} stories viewed locally (from SharedPreferences) for user $currentUserId")
             return true
         }
-        
-        // Check 2: If backend says seenByMe = true, trust it and mark locally for future
-        if (stories.seenByMe == true) {
-            android.util.Log.d("StoryAdapter", "✅ Backend confirms all stories viewed (seenByMe=true) for user $currentUserId")
-            // Mark all stories as viewed locally for faster future checks
-            ViewedStoriesManager.markAllStoriesAsViewed(context, storyIds)
-            return true
-        }
-        
-        // Check 3: Verify by checking viewsRef from backend data
+
+        // Check 2: Verify by checking viewsRef from backend data
+        // We no longer blindly trust stories.seenByMe because it may stay true
+        // even after new stories are added; instead we rely on concrete viewsRef.
         android.util.Log.d("StoryAdapter", "Backend seenByMe=${stories.seenByMe}, checking viewsRef: ${storiesRef.size} stories for user $currentUserId")
         
-        // Check if current user has viewed ALL stories
+        // Check if current user has viewed ALL stories based on backend viewsRef
         var allViewed = true
         val viewedStoryIdsFromBackend = mutableListOf<String>()
         
@@ -108,9 +103,9 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
             }
         }
         
-        // If all stories are viewed according to backend, mark them locally
+        // If all stories are viewed according to backend, mark them locally for this user
         if (allViewed && viewedStoryIdsFromBackend.isNotEmpty()) {
-            ViewedStoriesManager.markAllStoriesAsViewed(context, viewedStoryIdsFromBackend)
+            ViewedStoriesManager.markAllStoriesAsViewed(context, currentUserId, viewedStoryIdsFromBackend)
             android.util.Log.d("StoryAdapter", "✅ All ${storiesRef.size} stories viewed by user $currentUserId (from backend viewsRef)")
         }
         
