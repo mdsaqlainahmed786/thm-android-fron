@@ -38,9 +38,9 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
      * Returns false if any story has not been viewed, or if storiesRef is empty.
      * 
      * Uses hybrid approach:
-     * 1. If backend says seenByMe = true, trust it (most reliable after viewing)
-     * 2. If backend says seenByMe = false/null, check locally via viewsRef
-     * 3. This handles both immediate updates (backend) and delayed updates (local check)
+     * 1. Check local cache first (most reliable for immediate updates)
+     * 2. If not all viewed locally, check backend viewsRef for each story individually
+     * 3. Only mark stories as viewed locally if we can confirm from backend that ALL are viewed
      */
     private fun areAllStoriesViewedByCurrentUser(stories: Stories): Boolean {
         val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "") ?: ""
@@ -74,17 +74,21 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
             return true
         }
 
-        // Check 2: Verify by checking viewsRef from backend data
-        // We no longer blindly trust stories.seenByMe because it may stay true
-        // even after new stories are added; instead we rely on concrete viewsRef.
-        android.util.Log.d("StoryAdapter", "Backend seenByMe=${stories.seenByMe}, checking viewsRef: ${storiesRef.size} stories for user $currentUserId")
+        // Check 2: Verify by checking viewsRef from backend data for EACH story individually
+        // We check each story to see if the current user has viewed it
+        // Only return true if ALL stories have been viewed
+        android.util.Log.d("StoryAdapter", "Not all stories viewed locally. Checking backend viewsRef: ${storiesRef.size} stories for user $currentUserId")
         
-        // Check if current user has viewed ALL stories based on backend viewsRef
-        var allViewed = true
+        var allViewedInBackend = true
         val viewedStoryIdsFromBackend = mutableListOf<String>()
+        val unviewedStoryIds = mutableListOf<String>()
         
+        // Check each story individually
         for ((index, story) in storiesRef.withIndex()) {
             val storyId = story.Id ?: "unknown"
+            
+            // First check local cache for this specific story
+            val viewedLocally = ViewedStoriesManager.isStoryViewed(context, currentUserId, storyId)
             
             // Check viewsRef from backend data
             val viewsRef = story.viewsRef ?: emptyList()
@@ -92,24 +96,32 @@ class StoryAdapter(private val context: Context,private val userProfilePic: Stri
                 viewer.Id?.equals(currentUserId, ignoreCase = true) == true
             }
             
-            if (hasViewedInBackend) {
+            // A story is considered viewed if it's viewed locally OR in backend
+            val isViewed = viewedLocally || hasViewedInBackend
+            
+            if (isViewed) {
                 viewedStoryIdsFromBackend.add(storyId)
-                android.util.Log.d("StoryAdapter", "Story $storyId (index $index) viewed (from backend viewsRef)")
+                android.util.Log.d("StoryAdapter", "Story $storyId (index $index) viewed (local=$viewedLocally, backend=$hasViewedInBackend)")
             } else {
-                // Story not viewed
-                android.util.Log.d("StoryAdapter", "❌ Story $storyId (index $index) NOT viewed by user $currentUserId. ViewsRef size: ${viewsRef.size}")
-                allViewed = false
-                break
+                unviewedStoryIds.add(storyId)
+                android.util.Log.d("StoryAdapter", "❌ Story $storyId (index $index) NOT viewed by user $currentUserId")
+                allViewedInBackend = false
+                // Don't break - continue checking all stories to get complete picture
             }
         }
         
-        // If all stories are viewed according to backend, mark them locally for this user
-        if (allViewed && viewedStoryIdsFromBackend.isNotEmpty()) {
+        // Only if ALL stories are viewed (both locally and in backend), mark them all locally
+        // This prevents marking all stories as viewed when only some are viewed
+        if (allViewedInBackend && viewedStoryIdsFromBackend.size == storyIds.size) {
+            // Double-check: make sure we have all story IDs marked
             ViewedStoriesManager.markAllStoriesAsViewed(context, currentUserId, viewedStoryIdsFromBackend)
-            android.util.Log.d("StoryAdapter", "✅ All ${storiesRef.size} stories viewed by user $currentUserId (from backend viewsRef)")
+            android.util.Log.d("StoryAdapter", "✅ All ${storiesRef.size} stories viewed by user $currentUserId (confirmed from backend)")
+            return true
+        } else {
+            // Not all stories are viewed - return false
+            android.util.Log.d("StoryAdapter", "❌ Only ${viewedStoryIdsFromBackend.size}/${storyIds.size} stories viewed. Unviewed: ${unviewedStoryIds.take(3)}")
+            return false
         }
-        
-        return allViewed
     }
 
     // ViewHolder for list items
