@@ -39,7 +39,7 @@ class MediaPagerAdapter(
     private val context: Context,
     private val mediaList: ArrayList<MediaRef>,
     private val isActive: Boolean,
-    private val postId: String,
+    val postId: String, // Made public to check if adapter is for same post
     private var isPostLiked: Boolean,
     private var likeCount: Int,
     private val commentCount: Int,
@@ -49,6 +49,7 @@ class MediaPagerAdapter(
 
 
     private var currentPlayingPosition = -1
+    private val viewHolders = mutableListOf<ViewHolder>()
 
     inner class ViewHolder(private val binding: ItemMediaBinding) : RecyclerView.ViewHolder(binding.root) {
         
@@ -58,14 +59,18 @@ class MediaPagerAdapter(
         private var currentLikeCount = likeCount
         
         fun updateState(newIsPostLiked: Boolean, newLikeCount: Int) {
+            android.util.Log.d("MediaPagerAdapter", "ViewHolder.updateState() called: newIsPostLiked=$newIsPostLiked, newLikeCount=$newLikeCount (old: currentIsPostLiked=$currentIsPostLiked, currentLikeCount=$currentLikeCount)")
             currentIsPostLiked = newIsPostLiked
             currentLikeCount = newLikeCount
+            android.util.Log.d("MediaPagerAdapter", "ViewHolder state updated: currentIsPostLiked=$currentIsPostLiked, currentLikeCount=$currentLikeCount")
         }
 
         fun bind(mediaItem: MediaRef, position: Int) {
             // Update local state from adapter state
+            // This ensures state is synced when ViewHolder is rebound
             currentIsPostLiked = isPostLiked
             currentLikeCount = likeCount
+            android.util.Log.d("MediaPagerAdapter", "bind() called: syncing state from adapter - isPostLiked=$isPostLiked, likeCount=$likeCount")
             
             if (!isActive) {
 
@@ -459,10 +464,17 @@ class MediaPagerAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemMediaBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return ViewHolder(binding)
+        val holder = ViewHolder(binding)
+        viewHolders.add(holder)
+        return holder
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        // Ensure ViewHolder is in the list (in case it was recycled and reused)
+        if (!viewHolders.contains(holder)) {
+            viewHolders.add(holder)
+            android.util.Log.d("MediaPagerAdapter", "Added ViewHolder back to list in onBindViewHolder. Total ViewHolders: ${viewHolders.size}")
+        }
         holder.bind(mediaList[position], position)
     }
 
@@ -470,6 +482,7 @@ class MediaPagerAdapter(
 
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
+        viewHolders.remove(holder)
         if (holder.bindingAdapterPosition == currentPlayingPosition) {
             VideoPlayerManager.releasePlayer()
         }
@@ -481,11 +494,19 @@ class MediaPagerAdapter(
     }
 
     fun updateLikeBtn(postLiked: Boolean, count: Int) {
+        // Update adapter state FIRST
         isPostLiked = postLiked
         likeCount = count
-        // Update all ViewHolders' state
-        // Note: This is a simple approach. For better performance, you could track ViewHolders
-        // and update only the visible ones, but for now this ensures state is synced
+        
+        android.util.Log.d("MediaPagerAdapter", "updateLikeBtn called: postLiked=$postLiked, count=$count, adapter state updated. ViewHolders count: ${viewHolders.size}")
+        
+        // Update all ViewHolders' state so double-tap works correctly after like/unlike
+        viewHolders.forEach { holder ->
+            holder.updateState(postLiked, count)
+            android.util.Log.d("MediaPagerAdapter", "Updated ViewHolder state: postLiked=$postLiked, count=$count")
+        }
+        
+        android.util.Log.d("MediaPagerAdapter", "updateLikeBtn completed: updated ${viewHolders.size} ViewHolders")
     }
 
 }

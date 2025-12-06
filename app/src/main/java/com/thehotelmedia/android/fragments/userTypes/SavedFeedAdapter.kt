@@ -257,16 +257,21 @@ class SavedFeedAdapter(
         }
 
         if (mediaList.isNotEmpty()){
-            mediaPagerAdapter = MediaPagerAdapter(
-                context,
-                mediaList,
-                isActive,
-                postId,
-                isPostLiked,
-                likeCount,
-                commentCount,
-                individualViewModal
-            ){ updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+            // Reuse existing adapter if it exists for the same post, otherwise create a new one
+            val shouldCreateNewAdapter = !::mediaPagerAdapter.isInitialized || mediaPagerAdapter.postId != postId
+            
+            if (shouldCreateNewAdapter) {
+                // Create new adapter
+                mediaPagerAdapter = MediaPagerAdapter(
+                    context,
+                    mediaList,
+                    isActive,
+                    postId,
+                    isPostLiked,
+                    likeCount,
+                    commentCount,
+                    individualViewModal
+                ){ updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
                 android.util.Log.d("SavedFeedAdapter", "onLikeClicked callback received: isLiked=$updatedIsLikedByMe, likeCount=$updatedLikeCount")
                 
                 // Update local variables to keep them in sync
@@ -291,6 +296,11 @@ class SavedFeedAdapter(
                 
                 // Update MediaPagerAdapter's internal state so double-tap works correctly
                 mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
+            }
+            } else {
+                // Reuse existing adapter - just update its state
+                android.util.Log.d("SavedFeedAdapter", "Reusing existing adapter for postId=$postId, updating state: isPostLiked=$isPostLiked, likeCount=$likeCount")
+                mediaPagerAdapter.updateLikeBtn(isPostLiked, likeCount)
             }
             binding.viewPager.adapter = mediaPagerAdapter
             binding.mediaLayout.visibility = View.VISIBLE

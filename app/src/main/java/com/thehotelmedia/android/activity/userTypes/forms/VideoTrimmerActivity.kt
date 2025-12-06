@@ -485,7 +485,9 @@ class VideoTrimmerActivity : BaseActivity() {
     }
 
     private fun handleSaveAction() {
+        Log.e("ZZZZZZ", "HANDLE SAVE ACTION CALLED, from=" + from)
         val uri = videoUri
+        Log.e("ZZZZZZ", "VIDEO URI: " + uri)
         if (uri == null) {
             showToast("Video not available")
             return
@@ -497,10 +499,16 @@ class VideoTrimmerActivity : BaseActivity() {
             return
         }
         
+        Log.e("ZZZZZZ", "CHECKING from == CreateStory")
         if (from == "CreateStory") {
+            Log.e("ZZZZZZ", "INSIDE from == CreateStory block")
             setSavingState(true)
+            Log.e("ZZZZZZ", "overlayBitmapPath = " + overlayBitmapPath)
             val overlayFile = overlayBitmapPath?.let { File(it) }
             val overlayExists = overlayFile?.exists() == true
+            Log.e("ZZZZZZ", "handleSaveAction() -> overlayExists=$overlayExists path=$overlayBitmapPath")
+            Log.e("ZZZZZZ", "OVERLAY FILE EXISTS? " + overlayExists)
+            Log.e("ZZZZZZ", "OVERLAY CHECK: path=$overlayBitmapPath, file=$overlayFile, exists=$overlayExists")
             Log.d("VideoTrimmerActivity", "=== SAVE ACTION STARTED ===")
             Log.d("VideoTrimmerActivity", "Overlay path: $overlayBitmapPath")
             Log.d("VideoTrimmerActivity", "Overlay file exists: $overlayExists")
@@ -656,6 +664,8 @@ class VideoTrimmerActivity : BaseActivity() {
         
         // Run on background thread with progress updates and timeout
         val compositingThread = Thread {
+            Log.e("ZZZZZZ", "renderOverlayOnVideo() -> Thread started")
+            Log.e("ZZZZZZ", "COMPOSITING THREAD STARTED")
             var compositingCompleted = false
             try {
                 Log.d("VideoTrimmerActivity", "Starting video compositing process...")
@@ -666,6 +676,7 @@ class VideoTrimmerActivity : BaseActivity() {
                     inMutable = false // We don't need to modify the original
                 }
                 val overlayBitmap = BitmapFactory.decodeFile(overlayBitmapPath, options)
+                Log.e("ZZZZZZ", "overlayBitmap loaded?=${overlayBitmap != null}")
                 if (overlayBitmap == null) {
                     Log.e("VideoTrimmerActivity", "Failed to load overlay bitmap")
                     runOnUiThread { safeCallback(null) }
@@ -746,6 +757,7 @@ class VideoTrimmerActivity : BaseActivity() {
                 }
                 
                 // Scale overlay to video dimensions
+                Log.e("ZZZZZZ", "Scaling overlay…")
                 val scaledOverlay = OverlayScaler.scaleOverlayToVideo(
                     overlayBitmap,
                     videoWidth,
@@ -793,8 +805,10 @@ class VideoTrimmerActivity : BaseActivity() {
                 }
                 
                 // Use the new VideoExportEngine
+                Log.e("ZZZZZZ", "ABOUT TO CALL exportVideoWithOverlay()")
                 val exportEngine = VideoExportEngine()
                 val success = exportEngine.exportVideoWithOverlay(inputVideoFile, scaledOverlay, outputFile)
+                Log.e("ZZZZZZ", "exportVideoWithOverlay() RETURNED success=$success")
                 scaledOverlay.recycle() // Recycle scaled overlay after export
                 val elapsedTime = System.currentTimeMillis() - startTime
                 compositingCompleted = true
@@ -910,6 +924,7 @@ class VideoTrimmerActivity : BaseActivity() {
                 // Cleanup
                 overlayBitmap.recycle()
             } catch (e: Exception) {
+                Log.e("ZZZZZZ", "EXCEPTION IN COMPOSITING THREAD: ${e.message}", e)
                 compositingCompleted = true
                 Log.e("VideoTrimmerActivity", "Error rendering overlay: ${e.message}", e)
                 e.printStackTrace()

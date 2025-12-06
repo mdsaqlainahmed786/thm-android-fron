@@ -60,7 +60,7 @@ class VideoExportEngine {
         overlayBitmap: Bitmap?,
         outputFile: File
     ): Boolean {
-        Log.e("ZZZZZZ", "EXPORT STARTED");
+        Log.e("ZZZZZZ_EXPORT", "EXPORT STARTED")
         var retriever: MediaMetadataRetriever? = null
         var extractor: MediaExtractor? = null
         var encoder: MediaCodec? = null
