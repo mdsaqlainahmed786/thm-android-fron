@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/accelerate_decelerate_interpolator"
+    android:duration="800">
+    
+    <!-- Scale animation: 0 → 1.3 → 1.0 -->
+    <!-- First phase: pop in (0 → 1.3) -->
+    <scale
+        android:duration="300"
+        android:fromXScale="0.0"
+        android:fromYScale="0.0"
+        android:toXScale="1.3"
+        android:toYScale="1.3"
+        android:pivotX="50%"
+        android:pivotY="50%"
+        android:interpolator="@android:anim/overshoot_interpolator" />
+    
+    <!-- Second phase: scale back (1.3 → 1.0) -->
+    <scale
+        android:duration="200"
+        android:startOffset="300"
+        android:fromXScale="1.3"
+        android:fromYScale="1.3"
+        android:toXScale="1.0"
+        android:toYScale="1.0"
+        android:pivotX="50%"
+        android:pivotY="50%"
+        android:interpolator="@android:anim/accelerate_decelerate_interpolator" />
+    
+    <!-- Fade in quickly -->
+    <alpha
+        android:duration="150"
+        android:fromAlpha="0.0"
+        android:toAlpha="1.0"
+        android:interpolator="@android:anim/accelerate_interpolator" />
+    
+    <!-- Float upwards (40-70px will be set programmatically) and fade out -->
+    <translate
+        android:duration="500"
+        android:startOffset="300"
+        android:fromYDelta="0"
+        android:toYDelta="-55"
+        android:interpolator="@android:anim/decelerate_interpolator" />
+    
+    <!-- Fade out during upward movement -->
+    <alpha
+        android:duration="500"
+        android:startOffset="300"
+        android:fromAlpha="1.0"
+        android:toAlpha="0.0"
+        android:interpolator="@android:anim/accelerate_interpolator" />
+    
+</set>
+
