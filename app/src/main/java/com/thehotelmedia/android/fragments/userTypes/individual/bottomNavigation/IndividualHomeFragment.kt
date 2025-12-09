@@ -69,6 +69,8 @@ class IndividualHomeFragment : Fragment() {
     private val batchSize = 30
     private val handler = Handler(Looper.getMainLooper())
     private var isScrolling = false
+     private var isManualRefresh = false
+     private var loadStateListenerAdded = false
     val debounceRunnable = Runnable {
         if (isScrolling) {
             val layoutManager = binding.postRecyclerView.layoutManager as LinearLayoutManager
@@ -199,12 +201,12 @@ class IndividualHomeFragment : Fragment() {
 
         // Swipe refresh layout listener
         binding.swipeRefreshLayout.setOnRefreshListener {
+            // Explicit user-initiated refresh: always go to top of the feed
+            isManualRefresh = true
+            binding.postRecyclerView.scrollToPosition(0)
 //            getStoryData()
 //            refreshHandler.removeCallbacksAndMessages(null)
-            // Scroll to top immediately when refresh starts
-            binding.postRecyclerView.scrollToPosition(0)
             getFeedData("refresh")
-//            binding.postRecyclerView.adapter?.notifyItemChanged(0)
         }
 
 //        binding.switchThemeButton.setOnClickListener {
@@ -399,16 +401,8 @@ class IndividualHomeFragment : Fragment() {
 
         individualViewModal.getFeeds(currentLat,currentLng).observe(viewLifecycleOwner) { data ->
             lifecycleScope.launch {
-                isLoading(refresh)
+                ensureLoadStateListener()
                 feedAdapter.submitData(data)
-                
-                // Scroll to top after data is submitted, especially on refresh
-                if (refresh.isNotEmpty()){
-                    // Post to ensure layout is complete before scrolling
-                    binding.postRecyclerView.post {
-                        binding.postRecyclerView.scrollToPosition(0)
-                    }
-                }
                 // Remove notifyDataSetChanged() - PagingDataAdapter handles updates automatically via DiffUtil
             }
         }
@@ -429,14 +423,17 @@ class IndividualHomeFragment : Fragment() {
         }
     }
 
-    private fun isLoading(refresh: String) {
+    private fun ensureLoadStateListener() {
+        if (loadStateListenerAdded) return
+        loadStateListenerAdded = true
+
         feedAdapter.addLoadStateListener { loadState ->
             val isLoading = loadState.refresh is LoadState.Loading
             val isEmpty = loadState.refresh is LoadState.NotLoading && feedAdapter.itemCount == 0
 
             if (isLoading) {
-//                if (refresh.isEmpty()) {
-                    // Show progress bar only for non-refresh loads
+//                // Show progress bar only for non-refresh loads, if needed
+//                if (!binding.swipeRefreshLayout.isRefreshing) {
 //                    progressBar.show()
 //                }
             } else {
@@ -444,9 +441,11 @@ class IndividualHomeFragment : Fragment() {
                 Handler(Looper.getMainLooper()).post {
                     progressBar.hide()
                     binding.swipeRefreshLayout.isRefreshing = false
-                    
-                    // Ensure scroll to top after refresh completes
-                    if (refresh.isNotEmpty()) {
+
+                    // After a manual refresh (user pulled to refresh), keep list at the very top.
+                    // Guard with isManualRefresh so normal paging loads while scrolling don't jump to top.
+                    if (isManualRefresh) {
+                        isManualRefresh = false
                         binding.postRecyclerView.post {
                             binding.postRecyclerView.scrollToPosition(0)
                         }

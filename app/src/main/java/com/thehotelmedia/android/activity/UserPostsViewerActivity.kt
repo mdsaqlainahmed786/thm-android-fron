@@ -36,6 +36,9 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     private var ownerUserId = ""
     private var userId = ""
     private var initialPostId: String? = null
+    private var initialMediaId: String? = null
+    private var initialMediaUrl: String? = null
+    private var initialIndex: Int? = null
     private var filterMediaType: String? = null // "image" or "video" to filter posts
     private var currentExoPlayer: ExoPlayer? = null
     private var activePosition: Int = RecyclerView.NO_POSITION
@@ -61,6 +64,9 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
         userId = intent.getStringExtra("USER_ID") ?: ""
         initialPostId = intent.getStringExtra("INITIAL_POST_ID")
+        initialMediaId = intent.getStringExtra("INITIAL_MEDIA_ID")
+        initialMediaUrl = intent.getStringExtra("INITIAL_MEDIA_URL")
+        initialIndex = if (intent.hasExtra("INITIAL_INDEX")) intent.getIntExtra("INITIAL_INDEX", -1).takeIf { it >= 0 } else null
         filterMediaType = intent.getStringExtra("FILTER_MEDIA_TYPE")
 
         binding.backBtn.setOnClickListener {
@@ -109,11 +115,29 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
         adapter.addLoadStateListener { loadStates ->
             val refreshState = loadStates.refresh
-            if (refreshState is LoadState.NotLoading && adapter.itemCount > 0 && activePosition == RecyclerView.NO_POSITION) {
-                binding.postsRecyclerView.post {
-                    val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
-                    val target = if (firstVisible != RecyclerView.NO_POSITION) firstVisible else 0
-                    updateActivePosition(target)
+            // When data is loaded, try to scroll to the target media/index
+            if (refreshState is LoadState.NotLoading && adapter.itemCount > 0) {
+                if (activePosition == RecyclerView.NO_POSITION) {
+                    // Trigger scroll if we have media/index to scroll to
+                    if (initialPostId != null || initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
+                        lifecycleScope.launch {
+                            when {
+                                initialPostId != null -> {
+                                    scrollToPost(initialPostId!!)
+                                }
+                                initialMediaId != null || initialMediaUrl != null || initialIndex != null -> {
+                                    scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
+                                }
+                            }
+                        }
+                    } else {
+                        // No specific target, just show first item
+                        binding.postsRecyclerView.post {
+                            val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
+                            val target = if (firstVisible != RecyclerView.NO_POSITION) firstVisible else 0
+                            updateActivePosition(target)
+                        }
+                    }
                 }
             }
         }
@@ -143,16 +167,8 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                     
                     adapter.submitData(filteredPagingData)
                     
-                    // Scroll to initial post after data is loaded
-                    initialPostId?.let { postId ->
-                        scrollToPost(postId)
-                    } ?: run {
-                        binding.postsRecyclerView.post {
-                            if (adapter.itemCount > 0) {
-                                updateActivePosition(0)
-                            }
-                        }
-                    }
+                    // Don't scroll here - let the LoadStateListener handle it after data is loaded
+                    // This ensures we wait for the filtered data to be ready
                 }
             }
         }
@@ -177,6 +193,84 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                 }
                 kotlinx.coroutines.delay(100)
                 attempts++
+            }
+        }
+    }
+
+    private fun scrollToPostByMedia(mediaId: String?, mediaUrl: String?, fallbackIndex: Int?) {
+        // Wait for adapter to load items, then scroll to the post containing this media
+        lifecycleScope.launch {
+            var attempts = 0
+            var lastItemCount = 0
+            var foundPosition = -1
+            
+            // Try both media matching and index-based scrolling in parallel
+            while (attempts < 80) { // Max 8 seconds total
+                val itemCount = adapter.itemCount
+                if (itemCount > 0) {
+                    var position = -1
+                    
+                    // Strategy 1: Try to find by media ID/URL
+                    if (mediaId != null && mediaId.isNotEmpty()) {
+                        position = adapter.findPostPositionByMediaId(mediaId)
+                    }
+                    if (position < 0 && mediaUrl != null && mediaUrl.isNotEmpty()) {
+                        position = adapter.findPostPositionByMediaUrl(mediaUrl)
+                    }
+                    
+                    // Strategy 2: If media matching fails and we have an index, use it
+                    // This is best-effort since filtering may change the order
+                    if (position < 0 && fallbackIndex != null && fallbackIndex >= 0) {
+                        // Use the index, clamped to valid range
+                        position = fallbackIndex.coerceIn(0, itemCount - 1)
+                    }
+                    
+                    if (position >= 0) {
+                        foundPosition = position
+                        // Scroll immediately
+                        binding.postsRecyclerView.scrollToPosition(position)
+                        
+                        // Wait for layout, then update active position
+                        binding.postsRecyclerView.post {
+                            // Give it a moment for the scroll to complete
+                            binding.postsRecyclerView.postDelayed({
+                                // Double-check we're at the right position
+                                val currentFirst = layoutManager.findFirstCompletelyVisibleItemPosition()
+                                val targetPos = if (currentFirst != RecyclerView.NO_POSITION && 
+                                    kotlin.math.abs(currentFirst - position) <= 2) {
+                                    currentFirst
+                                } else {
+                                    position
+                                }
+                                updateActivePosition(targetPos)
+                            }, 400)
+                        }
+                        return@launch
+                    }
+                    
+                    // If item count increased, reset attempts (more data loaded)
+                    if (itemCount > lastItemCount) {
+                        attempts = 0
+                        lastItemCount = itemCount
+                    }
+                }
+                kotlinx.coroutines.delay(100)
+                attempts++
+            }
+            
+            // Final fallback: use index if available, otherwise show first item
+            if (foundPosition < 0) {
+                val finalPosition = if (fallbackIndex != null && fallbackIndex >= 0 && adapter.itemCount > 0) {
+                    fallbackIndex.coerceIn(0, adapter.itemCount - 1)
+                } else {
+                    0
+                }
+                binding.postsRecyclerView.post {
+                    binding.postsRecyclerView.scrollToPosition(finalPosition)
+                    binding.postsRecyclerView.postDelayed({
+                        updateActivePosition(finalPosition)
+                    }, 400)
+                }
             }
         }
     }

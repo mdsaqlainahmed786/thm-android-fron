@@ -15,103 +15,137 @@ import java.io.IOException
 
 /**
  * PagingSource for searching all users (both individual and business) for collaboration
- * Uses the search endpoint with type "users" to search across all users in the database
+ * Fetches both users and business profiles and merges them together
  */
 class CollaborationUsersPagingSource(
     private val search: String,
     private val repository: IndividualRepo
 ) : PagingSource<Int, TaggedData>() {
     private val tag = "PAGING_COLLABORATION_USERS"
-    private var maxPageLimit: Int? = null
+    private var maxPageLimitUsers: Int? = null
+    private var maxPageLimitBusiness: Int? = null
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, TaggedData> {
         try {
             val nextPageNumber = params.key ?: 1
 
-            if (maxPageLimit != null && nextPageNumber > maxPageLimit!!) {
+            // Check if we've exceeded both page limits
+            if (maxPageLimitUsers != null && maxPageLimitBusiness != null && 
+                nextPageNumber > maxPageLimitUsers!! && nextPageNumber > maxPageLimitBusiness!!) {
                 return LoadResult.Page(emptyList(), prevKey = null, nextKey = null)
             }
 
-            // Use search endpoint with type "users" to search all users (individual + business)
-            val response = repository.getSearchData(
+            // Fetch both users and business profiles in parallel
+            val usersResponse = repository.getSearchData(
                 query = search,
-                type = "users", // Search all users
+                type = "users", // Search individual users
                 pageNumber = nextPageNumber,
                 documentLimit = 20,
-                businessTypeID = emptyList(), // Empty list to get all business types
-                initialKm = "0", // Not needed for user search
-                lat = 0.0, // Not needed for user search
-                lng = 0.0 // Not needed for user search
+                businessTypeID = emptyList(),
+                initialKm = "0",
+                lat = 0.0,
+                lng = 0.0
             )
 
-            Log.d(tag + "KEY", nextPageNumber.toString())
+            val businessResponse = repository.getSearchData(
+                query = search,
+                type = "business", // Search business profiles
+                pageNumber = nextPageNumber,
+                documentLimit = 20,
+                businessTypeID = emptyList(),
+                initialKm = "0",
+                lat = 0.0,
+                lng = 0.0
+            )
 
-            return if (response.isSuccessful) {
-                Log.d(tag, "Response code: ${response.code()}")
-                val searchDataList = response.body()?.searchData ?: emptyList()
+            Log.d(tag + "KEY", "Page: $nextPageNumber")
 
-                // Convert SearchData to TaggedData format
-                val taggedDataList = searchDataList.mapNotNull { searchData ->
-                    try {
-                        TaggedData(
-                            Id = searchData.Id,
-                            accountType = searchData.accountType,
-                            profilePic = searchData.profilePic?.let { pic ->
-                                ProfilePic(
-                                    small = pic.small,
-                                    medium = pic.medium,
-                                    large = pic.large
-                                )
-                            },
-                            username = searchData.username,
-                            name = searchData.name,
-                            businessProfileRef = searchData.businessProfileRef?.let { businessRef ->
-                                BusinessProfileRef(
-                                    businessProfilePic = businessRef.profilePic?.let { bpPic ->
-                                        BusinessProfilePic(
-                                            small = bpPic.small,
-                                            medium = bpPic.medium,
-                                            large = bpPic.large
-                                        )
-                                    },
-                                    name = businessRef.name,
-                                    address = businessRef.address?.let { addr ->
-                                        Address(
-                                            street = addr.street,
-                                            city = addr.city,
-                                            state = addr.state,
-                                            country = addr.country,
-                                            zipCode = addr.zipCode
-                                        )
-                                    },
-                                    businessTypeRef = businessRef.businessTypeRef?.let { btRef ->
-                                        BusinessTypeRef(
-                                            Id = btRef.Id,
-                                            name = btRef.name,
-                                            icon = btRef.icon
-                                        )
-                                    }
-                                )
-                            }
-                        )
-                    } catch (e: Exception) {
-                        Log.e(tag, "Error converting SearchData to TaggedData: ${e.message}", e)
-                        null
-                    }
+            // Process users response
+            val usersList = if (usersResponse.isSuccessful) {
+                if (maxPageLimitUsers == null) {
+                    maxPageLimitUsers = usersResponse.body()?.totalPages
                 }
-
-                val nextKey = if (taggedDataList.isEmpty()) null else nextPageNumber + 1
-
-                if (maxPageLimit == null) {
-                    maxPageLimit = response.body()?.totalPages
-                }
-                Log.d(tag, "Response: $nextKey, converted ${taggedDataList.size} users")
-                LoadResult.Page(taggedDataList, null, nextKey)
-
+                usersResponse.body()?.searchData ?: emptyList()
             } else {
-                Log.d(tag, "HTTP error: ${response.code()}")
-                LoadResult.Error(Throwable("$tag error : ${response.code()}"))
+                Log.w(tag, "Users response error: ${usersResponse.code()}")
+                emptyList()
             }
+
+            // Process business response
+            val businessList = if (businessResponse.isSuccessful) {
+                if (maxPageLimitBusiness == null) {
+                    maxPageLimitBusiness = businessResponse.body()?.totalPages
+                }
+                businessResponse.body()?.searchData ?: emptyList()
+            } else {
+                Log.w(tag, "Business response error: ${businessResponse.code()}")
+                emptyList()
+            }
+
+            // Merge both lists
+            val allSearchData = (usersList + businessList)
+
+            // Convert SearchData to TaggedData format
+            val taggedDataList = allSearchData.mapNotNull { searchData ->
+                try {
+                    TaggedData(
+                        Id = searchData.Id,
+                        accountType = searchData.accountType,
+                        profilePic = searchData.profilePic?.let { pic ->
+                            ProfilePic(
+                                small = pic.small,
+                                medium = pic.medium,
+                                large = pic.large
+                            )
+                        },
+                        username = searchData.username,
+                        name = searchData.name,
+                        businessProfileRef = searchData.businessProfileRef?.let { businessRef ->
+                            BusinessProfileRef(
+                                businessProfilePic = businessRef.profilePic?.let { bpPic ->
+                                    BusinessProfilePic(
+                                        small = bpPic.small,
+                                        medium = bpPic.medium,
+                                        large = bpPic.large
+                                    )
+                                },
+                                name = businessRef.name,
+                                address = businessRef.address?.let { addr ->
+                                    Address(
+                                        street = addr.street,
+                                        city = addr.city,
+                                        state = addr.state,
+                                        country = addr.country,
+                                        zipCode = addr.zipCode
+                                    )
+                                },
+                                businessTypeRef = businessRef.businessTypeRef?.let { btRef ->
+                                    BusinessTypeRef(
+                                        Id = btRef.Id,
+                                        name = btRef.name,
+                                        icon = btRef.icon
+                                    )
+                                }
+                            )
+                        }
+                    )
+                } catch (e: Exception) {
+                    Log.e(tag, "Error converting SearchData to TaggedData: ${e.message}", e)
+                    null
+                }
+            }
+
+            // Determine if there's a next page (if either source has more pages)
+            val hasMoreUsers = maxPageLimitUsers == null || nextPageNumber < maxPageLimitUsers!!
+            val hasMoreBusiness = maxPageLimitBusiness == null || nextPageNumber < maxPageLimitBusiness!!
+            val nextKey = if (taggedDataList.isEmpty() || (!hasMoreUsers && !hasMoreBusiness)) {
+                null
+            } else {
+                nextPageNumber + 1
+            }
+
+            Log.d(tag, "Merged response: users=${usersList.size}, business=${businessList.size}, total=${taggedDataList.size}, nextKey=$nextKey")
+            return LoadResult.Page(taggedDataList, null, nextKey)
 
         } catch (e: IOException) {
             Log.e(tag, "IO Exception: ${e.message}")

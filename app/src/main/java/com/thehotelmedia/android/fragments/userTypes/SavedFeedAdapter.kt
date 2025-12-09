@@ -1,5 +1,6 @@
 package com.thehotelmedia.android.fragments.userTypes
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -13,6 +14,7 @@ import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.OvershootInterpolator
 import android.widget.ImageView
 import android.widget.PopupWindow
 import android.widget.TextView
@@ -255,19 +257,50 @@ class SavedFeedAdapter(
         }
 
         if (mediaList.isNotEmpty()){
-            mediaPagerAdapter = MediaPagerAdapter(
-                context,
-                mediaList,
-                isActive,
-                postId,
-                isPostLiked,
-                likeCount,
-                commentCount
-            ){ updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                updateLikeBtn(updatedIsLikedByMe, binding.likeIv)
-                binding.likeTv.text = updatedLikeCount.toString()
-                binding.commentTv.text = updatedCommentCount.toString()
-                // You can also update UI elements in the activity here
+            // Reuse existing adapter if it exists for the same post, otherwise create a new one
+            val shouldCreateNewAdapter = !::mediaPagerAdapter.isInitialized || mediaPagerAdapter.postId != postId
+            
+            if (shouldCreateNewAdapter) {
+                // Create new adapter
+                mediaPagerAdapter = MediaPagerAdapter(
+                    context,
+                    mediaList,
+                    isActive,
+                    postId,
+                    isPostLiked,
+                    likeCount,
+                    commentCount,
+                    individualViewModal
+                ){ updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                android.util.Log.d("SavedFeedAdapter", "onLikeClicked callback received: isLiked=$updatedIsLikedByMe, likeCount=$updatedLikeCount")
+                
+                // Update local variables to keep them in sync
+                isPostLiked = updatedIsLikedByMe
+                likeCount = updatedLikeCount
+                commentCount = updatedCommentCount
+                
+                // Update the post data
+                post.likedByMe = updatedIsLikedByMe
+                post.likes = updatedLikeCount
+                post.comments = updatedCommentCount
+                
+                // Update UI exactly like the like button does - CRITICAL: This must update the counter
+                binding.likeIv.setImageResource(if (updatedIsLikedByMe) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon)
+                val formattedCount = formatCount(updatedLikeCount)
+                android.util.Log.d("SavedFeedAdapter", "Updating likeTv.text to: $formattedCount (from count: $updatedLikeCount)")
+                binding.likeTv.text = formattedCount
+                binding.commentTv.text = formatCount(updatedCommentCount)
+                
+                // Add scale animation to like button when double-tapped
+                animateLikeButtonScale(binding.likeIv)
+                
+                // Update MediaPagerAdapter's internal state so double-tap works correctly
+                mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
+            }
+            } else {
+                // Reuse existing adapter - just update its state
+                android.util.Log.d("SavedFeedAdapter", "Reusing existing adapter for postId=$postId, updating state: isPostLiked=$isPostLiked, likeCount=$likeCount")
+                mediaPagerAdapter.updateLikeBtn(isPostLiked, likeCount)
             }
             binding.viewPager.adapter = mediaPagerAdapter
             binding.mediaLayout.visibility = View.VISIBLE
@@ -561,6 +594,9 @@ class SavedFeedAdapter(
             binding.likeTv.text = formatCount(likeCount)
             post.likes = likeCount
             post.likedByMe = isPostLiked
+            
+            // Update MediaPagerAdapter's internal state so double-tap works correctly
+            mediaPagerAdapter.updateLikeBtn(isPostLiked, likeCount)
         }
 
         // Comment button click
@@ -1094,6 +1130,21 @@ class SavedFeedAdapter(
         } else {
             likeIv.setImageResource(R.drawable.ic_unlike_icon)
         }
+    }
+    
+    /**
+     * Animates the like button with a scale effect (pop animation)
+     * Used when double-tap triggers a like
+     */
+    private fun animateLikeButtonScale(likeIv: ImageView) {
+        val scaleX = ObjectAnimator.ofFloat(likeIv, "scaleX", 1.0f, 1.3f, 1.0f)
+        val scaleY = ObjectAnimator.ofFloat(likeIv, "scaleY", 1.0f, 1.3f, 1.0f)
+        scaleX.duration = 300
+        scaleY.duration = 300
+        scaleX.interpolator = OvershootInterpolator()
+        scaleY.interpolator = OvershootInterpolator()
+        scaleX.start()
+        scaleY.start()
     }
 
 

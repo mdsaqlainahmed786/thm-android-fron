@@ -382,8 +382,13 @@ class StoryPagerAdapter(
 
     private fun viewStory(storyId: String) {
         if (storyId.isNotEmpty()) {
+            val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "") ?: ""
             // Mark story as viewed locally for immediate UI update
-            com.thehotelmedia.android.customClasses.ViewedStoriesManager.markStoryAsViewed(context, storyId)
+            com.thehotelmedia.android.customClasses.ViewedStoriesManager.markStoryAsViewed(
+                context,
+                currentUserId,
+                storyId
+            )
             // Also notify backend
             individualViewModal.viewStory(storyId)
         }
@@ -653,10 +658,15 @@ class StoryPagerAdapter(
             showCurrentStory(storyMedia, binding, users)
         } else {
             // All stories for this user are done
-            // Mark all stories for this user as viewed in SharedPreferences
+            // Mark all stories for this user as viewed in SharedPreferences (scoped per viewer)
             val allStoryIds = users.storiesRef.mapNotNull { it.Id }.filter { it.isNotEmpty() }
             if (allStoryIds.isNotEmpty()) {
-                com.thehotelmedia.android.customClasses.ViewedStoriesManager.markAllStoriesAsViewed(context, allStoryIds)
+                val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "") ?: ""
+                com.thehotelmedia.android.customClasses.ViewedStoriesManager.markAllStoriesAsViewed(
+                    context,
+                    currentUserId,
+                    allStoryIds
+                )
                 android.util.Log.d("StoryPagerAdapter", "Marked all ${allStoryIds.size} stories as viewed for user ${users.id}")
             }
             

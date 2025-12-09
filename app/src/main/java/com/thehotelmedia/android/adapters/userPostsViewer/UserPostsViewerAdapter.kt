@@ -920,6 +920,66 @@ class UserPostsViewerAdapter(
         return -1
     }
 
+    /**
+     * Find the position of a post that contains a specific media ID
+     */
+    fun findPostPositionByMediaId(mediaId: String): Int {
+        for (i in 0 until itemCount) {
+            val item = getItem(i)
+            val mediaRef = item?.mediaRef ?: emptyList()
+            if (mediaRef.any { it.Id == mediaId }) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    /**
+     * Find the position of a post that contains a specific media URL (sourceUrl)
+     * Handles URL matching with normalization (removes query params, trailing slashes, etc.)
+     */
+    fun findPostPositionByMediaUrl(mediaUrl: String): Int {
+        if (mediaUrl.isBlank()) return -1
+        
+        // Normalize the input URL for comparison
+        val normalizedInput = normalizeUrl(mediaUrl)
+        
+        for (i in 0 until itemCount) {
+            val item = getItem(i)
+            val mediaRef = item?.mediaRef ?: emptyList()
+            if (mediaRef.any { 
+                val sourceUrl = it.sourceUrl ?: ""
+                if (sourceUrl.isNotEmpty()) {
+                    val normalizedSource = normalizeUrl(sourceUrl)
+                    // Try exact match first, then normalized match
+                    sourceUrl == mediaUrl || normalizedSource == normalizedInput
+                } else {
+                    false
+                }
+            }) {
+                return i
+            }
+        }
+        return -1
+    }
+    
+    /**
+     * Normalize URL for comparison by removing query parameters and trailing slashes
+     */
+    private fun normalizeUrl(url: String): String {
+        return try {
+            val uri = android.net.Uri.parse(url)
+            val scheme = uri.scheme ?: ""
+            val authority = uri.authority ?: ""
+            val path = uri.path ?: ""
+            val normalizedPath = path.trimEnd('/')
+            "$scheme://$authority$normalizedPath"
+        } catch (e: Exception) {
+            // If parsing fails, just return the original URL
+            url.trimEnd('/')
+        }
+    }
+
     companion object {
         private const val PAYLOAD_ACTIVE = "payload_active"
         private const val PAYLOAD_LIKE = "payload_like"

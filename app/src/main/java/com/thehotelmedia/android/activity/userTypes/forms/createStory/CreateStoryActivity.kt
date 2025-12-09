@@ -6,6 +6,7 @@ import android.content.ContentResolver
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -16,6 +17,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -85,6 +87,7 @@ class CreateStoryActivity : BaseActivity() {
     private var currentVideoUri: Uri? = null
     private var videoPlayer: ExoPlayer? = null
     private var isFilterAvailable = true
+    private var isUploading = false // Flag to prevent duplicate uploads
 
 
     private val pickMediaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -129,6 +132,7 @@ class CreateStoryActivity : BaseActivity() {
             .setPinchTextScalable(true)
             .build()
         setupPhotoEditorListener()
+        setupPositionMonitoring()
         binding.filterLayout.visibility = View.GONE
 
         inItUi()
@@ -162,7 +166,13 @@ class CreateStoryActivity : BaseActivity() {
         }
 
         binding.doneButton.setOnClickListener {
-            saveEditedImage()
+            Log.d("CreateStoryActivity", "Done button clicked")
+            try {
+                saveEditedImage()
+            } catch (e: Exception) {
+                Log.e("CreateStoryActivity", "Error in done button click: ${e.message}", e)
+                Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
 
         binding.filterButton.setOnClickListener {
@@ -196,6 +206,9 @@ class CreateStoryActivity : BaseActivity() {
 
 
         individualViewModal.createStoryResult.observe(activity){result->
+            // Reset upload flag when upload completes (success or failure)
+            isUploading = false
+            
             if (result.status == true){
                 result.message?.let { msg ->
                   successGiff.show(msg) {
@@ -356,12 +369,294 @@ class CreateStoryActivity : BaseActivity() {
             showVideoPreview(uri)
         }
     }
+    private fun captureOverlayAndTrimVideo(uri: Uri) {
+        // Ensure overlays are visible before capturing
+        ensureOverlaysVisible()
+        
+        binding.photoEditorView.postDelayed({
+            try {
+                // Capture only the overlay views (text/emojis), not the video
+                val (overlayBitmap, overlayInfos) = captureOverlayBitmap()
+                
+                if (overlayBitmap == null) {
+                    Log.w("CreateStoryActivity", "No overlay bitmap captured, proceeding without overlay")
+                }
+                
+                val savedVideoUri = saveVideo(uri) ?: run {
+                    Log.e("CreateStoryActivity", "Failed to save video")
+                    runOnUiThread {
+                        Toast.makeText(this, "Unable to prepare video", Toast.LENGTH_SHORT).show()
+                    }
+                    return@postDelayed
+                }
+                
+                // Save overlay bitmap to a file and pass it to video trimmer
+                val overlayFile = overlayBitmap?.let { saveOverlayBitmap(it) }
+                if (overlayFile != null) {
+                    Log.d("CreateStoryActivity", "Overlay saved to: ${overlayFile.absolutePath}")
+                }
+                showVideoTrimmer(savedVideoUri, overlayFile, overlayInfos)
+            } catch (e: Exception) {
+                Log.e("CreateStoryActivity", "Error capturing overlay: ${e.message}", e)
+                runOnUiThread {
+                    Toast.makeText(this, "Error processing video: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+                // Fallback to normal video trimmer without overlay
+                try {
+                    val savedVideoUri = saveVideo(uri) ?: run {
+                        runOnUiThread {
+                            Toast.makeText(this, "Unable to prepare video", Toast.LENGTH_SHORT).show()
+                        }
+                        return@postDelayed
+                    }
+                    showVideoTrimmer(savedVideoUri, null, emptyList())
+                } catch (e2: Exception) {
+                    Log.e("CreateStoryActivity", "Error in fallback: ${e2.message}", e2)
+                    runOnUiThread {
+                        Toast.makeText(this, "Failed to process video", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }, 200)
+    }
+    
+    data class OverlayInfo(
+        val left: Int,
+        val top: Int,
+        val width: Int,
+        val height: Int,
+        val type: String // "TEXT" or "EMOJI"
+    )
+    
+    private fun captureOverlayBitmap(): Pair<Bitmap?, List<OverlayInfo>> {
+        return try {
+            // Create a bitmap to capture only the overlay views (text/emojis)
+            val width = binding.photoEditorView.width
+            val height = binding.photoEditorView.height
+            if (width <= 0 || height <= 0) {
+                Log.e("CreateStoryActivity", "Invalid view dimensions: $width x $height")
+                return Pair(null, emptyList())
+            }
+            
+            // Create a transparent bitmap
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            bitmap.eraseColor(Color.TRANSPARENT) // Make it transparent
+            val canvas = Canvas(bitmap)
+            
+            // Store overlay positions
+            val overlayInfos = mutableListOf<OverlayInfo>()
+            
+            // Draw only the overlay children (text/emoji views), not the source image
+            val childCount = binding.photoEditorView.childCount
+            var overlayCount = 0
+            for (i in 0 until childCount) {
+                val child = binding.photoEditorView.getChildAt(i) ?: continue
+                // Skip the source image view - only capture overlay views
+                if (child != binding.photoEditorView.source && child.visibility == View.VISIBLE) {
+                    // Check if this is a text overlay
+                    val textView = child.findViewById<TextView>(R.id.tvPhotoEditorText)
+                    val isTextOverlay = textView != null
+                    
+                    // Check if this is an emoji overlay (typically a ViewGroup with ImageView children)
+                    // Also check if the child itself is an ImageView (some emoji implementations use ImageView directly)
+                    val isEmojiOverlay = if (child is ImageView && child.drawable != null) {
+                        true // Direct ImageView with drawable
+                    } else if (child is ViewGroup) {
+                        var hasEmojiImage = false
+                        for (j in 0 until child.childCount) {
+                            val grandChild = child.getChildAt(j)
+                            if (grandChild is ImageView && grandChild.drawable != null) {
+                                hasEmojiImage = true
+                                break
+                            }
+                        }
+                        hasEmojiImage
+                    } else {
+                        false
+                    }
+                    
+                    if (isTextOverlay || isEmojiOverlay) {
+                        // Ensure text view is visible and properly configured before capturing
+                        if (isTextOverlay && textView != null) {
+                            textView.visibility = View.VISIBLE
+                            textView.alpha = 1f
+                            // Force a layout pass to ensure text is rendered
+                            textView.requestLayout()
+                        }
+                        
+                        overlayCount++
+                        // Get the view's bounds in parent coordinates (accounts for both layout and translation)
+                        val bounds = android.graphics.Rect()
+                        child.getHitRect(bounds)
+                        
+                        val actualLeft = bounds.left
+                        val actualTop = bounds.top
+                        val childWidth = bounds.width().coerceAtLeast(1)
+                        val childHeight = bounds.height().coerceAtLeast(1)
+                        
+                        // Store the actual position for proper scaling later
+                        overlayInfos.add(OverlayInfo(
+                            left = actualLeft,
+                            top = actualTop,
+                            width = childWidth,
+                            height = childHeight,
+                            type = if (isTextOverlay) "TEXT" else "EMOJI"
+                        ))
+                        
+                        // Draw the child at its actual position using the same bounds
+                        // For both text and emoji overlays, ensure the view is properly laid out before drawing
+                        if (isTextOverlay || isEmojiOverlay) {
+                            // Ensure overlay view is properly measured and laid out
+                            if (child is ViewGroup) {
+                                child.measure(
+                                    View.MeasureSpec.makeMeasureSpec(childWidth, View.MeasureSpec.EXACTLY),
+                                    View.MeasureSpec.makeMeasureSpec(childHeight, View.MeasureSpec.EXACTLY)
+                                )
+                                child.layout(0, 0, childWidth, childHeight) // Layout relative to (0,0) since we'll translate
+                                
+                                // For text overlays, also ensure the TextView inside is properly measured
+                                if (isTextOverlay && textView != null) {
+                                    textView.measure(
+                                        View.MeasureSpec.makeMeasureSpec(childWidth, View.MeasureSpec.EXACTLY),
+                                        View.MeasureSpec.makeMeasureSpec(childHeight, View.MeasureSpec.EXACTLY)
+                                    )
+                                    textView.layout(0, 0, childWidth, childHeight)
+                                }
+                            } else if (child is ImageView) {
+                                // For direct ImageView (emoji), ensure it's measured
+                                child.measure(
+                                    View.MeasureSpec.makeMeasureSpec(childWidth, View.MeasureSpec.EXACTLY),
+                                    View.MeasureSpec.makeMeasureSpec(childHeight, View.MeasureSpec.EXACTLY)
+                                )
+                                child.layout(0, 0, childWidth, childHeight)
+                            }
+                            
+                            // Log overlay view details for debugging
+                            if (overlayCount == 1) {
+                                if (isTextOverlay) {
+                                    Log.d("CreateStoryActivity", "Text overlay details: class=${child.javaClass.simpleName}, width=$childWidth, height=$childHeight, textView=${textView?.text}, textView.visibility=${textView?.visibility}")
+                                    if (child is ViewGroup) {
+                                        Log.d("CreateStoryActivity", "Text ViewGroup has ${child.childCount} children")
+                                        for (j in 0 until child.childCount) {
+                                            val grandChild = child.getChildAt(j)
+                                            Log.d("CreateStoryActivity", "  Child $j: ${grandChild.javaClass.simpleName}, visibility=${grandChild.visibility}")
+                                        }
+                                    }
+                                } else {
+                                    Log.d("CreateStoryActivity", "Emoji view details: class=${child.javaClass.simpleName}, width=$childWidth, height=$childHeight, drawable=${if (child is ImageView) child.drawable != null else "N/A"}")
+                                    if (child is ViewGroup) {
+                                        Log.d("CreateStoryActivity", "Emoji ViewGroup has ${child.childCount} children")
+                                        for (j in 0 until child.childCount) {
+                                            val grandChild = child.getChildAt(j)
+                                            Log.d("CreateStoryActivity", "  Child $j: ${grandChild.javaClass.simpleName}, visibility=${grandChild.visibility}")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        canvas.save()
+                        canvas.translate(actualLeft.toFloat(), actualTop.toFloat())
+                        // Draw with hardware layer disabled to ensure proper rendering for both text and emoji
+                        val wasHardwareAccelerated = child.isHardwareAccelerated
+                        if (wasHardwareAccelerated) {
+                            child.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+                            // Also disable hardware acceleration for TextView inside if it's a text overlay
+                            if (isTextOverlay && textView != null && textView.isHardwareAccelerated) {
+                                textView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+                            }
+                        }
+                        child.draw(canvas)
+                        if (wasHardwareAccelerated) {
+                            child.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                            // Restore hardware acceleration for TextView
+                            if (isTextOverlay && textView != null) {
+                                textView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                            }
+                        }
+                        canvas.restore()
+                        
+                        // Verify the drawn content by sampling pixels from the bitmap
+                        if (isTextOverlay || isEmojiOverlay) {
+                            // Sample pixels from the center of the drawn area to verify content
+                            val centerX = (actualLeft + childWidth / 2).coerceIn(0, width - 1)
+                            val centerY = (actualTop + childHeight / 2).coerceIn(0, height - 1)
+                            val samplePixel = bitmap.getPixel(centerX, centerY)
+                            val alpha = (samplePixel shr 24) and 0xFF
+                            val r = (samplePixel shr 16) and 0xFF
+                            val g = (samplePixel shr 8) and 0xFF
+                            val b = samplePixel and 0xFF
+                            val overlayType = if (isTextOverlay) "TEXT" else "EMOJI"
+                            Log.d("CreateStoryActivity", "$overlayType overlay drawn - sampled pixel at center ($centerX, $centerY): ARGB($alpha, $r, $g, $b)")
+                            
+                            // Also sample a few more pixels around the area
+                            var nonTransparentCount = 0
+                            val sampleSize = minOf(9, childWidth * childHeight / 100) // Sample ~1% of pixels
+                            for (sy in actualTop until minOf(actualTop + childHeight, height) step maxOf(1, childHeight / 3)) {
+                                for (sx in actualLeft until minOf(actualLeft + childWidth, width) step maxOf(1, childWidth / 3)) {
+                                    val pixel = bitmap.getPixel(sx, sy)
+                                    if ((pixel shr 24) and 0xFF > 0) {
+                                        nonTransparentCount++
+                                    }
+                                }
+                            }
+                            Log.d("CreateStoryActivity", "$overlayType area sampled: $nonTransparentCount non-transparent pixels found")
+                        }
+                        
+                        Log.d("CreateStoryActivity", "Captured overlay: type=${if (isTextOverlay) "TEXT" else "EMOJI"}, pos=($actualLeft, $actualTop), size=($childWidth, $childHeight), bounds=(${bounds.left}, ${bounds.top}, ${bounds.right}, ${bounds.bottom})")
+                    }
+                }
+            }
+            Log.d("CreateStoryActivity", "Captured $overlayCount overlay(s) from $childCount children")
+            
+            // Verify bitmap has content by checking if it's not completely transparent
+            if (overlayCount > 0) {
+                var hasContent = false
+                val pixels = IntArray(width * height)
+                bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+                for (pixel in pixels) {
+                    if ((pixel shr 24) and 0xFF != 0) { // Check alpha channel
+                        hasContent = true
+                        break
+                    }
+                }
+                if (!hasContent) {
+                    Log.w("CreateStoryActivity", "Overlay bitmap appears to be empty (all transparent) despite $overlayCount overlays")
+                } else {
+                    Log.d("CreateStoryActivity", "Overlay bitmap has content, size: ${bitmap.width}x${bitmap.height}")
+                }
+            }
+            
+            Pair(bitmap, overlayInfos)
+        } catch (e: Exception) {
+            Log.e("CreateStoryActivity", "Error capturing overlay bitmap: ${e.message}", e)
+            Pair(null, emptyList())
+        }
+    }
+    
+    private fun saveOverlayBitmap(bitmap: Bitmap): File? {
+        return try {
+            val overlayDir = File(cacheDir, "video_overlays")
+            if (!overlayDir.exists()) {
+                overlayDir.mkdirs()
+            }
+            val overlayFile = File(overlayDir, "overlay_${System.currentTimeMillis()}.png")
+            FileOutputStream(overlayFile).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+            overlayFile
+        } catch (e: Exception) {
+            Log.e("CreateStoryActivity", "Error saving overlay bitmap: ${e.message}", e)
+            null
+        }
+    }
+    
     private fun checkVideoDurationAndTrim(uri: Uri) {
         val savedVideoUri = saveVideo(uri) ?: run {
             Toast.makeText(this, "Unable to prepare video", Toast.LENGTH_SHORT).show()
             return
         }
-        showVideoTrimmer(savedVideoUri)
+        showVideoTrimmer(savedVideoUri, null, emptyList())
     }
 
     private fun saveVideo(uri: Uri): Uri? {
@@ -386,10 +681,27 @@ class CreateStoryActivity : BaseActivity() {
             null
         }
     }
-    private fun showVideoTrimmer(uri: Uri) {
+    private fun showVideoTrimmer(uri: Uri, overlayFile: File?, overlayInfos: List<OverlayInfo>) {
         val intent = Intent(this, VideoTrimmerActivity::class.java)
         intent.putExtra("video_uri", uri.toString())
         intent.putExtra("FROM", "CreateStory")
+        overlayFile?.absolutePath?.let {
+            intent.putExtra("overlay_bitmap_path", it)
+            // Pass PhotoEditorView dimensions for proper scaling
+            val viewWidth = binding.photoEditorView.width
+            val viewHeight = binding.photoEditorView.height
+            intent.putExtra("overlay_view_width", viewWidth)
+            intent.putExtra("overlay_view_height", viewHeight)
+            
+            // Pass overlay positions as JSON string
+            val overlayPositionsJson = overlayInfos.joinToString(separator = "|") { info ->
+                "${info.left},${info.top},${info.width},${info.height},${info.type}"
+            }
+            intent.putExtra("overlay_positions", overlayPositionsJson)
+            
+            Log.d("CreateStoryActivity", "Passing overlay dimensions: ${viewWidth}x${viewHeight}, ${overlayInfos.size} overlays")
+            Log.d("CreateStoryActivity", "Overlay positions: $overlayPositionsJson")
+        }
         startActivity(intent)
     }
 
@@ -519,10 +831,24 @@ class CreateStoryActivity : BaseActivity() {
             }
 
             override fun onAddViewListener(viewType: ViewType?, numberOfAddedViews: Int) {
-                if (viewType == ViewType.TEXT) {
-                    binding.photoEditorView.post {
-                        getLatestTextOverlay()?.let { configureTextOverlay(it) }
-                    }
+                if (viewType == ViewType.TEXT || viewType == ViewType.EMOJI) {
+                    binding.photoEditorView.postDelayed({
+                        ensureOverlaysVisible()
+                        if (viewType == ViewType.TEXT) {
+                            getLatestTextOverlay()?.let { overlay ->
+                                configureTextOverlay(overlay)
+                                removeGravityConstraints(overlay)
+                            }
+                        } else if (viewType == ViewType.EMOJI) {
+                            val childCount = binding.photoEditorView.childCount
+                            if (childCount > 0) {
+                                val lastChild = binding.photoEditorView.getChildAt(childCount - 1)
+                                if (lastChild != binding.photoEditorView.source) {
+                                    removeGravityConstraints(lastChild)
+                                }
+                            }
+                        }
+                    }, 50)
                 }
             }
 
@@ -537,9 +863,83 @@ class CreateStoryActivity : BaseActivity() {
                 }
             }
 
-            override fun onStartViewChangeListener(viewType: ViewType?) {}
+            override fun onStartViewChangeListener(viewType: ViewType?) {
+                // Store positions BEFORE PhotoEditor potentially moves them to center
+                // This prevents the flicker by capturing the position before the reset happens
+                val childCount = binding.photoEditorView.childCount
+                for (i in 0 until childCount) {
+                    val child = binding.photoEditorView.getChildAt(i)
+                    child?.let { view ->
+                        val isOverlay = view.findViewById<TextView>(R.id.tvPhotoEditorText) != null
+                        if (isOverlay) {
+                            // Store the position before drag ends
+                            viewPositions[view] = Pair(view.x, view.y)
+                        }
+                    }
+                }
+            }
 
-            override fun onStopViewChangeListener(viewType: ViewType?) {}
+            override fun onStopViewChangeListener(viewType: ViewType?) {
+                // Immediately restore positions to prevent flicker
+                // First, try immediate restoration (synchronous if possible)
+                val childCount = binding.photoEditorView.childCount
+                for (i in 0 until childCount) {
+                    val child = binding.photoEditorView.getChildAt(i)
+                    child?.let { view ->
+                        val isOverlay = view.findViewById<TextView>(R.id.tvPhotoEditorText) != null
+                        if (isOverlay && viewPositions.containsKey(view)) {
+                            val storedPos = viewPositions[view]!!
+                            val currentY = view.y
+                            
+                            // Check if position was reset to center
+                            val centerY = binding.photoEditorView.height / 2f
+                            val isNearCenter = kotlin.math.abs(currentY - centerY) < 100
+                            val wasNotAtCenter = kotlin.math.abs(storedPos.second - centerY) > 100
+                            
+                            // If Y was reset to center, immediately restore it
+                            if (isNearCenter && wasNotAtCenter) {
+                                view.x = storedPos.first
+                                view.y = storedPos.second
+                            }
+                            
+                            removeGravityConstraints(view)
+                        }
+                    }
+                }
+                
+                // Also use post as a backup to catch any delayed position changes
+                binding.photoEditorView.post {
+                    val childCount = binding.photoEditorView.childCount
+                    for (i in 0 until childCount) {
+                        val child = binding.photoEditorView.getChildAt(i)
+                        child?.let { view ->
+                            val isOverlay = view.findViewById<TextView>(R.id.tvPhotoEditorText) != null
+                            if (isOverlay && viewPositions.containsKey(view)) {
+                                val storedPos = viewPositions[view]!!
+                                val currentX = view.x
+                                val currentY = view.y
+                                
+                                // Check if position was reset to center
+                                val centerY = binding.photoEditorView.height / 2f
+                                val isNearCenter = kotlin.math.abs(currentY - centerY) < 100
+                                val wasNotAtCenter = kotlin.math.abs(storedPos.second - centerY) > 100
+                                
+                                // If Y was reset to center, restore it
+                                if (isNearCenter && wasNotAtCenter) {
+                                    view.x = storedPos.first
+                                    view.y = storedPos.second
+                                } else {
+                                    // Update stored position if it's a valid new position
+                                    if (kotlin.math.abs(currentY - storedPos.second) > 10 && 
+                                        kotlin.math.abs(currentY - centerY) > 100) {
+                                        viewPositions[view] = Pair(currentX, currentY)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             override fun onTouchSourceImage(event: MotionEvent?) {}
         })
@@ -548,21 +948,54 @@ class CreateStoryActivity : BaseActivity() {
     // Add emoji to the image
     private fun addEmoji(emoji: String) {
         photoEditor.addEmoji(emoji)
+        // Ensure emoji is visible after adding
+        binding.photoEditorView.postDelayed({
+            ensureOverlaysVisible()
+        }, 100)
+    }
+    
+    private fun ensureOverlaysVisible() {
+        val childCount = binding.photoEditorView.childCount
+        var overlayCount = 0
+        for (i in 0 until childCount) {
+            val child = binding.photoEditorView.getChildAt(i)
+            if (child != null && child != binding.photoEditorView.source) {
+                child.visibility = View.VISIBLE
+                child.alpha = 1f
+                // Also ensure all children of the overlay are visible
+                if (child is ViewGroup) {
+                    for (j in 0 until child.childCount) {
+                        val grandChild = child.getChildAt(j)
+                        grandChild?.visibility = View.VISIBLE
+                        grandChild?.alpha = 1f
+                    }
+                }
+                overlayCount++
+            }
+        }
+        if (overlayCount > 0) {
+            Log.d("CreateStoryActivity", "Ensured $overlayCount overlay(s) visible")
+        }
     }
     private fun addTextOverlay(text: String, color: Int, backgroundResId: Int) {
         val textStyleBuilder = TextStyleBuilder().apply {
             withTextColor(color)
             ContextCompat.getDrawable(activity, backgroundResId)?.let { withBackgroundDrawable(it) }
             ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
-            withGravity(Gravity.CENTER)
+            // Remove Gravity.CENTER to allow free positioning
         }
         photoEditor.addText(text, textStyleBuilder)
-        binding.photoEditorView.post {
+        binding.photoEditorView.postDelayed({
             getLatestTextOverlay()?.let { overlay ->
+                // Ensure text overlay is visible
+                overlay.visibility = View.VISIBLE
+                overlay.alpha = 1f
                 overlay.setTag(R.id.story_text_background_res_id, backgroundResId)
                 configureTextOverlay(overlay)
             }
-        }
+            // Also ensure all overlays are visible
+            ensureOverlaysVisible()
+        }, 100)
     }
 
     private fun updateExistingTextOverlay(overlay: View, text: String, color: Int, backgroundResId: Int) {
@@ -570,7 +1003,7 @@ class CreateStoryActivity : BaseActivity() {
             withTextColor(color)
             ContextCompat.getDrawable(activity, backgroundResId)?.let { withBackgroundDrawable(it) }
             ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
-            withGravity(Gravity.CENTER)
+            // Remove Gravity.CENTER to allow free positioning
         }
         overlay.setTag(R.id.story_text_background_res_id, backgroundResId)
         photoEditor.editText(overlay, text, textStyleBuilder)
@@ -581,8 +1014,17 @@ class CreateStoryActivity : BaseActivity() {
 
     private fun showVideoPreview(uri: Uri) {
         currentVideoUri = uri
-        binding.photoEditorView.visibility = View.GONE
+        // Keep photoEditorView visible but make source image transparent so text/emojis can overlay on video
+        binding.photoEditorView.visibility = View.VISIBLE
+        binding.photoEditorView.source.alpha = 0f // Make source image transparent
+        binding.photoEditorView.background = null // Remove background
         binding.videoPreview.visibility = View.VISIBLE
+        // Bring photoEditorView to front so text/emojis appear on top of video
+        binding.photoEditorView.bringToFront()
+        
+        // Ensure all child views (text/emoji overlays) are visible immediately
+        ensureOverlaysVisible()
+        
         updateFilterAvailability(false)
 
         val playableUri = normalizeVideoUri(uri) ?: run {
@@ -611,6 +1053,9 @@ class CreateStoryActivity : BaseActivity() {
         videoPlayer = null
         binding.videoPreview.visibility = View.GONE
         binding.photoEditorView.visibility = View.VISIBLE
+        // Restore photoEditorView source image visibility
+        binding.photoEditorView.source.alpha = 1f
+        binding.photoEditorView.background = ContextCompat.getDrawable(this, R.drawable.background_14_transparent)
         currentVideoUri = null
     }
 
@@ -654,6 +1099,81 @@ class CreateStoryActivity : BaseActivity() {
         return null
     }
 
+    private fun removeGravityConstraints(view: View?) {
+        view?.let { v ->
+            val layoutParams = v.layoutParams
+            if (layoutParams is android.widget.FrameLayout.LayoutParams) {
+                // Remove any gravity constraints that might force centering
+                if (layoutParams.gravity != android.view.Gravity.NO_GRAVITY) {
+                    layoutParams.gravity = android.view.Gravity.NO_GRAVITY
+                    v.layoutParams = layoutParams
+                }
+                // Also remove any margin constraints that might limit positioning
+                layoutParams.leftMargin = 0
+                layoutParams.topMargin = 0
+                layoutParams.rightMargin = 0
+                layoutParams.bottomMargin = 0
+                v.layoutParams = layoutParams
+            }
+            // Ensure the view uses absolute positioning (x, y coordinates)
+            // PhotoEditor uses View.x and View.y for positioning
+        }
+    }
+
+    private val viewPositions = mutableMapOf<View, Pair<Float, Float>>()
+    private var positionMonitoringHandler: android.os.Handler? = null
+    private var positionMonitoringRunnable: Runnable? = null
+    
+    private fun setupPositionMonitoring() {
+        // Stop any existing monitoring
+        positionMonitoringRunnable?.let { positionMonitoringHandler?.removeCallbacks(it) }
+        
+        // Use a post handler to periodically check and restore positions
+        // This acts as a safety net in case positions are reset outside of drag events
+        positionMonitoringHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        positionMonitoringRunnable = object : Runnable {
+            override fun run() {
+                // Ensure overlays are visible (especially important for video preview)
+                if (currentVideoUri != null) {
+                    ensureOverlaysVisible()
+                }
+                
+                val childCount = binding.photoEditorView.childCount
+                for (i in 0 until childCount) {
+                    val child = binding.photoEditorView.getChildAt(i)
+                    child?.let { view ->
+                        // Check if this is a text or emoji overlay view
+                        val isOverlay = view.findViewById<TextView>(R.id.tvPhotoEditorText) != null
+                        
+                        if (isOverlay && viewPositions.containsKey(view)) {
+                            val storedPos = viewPositions[view]!!
+                            val currentX = view.x
+                            val currentY = view.y
+                            
+                            // If Y was reset to center (within 100px of center), restore stored Y
+                            val centerY = binding.photoEditorView.height / 2f
+                            val isNearCenter = kotlin.math.abs(currentY - centerY) < 100
+                            val wasNotAtCenter = kotlin.math.abs(storedPos.second - centerY) > 100
+                            
+                            // Only restore if Y was reset to center and we have a valid stored position
+                            if (isNearCenter && wasNotAtCenter) {
+                                view.x = storedPos.first
+                                view.y = storedPos.second
+                            } else if (currentY > 0 && currentY < binding.photoEditorView.height) {
+                                // Update stored position if it's a valid new position (not at center)
+                                if (kotlin.math.abs(currentY - centerY) > 100) {
+                                    viewPositions[view] = Pair(currentX, currentY)
+                                }
+                            }
+                        }
+                    }
+                }
+                positionMonitoringHandler?.postDelayed(this, 100) // Check every 100ms
+            }
+        }
+        positionMonitoringRunnable?.let { positionMonitoringHandler?.post(it) }
+    }
+
     private fun configureTextOverlay(overlay: View) {
         val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText) ?: return
         val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
@@ -673,6 +1193,9 @@ class CreateStoryActivity : BaseActivity() {
 
         textView.background = ContextCompat.getDrawable(this, detectedBackgroundRes)
         editIcon?.visibility = View.VISIBLE
+
+        // Remove gravity constraints to allow free positioning
+        removeGravityConstraints(overlay)
 
         editIcon?.setOnClickListener {
             activeTextOverlay = overlay
@@ -705,14 +1228,32 @@ class CreateStoryActivity : BaseActivity() {
     }
 
     private fun saveEditedImage() {
-        currentVideoUri?.let { uri ->
-            checkVideoDurationAndTrim(uri)
+        Log.d("CreateStoryActivity", "saveEditedImage called, currentVideoUri: $currentVideoUri")
+        
+        // Prevent duplicate uploads
+        if (isUploading) {
+            Log.w("CreateStoryActivity", "Upload already in progress, ignoring duplicate call")
             return
         }
         
-        // Ensure photoEditorView is visible before saving
+        // Handle video case first
+        currentVideoUri?.let { uri ->
+            Log.d("CreateStoryActivity", "Processing video: $uri")
+            // Capture overlay bitmap before going to video trimmer
+            captureOverlayAndTrimVideo(uri)
+            return
+        }
+        
+        // For images, ensure photoEditorView is visible before saving
         if (binding.photoEditorView.visibility != View.VISIBLE) {
             Log.e("CreateStoryActivity", "Cannot save: photoEditorView is not visible")
+            Toast.makeText(this, "Please select an image first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Ensure we have a valid image source
+        if (croppedImageUri == null && binding.photoEditorView.source.drawable == null) {
+            Log.e("CreateStoryActivity", "Cannot save: no image loaded")
             Toast.makeText(this, "Please select an image first", Toast.LENGTH_SHORT).show()
             return
         }
@@ -743,9 +1284,15 @@ class CreateStoryActivity : BaseActivity() {
                 val file = File(newDir, "edited_image_${System.currentTimeMillis()}.jpg")
 
                 try {
+                    // Set uploading flag to prevent duplicates
+                    isUploading = true
+                    
                     photoEditor.saveAsFile(file.absolutePath, object : PhotoEditor.OnSaveListener {
                     override fun onSuccess(imagePath: String) {
                         val imageFile = File(imagePath)
+                        
+                        Log.d("CreateStoryActivity", "Image saved successfully: ${imageFile.absolutePath}, size: ${imageFile.length()} bytes")
+                        Log.d("CreateStoryActivity", "Uploading edited image with text/overlays")
 
                         // Get URI using FileProvider (Recommended for Android 7+)
                         val editedImageUri = FileProvider.getUriForFile(
@@ -754,16 +1301,23 @@ class CreateStoryActivity : BaseActivity() {
                             imageFile
                         )
 
-                        postStory(imageFile, null) // Upload or share the image
+                        // Only upload the edited image (with text/overlays)
+                        // Do NOT upload the original croppedImageUri
+                        postStory(imageFile, null)
 
-                        // Return URI as result
+                        // Return URI as result (but don't upload again)
                         val resultIntent = Intent().apply {
                             putExtra("edited_image_uri", editedImageUri.toString())
                         }
                         setResult(Activity.RESULT_OK, resultIntent)
+                        
+                        // Reset flag after upload starts
+                        // Note: We don't reset it here because the upload is async
+                        // It will be reset in the observer when upload completes
                     }
 
                     override fun onFailure(exception: Exception) {
+                        isUploading = false // Reset flag on failure
                         Toast.makeText(this@CreateStoryActivity, "Failed to save image", Toast.LENGTH_SHORT).show()
                         Log.e("EditImageActivity", "Error: ${exception.message}", exception)
                     }
@@ -795,6 +1349,11 @@ class CreateStoryActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
+        // Stop position monitoring
+        positionMonitoringRunnable?.let { positionMonitoringHandler?.removeCallbacks(it) }
+        positionMonitoringHandler = null
+        positionMonitoringRunnable = null
+        
         videoPlayer?.release()
         videoPlayer = null
         super.onDestroy()
