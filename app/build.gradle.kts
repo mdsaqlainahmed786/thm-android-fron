@@ -45,9 +45,9 @@ android {
 
         debug {
             buildConfigField("String","ADMIN_DOMAIN","\"https://admin.thehotelmedia.com\"")
-            buildConfigField("String","SHARE_DEEP_LINK_HOST","\"https://staging.thehotelmedia.com\"")
-            buildConfigField("String","DOMAIN","\"https://staging.thehotelmedia.com\"")
-            buildConfigField("String","BASE_URL","\"https://staging.thehotelmedia.com/api/v1/\"")
+            buildConfigField("String","SHARE_DEEP_LINK_HOST","\"https://thehotelmedia.com\"")
+            buildConfigField("String","DOMAIN","\"https://api.thehotelmedia.com\"")
+            buildConfigField("String","BASE_URL","\"https://api.thehotelmedia.com/api/v1/\"")
             buildConfigField("String", "RAZORPAY_API_KEY", "\"rzp_test_IXF6sTTP8dPZXN\"")
             buildConfigField("String", "MAPS_API_KEY", "\"AIzaSyCoDc7bhRp94TgvpG00jafqzyqo2ljh2IM\"")
             manifestPlaceholders["razorpayApiKey"] = "rzp_test_IXF6sTTP8dPZXN"

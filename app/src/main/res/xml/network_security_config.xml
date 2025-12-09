@@ -3,7 +3,7 @@
 <!--    <domain-config cleartext-traffic-permitted="false">-->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">thehotelmedia.com</domain>
-        <domain includeSubdomains="true">staging.thehotelmedia.com</domain>
+        <domain includeSubdomains="true">api.thehotelmedia.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
