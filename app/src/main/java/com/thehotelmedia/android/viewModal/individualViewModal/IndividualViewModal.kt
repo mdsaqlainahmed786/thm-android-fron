@@ -1121,6 +1121,61 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         }
     }
 
+    // Get Business Profile by Direct ID (public endpoint)
+    // Falls back to user profile endpoint if business profile is not found
+    fun getBusinessProfileById(businessProfileId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.getBusinessProfileById(businessProfileId)
+                if (response.isSuccessful && response.body()?.status == true) {
+                    _userProfileByIdResult.postValue(response.body())
+                    Log.wtf(tag, response.body().toString())
+                    _loading.postValue(false)
+                } else {
+                    // If business profile endpoint fails, fall back to user profile endpoint
+                    Log.wtf(tag + "BUSINESS_PROFILE_NOT_FOUND", "Falling back to user profile endpoint")
+                    try {
+                        val userResponse = individualRepo.getUserProfileById(businessProfileId)
+                        if (userResponse.isSuccessful) {
+                            _userProfileByIdResult.postValue(userResponse.body())
+                            Log.wtf(tag, userResponse.body().toString())
+                            _loading.postValue(false)
+                        } else {
+                            Log.wtf(tag + "ELSE", userResponse.message().toString())
+                            toastMessageLiveData.postValue(userResponse.message())
+                            _loading.postValue(false)
+                        }
+                    } catch (userException: Throwable) {
+                        _loading.postValue(false)
+                        toastMessageLiveData.postValue(userException.message)
+                        Log.wtf(tag + "ERROR", userException.message.toString())
+                    }
+                }
+
+            } catch (t: Throwable) {
+                // If business endpoint throws an exception, fall back to user endpoint
+                Log.wtf(tag + "BUSINESS_PROFILE_ERROR", "Falling back to user profile endpoint: ${t.message}")
+                try {
+                    val userResponse = individualRepo.getUserProfileById(businessProfileId)
+                    if (userResponse.isSuccessful) {
+                        _userProfileByIdResult.postValue(userResponse.body())
+                        Log.wtf(tag, userResponse.body().toString())
+                        _loading.postValue(false)
+                    } else {
+                        _loading.postValue(false)
+                        toastMessageLiveData.postValue(userResponse.message())
+                        Log.wtf(tag + "ELSE", userResponse.message().toString())
+                    }
+                } catch (userException: Throwable) {
+                    _loading.postValue(false)
+                    toastMessageLiveData.postValue(userException.message)
+                    Log.wtf(tag + "ERROR", userException.message.toString())
+                }
+            }
+        }
+    }
+
 
 
     fun getNotification(): LiveData<PagingData<NotificationData>> {

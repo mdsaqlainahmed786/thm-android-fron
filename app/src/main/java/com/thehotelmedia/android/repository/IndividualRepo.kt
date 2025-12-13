@@ -735,6 +735,14 @@ class IndividualRepo (private val context: Context){
         }
     }
 
+    suspend fun getBusinessProfileById(businessProfileId: String): Response<UserProfileModel> {
+        return withContext(Dispatchers.IO) {
+            // Use authApiService since this endpoint doesn't require authentication
+            val call = Retrofit.authApiService(context).create(Application::class.java)
+            return@withContext call.getBusinessProfileById(businessProfileId).execute()
+        }
+    }
+
     suspend fun getNotification(pageNumber: Int,documentLimit: Int): Response<NotificationModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {

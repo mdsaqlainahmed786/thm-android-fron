@@ -192,6 +192,11 @@ interface Application {
         @Query("key") key: String
     ): Response<NearByPlacesModel>
 
+    @GET("business/{id}")
+    fun getBusinessProfileById(
+        @Path(value = "id",encoded = true) id: String
+    ): Call<UserProfileModel>
+
     @GET("business/get-by-place"+"/{id}")
     fun getCheckInData(
         @Header("x-access-token") token: String,
