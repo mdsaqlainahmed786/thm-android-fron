@@ -446,16 +446,31 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         notifyPostsFragmentFollowState()
         val bookingType = result?.data?.booking ?: ""
 
+        val businessTypeRef = result?.data?.businessProfileRef?.businessTypeRef
+        businessName = businessTypeRef?.name ?: ""
+        val isHotel = businessName.equals(getString(R.string.hotel), ignoreCase = true)
+
         when (bookingType) {
             "booking" -> {
                 binding.bookNowBtn.visibility = View.VISIBLE
                 binding.bookTableBtn.visibility = View.GONE
                 binding.bookBanquetBtn.visibility = View.GONE
+                if (isHotel) {
+                    binding.bookingTv.text = getString(R.string.book_room)
+                }
             }
             "book-table" -> {
-                binding.bookNowBtn.visibility = View.GONE
-                binding.bookTableBtn.visibility = View.VISIBLE
-                binding.bookBanquetBtn.visibility = View.GONE
+                if (isHotel) {
+                    // For hotels, show "Book Room" button instead of "Book Table"
+                    binding.bookNowBtn.visibility = View.VISIBLE
+                    binding.bookTableBtn.visibility = View.GONE
+                    binding.bookBanquetBtn.visibility = View.GONE
+                    binding.bookingTv.text = getString(R.string.book_room)
+                } else {
+                    binding.bookNowBtn.visibility = View.GONE
+                    binding.bookTableBtn.visibility = View.VISIBLE
+                    binding.bookBanquetBtn.visibility = View.GONE
+                }
             }
             "book-banquet" -> {
                 binding.bookNowBtn.visibility = View.GONE
@@ -463,9 +478,17 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
                 binding.bookBanquetBtn.visibility = View.VISIBLE
             }
             else -> {
-                binding.bookNowBtn.visibility = View.GONE
-                binding.bookTableBtn.visibility = View.VISIBLE
-                binding.bookBanquetBtn.visibility = View.GONE
+                if (isHotel) {
+                    // For hotels, show "Book Room" button by default
+                    binding.bookNowBtn.visibility = View.VISIBLE
+                    binding.bookTableBtn.visibility = View.GONE
+                    binding.bookBanquetBtn.visibility = View.GONE
+                    binding.bookingTv.text = getString(R.string.book_room)
+                } else {
+                    binding.bookNowBtn.visibility = View.GONE
+                    binding.bookTableBtn.visibility = View.VISIBLE
+                    binding.bookBanquetBtn.visibility = View.GONE
+                }
             }
         }
 
@@ -490,8 +513,6 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         val profilePic = result?.data?.profilePic
         username = result?.data?.username.toString()
 
-        val businessTypeRef = result?.data?.businessProfileRef?.businessTypeRef
-        businessName = businessTypeRef?.name ?: ""
         businessIcon = businessTypeRef?.icon ?: ""
 
         val dialCode = result?.data?.businessProfileRef?.dialCode ?: ""

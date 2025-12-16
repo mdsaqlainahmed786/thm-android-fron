@@ -629,6 +629,7 @@
     <string name="add_profession">Add Profession</string>
     <string name="try_changing_location">Try changing location!</string>
     <string name="book_table">Book Table</string>
+    <string name="book_room">Book Room</string>
     <string name="book_banquet">Book Banquet</string>
     <string name="no_room_available">No room available</string>
     <string name="reject">Reject</string>
