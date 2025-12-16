@@ -52,6 +52,7 @@ class IndividualChatFragment : Fragment() {
     ): View {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_individual_chat, container, false)
         initUI()
+        observeSocketStatus()
         initializeAndUpdateNotificationDot()
         setupSwipeGestures()
         return binding.root
@@ -88,7 +89,6 @@ class IndividualChatFragment : Fragment() {
         if (isAdded) {
             userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
             socketViewModel.connectSocket(userName)
-            fetchSocketData()
         }
     }
 
@@ -140,6 +140,21 @@ class IndividualChatFragment : Fragment() {
 
 
         setupRecyclerViews()
+    }
+
+    /**
+     * Observe socket connection status so that we only start fetching
+     * chat/user data once the socket is actually connected.
+     * This avoids emitting socket events while the connection is still
+     * in progress, which previously caused empty chat lists.
+     */
+    private fun observeSocketStatus() {
+        socketViewModel.socketStatus.observe(viewLifecycleOwner) { status ->
+            if (status == "Connected") {
+                // Socket is ready – now it is safe to talk to the backend
+                fetchSocketData()
+            }
+        }
     }
 
     private fun setupRecyclerViews() {

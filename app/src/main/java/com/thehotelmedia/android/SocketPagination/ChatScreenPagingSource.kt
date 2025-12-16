@@ -3,6 +3,7 @@ package com.thehotelmedia.android.SocketPagination
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.thehotelmedia.android.Socket.SocketViewModel
+import com.thehotelmedia.android.SocketModals.chatScreen.ChatScreenModal
 import com.thehotelmedia.android.SocketModals.chatScreen.Messages
 import kotlinx.coroutines.delay
 
@@ -23,17 +24,23 @@ class ChatScreenPagingSource(
             // You can adjust the number of items per page as needed
             val pageSize = params.loadSize
 
-            // Fetch the chat messages from the server (simulate with a delay here)
-            socketViewModel.fetchChatScreen(pageNumber, pageSize,query)
+            // Ask the server for the current page
+            socketViewModel.fetchChatScreen(pageNumber, pageSize, query)
 
-            // Simulating a delay for network request
-            delay(1000)
+            // Wait for the socket response instead of assuming it will always arrive
+            // within a fixed 1s window. We poll the LiveData a few times with a
+            // small delay to give the backend time to respond.
+            var chatScreen: ChatScreenModal? = null
+            repeat(10) { // Wait up to ~3 seconds (10 * 300ms)
+                chatScreen = socketViewModel.chatScreenList.value
+                if (chatScreen != null) return@repeat
+                delay(300)
+            }
 
-            // Safely get chatScreenList, handle nullability
-            val chatScreen = socketViewModel.chatScreenList.value
-            // Check if chatScreen is null or if messages are empty
-            if (chatScreen != null) {
-                val messages = chatScreen.messages
+            val result: ChatScreenModal? = chatScreen
+
+            if (result != null) {
+                val messages = result.messages
                 // Return the loaded data and key for the next page
                 LoadResult.Page(
                     data = messages,
@@ -41,7 +48,7 @@ class ChatScreenPagingSource(
                     nextKey = if (messages.size < pageSize) null else pageNumber + 1
                 )
             } else {
-                // Return empty data and nextKey as null if chatScreen is null
+                // No data received even after waiting – return an empty page
                 LoadResult.Page(
                     data = emptyList(),
                     prevKey = null,
