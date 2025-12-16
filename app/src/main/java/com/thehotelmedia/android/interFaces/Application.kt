@@ -284,6 +284,7 @@ interface Application {
     @POST("story")
     fun createStory(
         @Header("x-access-token") token: RequestBody,
+        @Part tagged: List<MultipartBody.Part>,
         @Part imageFile: MultipartBody.Part?,
         @Part videoFile: MultipartBody.Part?
     ): Call<CreateStoryModal>

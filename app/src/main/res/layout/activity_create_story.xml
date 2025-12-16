@@ -81,6 +81,39 @@
 
             </FrameLayout>
 
+            <!-- Selected tag chips -->
+            <androidx.appcompat.widget.LinearLayoutCompat
+                android:id="@+id/userTagLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/black_background_14"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:gravity="center"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tags"
+                    android:textColor="@color/text_color_60"
+                    android:fontFamily="@font/comic_regular"
+                    android:textSize="12sp"
+                    android:layout_gravity="center" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/tagsRv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    tools:listitem="@layout/tagged_user_item" />
+
+            </androidx.appcompat.widget.LinearLayoutCompat>
+
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -137,6 +170,31 @@
                         android:layout_gravity="center"
                         android:fontFamily="@font/comic_bold"
                         android:text="@string/filter"
+                        android:textColor="@color/text_color_60"
+                        android:textSize="10sp" />
+
+                </androidx.appcompat.widget.LinearLayoutCompat>
+
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:id="@+id/tagPeopleButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="center"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <androidx.appcompat.widget.AppCompatImageView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_tag_people_blue" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:fontFamily="@font/comic_bold"
+                        android:text="@string/tag_people"
                         android:textColor="@color/text_color_60"
                         android:textSize="10sp" />
 

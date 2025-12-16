@@ -565,7 +565,9 @@ class IndividualRepo (private val context: Context){
     }
 
     suspend fun createStory(
-        imageFile: File?, videoFile: File?
+        imageFile: File?,
+        videoFile: File?,
+        taggedList: List<String>
     ): Response<CreateStoryModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
@@ -589,11 +591,15 @@ class IndividualRepo (private val context: Context){
         } else {
             null
         }
+        // Convert tagged list to MultipartBody.Part similar to createPost
+        val taggedParts = taggedList.map { tagId ->
+            MultipartBody.Part.createFormData("tagged[]", tagId)
+        }
         // Make the API call
         return withContext(Dispatchers.IO) {
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
-                accessTokenBody, imagePart,videoPart
+                accessTokenBody, taggedParts, imagePart, videoPart
             ).execute()
         }
     }

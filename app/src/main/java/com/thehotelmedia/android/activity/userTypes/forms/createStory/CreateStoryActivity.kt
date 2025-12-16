@@ -42,6 +42,9 @@ import com.thehotelmedia.android.activity.camera.CustomCameraActivity
 import com.thehotelmedia.android.activity.userTypes.forms.CreatePostActivity.Companion.PERMISSION_REQUEST_CODE_READ_EXTERNAL_STORAGE
 import com.thehotelmedia.android.activity.userTypes.forms.CreatePostActivity.Companion.PERMISSION_REQUEST_CODE_WRITE_EXTERNAL_STORAGE
 import com.thehotelmedia.android.activity.userTypes.forms.VideoTrimmerActivity
+import com.thehotelmedia.android.activity.userTypes.forms.createPost.TagPeople
+import com.thehotelmedia.android.activity.userTypes.forms.createPost.TagPeopleActivity
+import com.thehotelmedia.android.adapters.userTypes.individual.forms.TagsAdapter
 import com.thehotelmedia.android.adapters.imageEditor.FilterAdapter
 import com.thehotelmedia.android.customClasses.Constants.business_type_individual
 import com.thehotelmedia.android.customClasses.CustomProgressBar
@@ -59,6 +62,11 @@ import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import com.yalantis.ucrop.UCrop
 import com.yalantis.ucrop.model.AspectRatio
+import com.google.android.flexbox.FlexDirection
+import com.google.android.flexbox.FlexboxLayoutManager
+import com.google.android.flexbox.JustifyContent
+import com.google.android.flexbox.AlignItems
+import com.google.android.flexbox.FlexWrap
 import ja.burhanrashid52.photoeditor.OnPhotoEditorListener
 import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.PhotoFilter
@@ -88,6 +96,7 @@ class CreateStoryActivity : BaseActivity() {
     private var videoPlayer: ExoPlayer? = null
     private var isFilterAvailable = true
     private var isUploading = false // Flag to prevent duplicate uploads
+    private var selectedTagPeopleList: ArrayList<TagPeople> = arrayListOf()
 
 
     private val pickMediaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -116,6 +125,17 @@ class CreateStoryActivity : BaseActivity() {
                 showVideoPreview(mediaUri)
             } else {
                 startCropActivity(mediaUri)
+            }
+        }
+    }
+
+    private val tagPeopleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val bundle = result.data?.extras
+            val selectedPeopleList = bundle?.getSerializable("selectedPeopleList") as? ArrayList<TagPeople>
+            if (selectedPeopleList != null) {
+                selectedTagPeopleList = selectedPeopleList
+                setTagsFlexList(selectedPeopleList)
             }
         }
     }
@@ -202,6 +222,13 @@ class CreateStoryActivity : BaseActivity() {
                 initialColor = lastSelectedTextColor,
                 initialBackgroundResId = selectedBackgroundResId
             )
+        }
+
+        binding.tagPeopleButton.setOnClickListener {
+            val intent = Intent(this, TagPeopleActivity::class.java)
+            intent.putExtra("selectedTagPeopleList", selectedTagPeopleList)
+            intent.putExtra("searchAllUsers", true) // Search all users (individual + business) for story tagging
+            tagPeopleLauncher.launch(intent)
         }
 
 
@@ -701,6 +728,10 @@ class CreateStoryActivity : BaseActivity() {
             
             Log.d("CreateStoryActivity", "Passing overlay dimensions: ${viewWidth}x${viewHeight}, ${overlayInfos.size} overlays")
             Log.d("CreateStoryActivity", "Overlay positions: $overlayPositionsJson")
+        }
+        // Pass selected tagged people so they can be attached to the story after trimming
+        if (selectedTagPeopleList.isNotEmpty()) {
+            intent.putExtra("selectedTagPeopleList", selectedTagPeopleList)
         }
         startActivity(intent)
     }
@@ -1331,7 +1362,27 @@ class CreateStoryActivity : BaseActivity() {
     }
 
     private fun postStory(imageFile: File?, videoFile: File?) {
-        individualViewModal.createStory(imageFile, videoFile)
+        val selectedTagIdList = selectedTagPeopleList.map { it.id }
+        individualViewModal.createStory(imageFile, videoFile, selectedTagIdList)
+    }
+
+    private fun setTagsFlexList(selectedPeopleList: ArrayList<TagPeople>) {
+        binding.userTagLayout.visibility = if (selectedPeopleList.isEmpty()) View.GONE else View.VISIBLE
+        val tagAdapter = TagsAdapter(this, selectedPeopleList, ::onTagUpdated)
+        binding.tagsRv.adapter = tagAdapter
+
+        val layoutManager = FlexboxLayoutManager(this).apply {
+            flexDirection = FlexDirection.ROW
+            justifyContent = JustifyContent.CENTER // Center align tags
+            alignItems = AlignItems.CENTER // Center align items vertically
+            flexWrap = FlexWrap.WRAP
+        }
+        binding.tagsRv.layoutManager = layoutManager
+    }
+
+    private fun onTagUpdated(updatedList: ArrayList<TagPeople>) {
+        selectedTagPeopleList = updatedList
+        binding.userTagLayout.visibility = if (updatedList.isEmpty()) View.GONE else View.VISIBLE
     }
 
     override fun onPause() {

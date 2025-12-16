@@ -17,6 +17,7 @@ import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
+import com.thehotelmedia.android.activity.userTypes.forms.createPost.TagPeople
 import com.thehotelmedia.android.customClasses.*
 import com.thehotelmedia.android.customClasses.Constants.DEFAULT_VIDEO_LENGTH
 import com.thehotelmedia.android.customClasses.Constants.business_type_individual
@@ -83,6 +84,7 @@ class VideoTrimmerActivity : BaseActivity() {
     private lateinit var successGiff: SuccessGiff
     private lateinit var individualViewModal: IndividualViewModal
     private var exoPlayer: ExoPlayer? = null
+    private var selectedTagPeopleList: ArrayList<TagPeople>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,6 +93,7 @@ class VideoTrimmerActivity : BaseActivity() {
 
         videoUri = intent.getStringExtra(VIDEO_URI_KEY)?.let { Uri.parse(it) }
         from = intent.getStringExtra("FROM") ?: ""
+        selectedTagPeopleList = intent.getSerializableExtra("selectedTagPeopleList") as? ArrayList<TagPeople>
         
         // Get overlay bitmap path if provided
         overlayBitmapPath = intent.getStringExtra("overlay_bitmap_path")
@@ -529,7 +532,8 @@ class VideoTrimmerActivity : BaseActivity() {
                         giffProgressBar.hide()
                         if (videoFile != null && videoFile.exists() && validateVideoFile(videoFile)) {
                             Log.d("VideoTrimmerActivity", "Video with overlay ready (${videoFile.length()} bytes), uploading...")
-                            individualViewModal.createStory(null, videoFile)
+                            val taggedIds = selectedTagPeopleList?.map { it.id } ?: emptyList()
+                            individualViewModal.createStory(null, videoFile, taggedIds)
                         } else {
                             Log.e("VideoTrimmerActivity", "Composited video is invalid or missing, falling back to original")
                             // Fallback to original video
@@ -539,7 +543,8 @@ class VideoTrimmerActivity : BaseActivity() {
                                     runOnUiThread {
                                         if (originalVideoFile != null && originalVideoFile.exists() && validateVideoFile(originalVideoFile)) {
                                             Log.d("VideoTrimmerActivity", "Using original video without overlay (${originalVideoFile.length()} bytes)")
-                                            individualViewModal.createStory(null, originalVideoFile)
+                                            val taggedIds = selectedTagPeopleList?.map { it.id } ?: emptyList()
+                                            individualViewModal.createStory(null, originalVideoFile, taggedIds)
                                         } else {
                             setSavingState(false)
                                             showToast("Unable to prepare video")
@@ -567,7 +572,8 @@ class VideoTrimmerActivity : BaseActivity() {
                             giffProgressBar.hide()
                             if (videoFile != null && videoFile.exists() && validateVideoFile(videoFile)) {
                                 Log.d("VideoTrimmerActivity", "Video ready (${videoFile.length()} bytes), uploading...")
-                                individualViewModal.createStory(null, videoFile)
+                                val taggedIds = selectedTagPeopleList?.map { it.id } ?: emptyList()
+                                individualViewModal.createStory(null, videoFile, taggedIds)
                             } else {
                                 setSavingState(false)
                                 showToast("Video file is invalid or corrupted. Please try again.")

@@ -45,7 +45,10 @@ import com.thehotelmedia.android.extensions.capitalizeFirstLetter
 import com.thehotelmedia.android.extensions.getTimeAgo
 import com.thehotelmedia.android.modals.Stories.Stories
 import com.thehotelmedia.android.modals.Stories.StoriesRef
+import com.thehotelmedia.android.modals.feeds.feed.TaggedRef
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
+import com.google.gson.Gson
+import com.thehotelmedia.android.bottomSheets.TagPeopleBottomSheetFragment
 
 class StoryPagerAdapter(
     private val context: ViewStoriesActivity,
@@ -269,6 +272,33 @@ class StoryPagerAdapter(
         binding.timingTv.text = formatedCreatedAt
         Glide.with(context).load(profilePic).placeholder(R.drawable.ic_profile_placeholder).into(binding.profilePic)
 
+        // Display tagged people if they exist
+        if (currentStoryIndex in users.storiesRef.indices) {
+            val story = users.storiesRef[currentStoryIndex]
+            val taggedPeople = story.taggedRef ?: arrayListOf()
+            if (taggedPeople.isNotEmpty()) {
+                val taggedText = "With ${generateTaggedRefString(taggedPeople)}"
+                binding.taggedPeopleTv.visibility = View.VISIBLE
+                binding.taggedPeopleTv.text = taggedText
+
+                // Make tagged text clickable to open bottom sheet
+                binding.taggedPeopleTv.setOnClickListener {
+                    pauseStory(binding)
+                    val taggedPeopleJson = Gson().toJson(taggedPeople)
+                    val bottomSheetFragment = TagPeopleBottomSheetFragment.newInstance(taggedPeopleJson)
+                    bottomSheetFragment.show(supportFragmentManager, TagPeopleBottomSheetFragment::class.java.simpleName)
+                }
+            } else {
+                binding.taggedPeopleTv.visibility = View.GONE
+                binding.taggedPeopleTv.text = ""
+                binding.taggedPeopleTv.setOnClickListener(null)
+            }
+        } else {
+            binding.taggedPeopleTv.visibility = View.GONE
+            binding.taggedPeopleTv.text = ""
+            binding.taggedPeopleTv.setOnClickListener(null)
+        }
+
         // Reset progress bars and stop any ongoing animations/media
         resetProgressBars(storyMedia.size, binding)
 
@@ -364,6 +394,15 @@ class StoryPagerAdapter(
         // Cancel any running animations
         currentAnimator?.cancel()
         currentAnimator = null
+    }
+
+    private fun generateTaggedRefString(taggedRef: List<TaggedRef>): String {
+        return when (taggedRef.size) {
+            0 -> ""
+            1 -> taggedRef[0].name ?: ""
+            2 -> "${taggedRef[0].name} and ${taggedRef[1].name}"
+            else -> "${taggedRef[0].name} and ${taggedRef.size - 1} others"
+        }
     }
 
     private fun showBottomSheet(storyId: String, binding: StoryScreenLayoutBinding) {

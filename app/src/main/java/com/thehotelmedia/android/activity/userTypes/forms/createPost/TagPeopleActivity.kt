@@ -46,6 +46,7 @@ class TagPeopleActivity : BaseActivity() {
     private var selectedTagPeopleList: ArrayList<TagPeople>? = null
     private lateinit var progressBar : CustomProgressBar
     private var isCollaboration: Boolean = false
+    private var searchAllUsers: Boolean = false // For story tagging - search all users instead of just followers
 //    private lateinit var profilePhotosAdapter : ProfilePhotosAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +63,7 @@ class TagPeopleActivity : BaseActivity() {
 
         selectedTagPeopleList = intent.getSerializableExtra("selectedTagPeopleList") as? ArrayList<TagPeople>
         isCollaboration = intent.getBooleanExtra("isCollaboration", false)
+        searchAllUsers = intent.getBooleanExtra("searchAllUsers", false)
         
         // Update title based on whether it's for collaboration or tagging
         if (isCollaboration) {
@@ -141,8 +143,8 @@ class TagPeopleActivity : BaseActivity() {
         binding.tagPeopleRv.adapter = tagPeopleListAdapter
             .withLoadStateFooter(footer = LoaderAdapter())
 
-        // For collaboration, search all users in database; for tagging, use tagged people (followers)
-        if (isCollaboration) {
+        // For collaboration or story tagging, search all users in database; for regular post tagging, use tagged people (followers)
+        if (isCollaboration || searchAllUsers) {
             // Use search endpoint to get all users (individual + business) from database
             individualViewModal.getCollaborationUsers(search).observe(this) {
                 this.lifecycleScope.launch {
@@ -151,7 +153,7 @@ class TagPeopleActivity : BaseActivity() {
                 }
             }
         } else {
-            // Use tagged people endpoint (followers) for regular tagging
+            // Use tagged people endpoint (followers) for regular post tagging
             individualViewModal.getTagged(search).observe(this) {
                 this.lifecycleScope.launch {
                     isLoading()
