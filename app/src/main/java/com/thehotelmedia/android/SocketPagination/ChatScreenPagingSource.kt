@@ -24,22 +24,52 @@ class ChatScreenPagingSource(
             // You can adjust the number of items per page as needed
             val pageSize = params.loadSize
 
+            // Wait for socket to be connected before emitting
+            // Check socket status and wait if not connected
+            var socketReady = false
+            var waitAttempts = 0
+            val maxWaitAttempts = 50 // Wait up to 10 seconds (50 * 200ms)
+            
+            while (!socketReady && waitAttempts < maxWaitAttempts) {
+                val status = socketViewModel.socketStatus.value
+                if (status == "Connected") {
+                    socketReady = true
+                } else {
+                    delay(200)
+                    waitAttempts++
+                }
+            }
+            
+            if (!socketReady) {
+                // Socket didn't connect in time, return empty
+                return LoadResult.Page(
+                    data = emptyList(),
+                    prevKey = null,
+                    nextKey = null
+                )
+            }
+            
+            // Small delay to ensure socket is fully ready
+            delay(100)
+            
             // Ask the server for the current page
             socketViewModel.fetchChatScreen(pageNumber, pageSize, query)
 
-            // Wait for the socket response instead of assuming it will always arrive
-            // within a fixed 1s window. We poll the LiveData a few times with a
-            // small delay to give the backend time to respond.
+            // Wait for the socket response. We poll the LiveData multiple times
+            // to give the backend time to respond. Check more frequently at first.
             var chatScreen: ChatScreenModal? = null
-            repeat(10) { // Wait up to ~3 seconds (10 * 300ms)
+            var attempts = 0
+            val maxAttempts = 20 // Wait up to ~4 seconds (20 * 200ms)
+            
+            while (chatScreen == null && attempts < maxAttempts) {
+                delay(200)
                 chatScreen = socketViewModel.chatScreenList.value
-                if (chatScreen != null) return@repeat
-                delay(300)
+                attempts++
             }
 
             val result: ChatScreenModal? = chatScreen
 
-            if (result != null) {
+            if (result != null && result.messages != null) {
                 val messages = result.messages
                 // Return the loaded data and key for the next page
                 LoadResult.Page(
