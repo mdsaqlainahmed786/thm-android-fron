@@ -37,8 +37,9 @@ class AuthInterceptor(private val context: Context) : Interceptor {
             var response: Response? = null
             try {
                 response = chain.proceed(newRequest)
-                // Check for unauthorized or forbidden status codes
-                if (response.code == 401 || response.code == 403) {
+                // Check for unauthorized status code only (401)
+                // 403 (Forbidden) means authenticated but not authorized - should be handled by the app
+                if (response.code == 401) {
 
                     response.close() // Close the previous response before retrying
                     response = handleUnauthorized(chain, request)
