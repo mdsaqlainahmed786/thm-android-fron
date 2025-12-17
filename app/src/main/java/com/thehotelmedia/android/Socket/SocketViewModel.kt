@@ -93,12 +93,17 @@ class SocketViewModel : ViewModel() {
     /**
      * Attach all socket event listeners.
      * This should be called BEFORE initializeSocket() to ensure listeners are ready.
+     * Can be called multiple times safely - Socket.IO handles duplicate listeners.
      */
     private fun attachSocketListeners() {
-        // Only attach listeners once to avoid duplicates
-        if (listenersAttached) {
+        // Check if socket manager is initialized
+        if (!::socketManager.isInitialized) {
             return
         }
+        
+        // Note: We allow re-attaching listeners even if already attached
+        // This is important when listeners are removed by other components
+        // Socket.IO's on() method can handle multiple listeners for the same event
         
         // Listen for incoming messages
         socketManager.on("private message") { args ->
@@ -256,6 +261,17 @@ class SocketViewModel : ViewModel() {
         }
         
         listenersAttached = true
+    }
+    
+    /**
+     * Force re-attach listeners. Useful when listeners were removed
+     * by other components but the Fragment still needs them.
+     */
+    fun reattachListeners() {
+        if (::socketManager.isInitialized) {
+            listenersAttached = false // Reset flag to force re-attachment
+            attachSocketListeners()
+        }
     }
     
     /**

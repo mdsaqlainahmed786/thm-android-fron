@@ -74,12 +74,29 @@ class IndividualChatFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         refreshData()
+        // Ensure listeners are re-attached in case they were removed by another activity
+        ensureListenersAttached()
+    }
+    
+    /**
+     * Ensure socket listeners are attached. This is important because
+     * other activities might remove listeners, but the Fragment still needs them.
+     */
+    private fun ensureListenersAttached() {
+        // Re-attach listeners in case they were removed by another activity
+        // This ensures the Fragment can still receive socket events
+        if (isAdded && userName.isNotEmpty()) {
+            socketViewModel.reattachListeners()
+            // Also ensure socket is connected
+            socketViewModel.connectSocket(userName)
+        }
     }
     
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
         if (!hidden && isAdded) {
-            // Fragment became visible, refresh data
+            // Fragment became visible, refresh data and ensure listeners
+            ensureListenersAttached()
             refreshData()
         } else if (hidden) {
             // Fragment hidden, disable auto-fetch
