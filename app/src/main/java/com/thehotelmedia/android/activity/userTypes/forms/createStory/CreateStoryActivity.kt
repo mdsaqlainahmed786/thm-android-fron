@@ -136,6 +136,8 @@ class CreateStoryActivity : BaseActivity() {
             if (selectedPeopleList != null) {
                 selectedTagPeopleList = selectedPeopleList
                 setTagsFlexList(selectedPeopleList)
+                // Update overlays shown directly on the story preview
+                updateStoryTagOverlays()
             }
         }
     }
@@ -1208,6 +1210,7 @@ class CreateStoryActivity : BaseActivity() {
     private fun configureTextOverlay(overlay: View) {
         val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText) ?: return
         val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
+        val isTagOverlay = overlay.getTag(R.id.story_tag_overlay_view) as? Boolean ?: false
 
         val detectedBackgroundRes = (overlay.getTag(R.id.story_text_background_res_id) as? Int) ?: run {
             val currentBackground = textView.background
@@ -1222,19 +1225,30 @@ class CreateStoryActivity : BaseActivity() {
         }
         overlay.setTag(R.id.story_text_background_res_id, detectedBackgroundRes)
 
-        textView.background = ContextCompat.getDrawable(this, detectedBackgroundRes)
-        editIcon?.visibility = View.VISIBLE
+        // For normal text overlays, keep existing behavior (editable with background).
+        // For tag overlays (@username), we want plain blue, non-editable text.
+        if (isTagOverlay) {
+            textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
+            textView.background = null
+            editIcon?.visibility = View.GONE
+            editIcon?.setOnClickListener(null)
+        } else {
+            textView.background = ContextCompat.getDrawable(this, detectedBackgroundRes)
+            editIcon?.visibility = View.VISIBLE
+        }
 
         // Remove gravity constraints to allow free positioning
         removeGravityConstraints(overlay)
 
-        editIcon?.setOnClickListener {
-            activeTextOverlay = overlay
-            textEntryDialog.show(
-                initialText = textView.text.toString(),
-                initialColor = textView.currentTextColor,
-                initialBackgroundResId = detectedBackgroundRes
-            )
+        if (!isTagOverlay) {
+            editIcon?.setOnClickListener {
+                activeTextOverlay = overlay
+                textEntryDialog.show(
+                    initialText = textView.text.toString(),
+                    initialColor = textView.currentTextColor,
+                    initialBackgroundResId = detectedBackgroundRes
+                )
+            }
         }
     }
 
@@ -1367,14 +1381,19 @@ class CreateStoryActivity : BaseActivity() {
     }
 
     private fun setTagsFlexList(selectedPeopleList: ArrayList<TagPeople>) {
-        binding.userTagLayout.visibility = if (selectedPeopleList.isEmpty()) View.GONE else View.VISIBLE
+        // For stories we only want the in-image tag overlay (like @username),
+        // not the chip list UI below the preview, so always hide this layout.
+        binding.userTagLayout.visibility = View.GONE
+
+        // Still wire the adapter so existing logic that relies on it (like remove callbacks)
+        // continues to work if needed in future.
         val tagAdapter = TagsAdapter(this, selectedPeopleList, ::onTagUpdated)
         binding.tagsRv.adapter = tagAdapter
 
         val layoutManager = FlexboxLayoutManager(this).apply {
             flexDirection = FlexDirection.ROW
-            justifyContent = JustifyContent.CENTER // Center align tags
-            alignItems = AlignItems.CENTER // Center align items vertically
+            justifyContent = JustifyContent.CENTER
+            alignItems = AlignItems.CENTER
             flexWrap = FlexWrap.WRAP
         }
         binding.tagsRv.layoutManager = layoutManager
@@ -1382,7 +1401,83 @@ class CreateStoryActivity : BaseActivity() {
 
     private fun onTagUpdated(updatedList: ArrayList<TagPeople>) {
         selectedTagPeopleList = updatedList
-        binding.userTagLayout.visibility = if (updatedList.isEmpty()) View.GONE else View.VISIBLE
+        // Keep the chip section hidden and just update the overlays on the story
+        binding.userTagLayout.visibility = View.GONE
+        updateStoryTagOverlays()
+    }
+
+    /**
+     * Create non-editable, movable blue @username overlays directly on the story preview.
+     * These behave like text stickers but can only be removed (via the X button), not edited.
+     */
+    private fun updateStoryTagOverlays() {
+        // Remove any existing tag overlays first
+        val parent = binding.photoEditorView
+        val viewsToRemove = mutableListOf<View>()
+        for (i in 0 until parent.childCount) {
+            val child = parent.getChildAt(i)
+            val isTagOverlay = child.getTag(R.id.story_tag_overlay_view) as? Boolean ?: false
+            if (isTagOverlay) {
+                viewsToRemove.add(child)
+            }
+        }
+        viewsToRemove.forEach { view ->
+            try {
+                parent.removeView(view)
+            } catch (_: Exception) {
+                // Ignore if removal fails; PhotoEditor might already manage this view.
+            }
+        }
+
+        // Add a new overlay for each selected person
+        if (selectedTagPeopleList.isEmpty()) return
+
+        selectedTagPeopleList.forEachIndexed { index, tagPerson ->
+            val displayName = "@${tagPerson.name ?: ""}".trim()
+            if (displayName.length <= 1) return@forEachIndexed
+
+            val textStyleBuilder = TextStyleBuilder().apply {
+                withTextColor(ContextCompat.getColor(activity, R.color.blue))
+                // Transparent background so it looks like plain blue mention text
+                ContextCompat.getDrawable(activity, R.drawable.text_background_transparent)
+                    ?.let { withBackgroundDrawable(it) }
+                ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
+            }
+
+            photoEditor.addText(displayName, textStyleBuilder)
+
+            // Configure the newly added overlay
+            binding.photoEditorView.postDelayed({
+                val overlay = getLatestTextOverlay() ?: return@postDelayed
+
+                overlay.setTag(R.id.story_tag_overlay_view, true)
+
+                val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText)
+                val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
+
+                textView?.apply {
+                    text = displayName
+                    setTextColor(ContextCompat.getColor(activity, R.color.blue))
+                    background = null // pure text look for mention
+                }
+
+                // Hide edit pencil so user cannot edit the mention text
+                editIcon?.visibility = View.GONE
+                editIcon?.setOnClickListener(null)
+
+                // Allow the user to freely drag the tag around
+                removeGravityConstraints(overlay)
+
+                // Slightly stagger starting positions so multiple tags don't overlap perfectly
+                val startY = (binding.photoEditorView.height * 0.25f) +
+                        (index * 60 * resources.displayMetrics.density)
+                overlay.x = binding.photoEditorView.width * 0.25f
+                overlay.y = startY.coerceAtMost(binding.photoEditorView.height * 0.75f)
+
+                // Record initial position for position monitoring logic
+                viewPositions[overlay] = Pair(overlay.x, overlay.y)
+            }, 80)
+        }
     }
 
     override fun onPause() {

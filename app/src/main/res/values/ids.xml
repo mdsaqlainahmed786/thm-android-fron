@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="story_text_background_res_id" type="id" />
+    <!-- Marker for non-editable story tag overlays (e.g. @username) -->
+    <item name="story_tag_overlay_view" type="id" />
 </resources>
 
