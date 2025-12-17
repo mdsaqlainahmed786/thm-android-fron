@@ -22,7 +22,7 @@
             android:id="@+id/imageView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="fitCenter" />
+            android:scaleType="centerCrop" />
 
         <com.google.android.exoplayer2.ui.StyledPlayerView
             android:id="@+id/exoPlayerView"
@@ -30,7 +30,7 @@
             android:layout_height="match_parent"
             android:visibility="gone"
             app:use_controller="false"
-            app:resize_mode="fit"
+            app:resize_mode="zoom"
             app:show_buffering="when_playing" />
 
         <VideoView

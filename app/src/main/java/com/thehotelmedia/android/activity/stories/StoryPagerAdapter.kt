@@ -7,6 +7,12 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.TextPaint
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.text.style.ForegroundColorSpan
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
@@ -277,17 +283,7 @@ class StoryPagerAdapter(
             val story = users.storiesRef[currentStoryIndex]
             val taggedPeople = story.taggedRef ?: arrayListOf()
             if (taggedPeople.isNotEmpty()) {
-                val taggedText = "With ${generateTaggedRefString(taggedPeople)}"
-                binding.taggedPeopleTv.visibility = View.VISIBLE
-                binding.taggedPeopleTv.text = taggedText
-
-                // Make tagged text clickable to open bottom sheet
-                binding.taggedPeopleTv.setOnClickListener {
-                    pauseStory(binding)
-                    val taggedPeopleJson = Gson().toJson(taggedPeople)
-                    val bottomSheetFragment = TagPeopleBottomSheetFragment.newInstance(taggedPeopleJson)
-                    bottomSheetFragment.show(supportFragmentManager, TagPeopleBottomSheetFragment::class.java.simpleName)
-                }
+                setupTaggedPeopleLinks(binding, taggedPeople)
             } else {
                 binding.taggedPeopleTv.visibility = View.GONE
                 binding.taggedPeopleTv.text = ""
@@ -396,12 +392,90 @@ class StoryPagerAdapter(
         currentAnimator = null
     }
 
-    private fun generateTaggedRefString(taggedRef: List<TaggedRef>): String {
-        return when (taggedRef.size) {
-            0 -> ""
-            1 -> taggedRef[0].name ?: ""
-            2 -> "${taggedRef[0].name} and ${taggedRef[1].name}"
-            else -> "${taggedRef[0].name} and ${taggedRef.size - 1} others"
+    private data class TagSpanInfo(
+        val start: Int,
+        val end: Int,
+        val userId: String
+    )
+
+    /**
+     * Build "With Name1, Name2" text where each name is a blue, clickable link
+     * that opens the tagged user's profile.
+     */
+    private fun setupTaggedPeopleLinks(binding: StoryScreenLayoutBinding, taggedRef: List<TaggedRef>) {
+        if (taggedRef.isEmpty()) {
+            binding.taggedPeopleTv.visibility = View.GONE
+            binding.taggedPeopleTv.text = ""
+            binding.taggedPeopleTv.movementMethod = null
+            return
+        }
+
+        val baseText = StringBuilder("With ")
+        val spans = mutableListOf<TagSpanInfo>()
+
+        taggedRef.forEachIndexed { index, tagged ->
+            val name = tagged.name ?: return@forEachIndexed
+            val userId = tagged.Id ?: return@forEachIndexed
+
+            val start = baseText.length
+            baseText.append(name)
+            val end = baseText.length
+
+            spans.add(TagSpanInfo(start, end, userId))
+
+            if (index < taggedRef.size - 1) {
+                baseText.append(if (index == taggedRef.size - 2) " and " else ", ")
+            }
+        }
+
+        val fullText = baseText.toString()
+        val spannable = SpannableString(fullText)
+        val linkColor = ContextCompat.getColor(context, R.color.blue)
+
+        spans.forEach { info ->
+            // Clickable span to open profile
+            val clickableSpan = object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    moveToProfileDetailsActivity(info.userId)
+                }
+
+                override fun updateDrawState(ds: TextPaint) {
+                    super.updateDrawState(ds)
+                    ds.color = linkColor
+                    ds.isUnderlineText = false
+                }
+            }
+            spannable.setSpan(
+                clickableSpan,
+                info.start,
+                info.end,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+
+            // Explicitly color the link text blue
+            spannable.setSpan(
+                ForegroundColorSpan(linkColor),
+                info.start,
+                info.end,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+
+        binding.taggedPeopleTv.visibility = View.VISIBLE
+        binding.taggedPeopleTv.text = spannable
+        binding.taggedPeopleTv.movementMethod = LinkMovementMethod.getInstance()
+        // Ensure the TextView can receive click events for links
+        binding.taggedPeopleTv.highlightColor = android.graphics.Color.TRANSPARENT
+
+        // Safety fallback: if link clicks are intercepted by parent views,
+        // still open the first tagged user's profile when the line is tapped.
+        val firstUserId = taggedRef.firstOrNull()?.Id
+        if (!firstUserId.isNullOrEmpty()) {
+            binding.taggedPeopleTv.setOnClickListener {
+                moveToProfileDetailsActivity(firstUserId)
+            }
+        } else {
+            binding.taggedPeopleTv.setOnClickListener(null)
         }
     }
 

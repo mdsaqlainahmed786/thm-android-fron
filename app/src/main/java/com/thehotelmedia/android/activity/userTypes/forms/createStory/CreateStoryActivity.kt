@@ -1229,7 +1229,7 @@ class CreateStoryActivity : BaseActivity() {
         // For tag overlays (@username), we want plain blue, non-editable text.
         if (isTagOverlay) {
             textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
-            textView.background = null
+            textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
             editIcon?.visibility = View.GONE
             editIcon?.setOnClickListener(null)
         } else {
@@ -1438,8 +1438,8 @@ class CreateStoryActivity : BaseActivity() {
 
             val textStyleBuilder = TextStyleBuilder().apply {
                 withTextColor(ContextCompat.getColor(activity, R.color.blue))
-                // Transparent background so it looks like plain blue mention text
-                ContextCompat.getDrawable(activity, R.drawable.text_background_transparent)
+                // Blue pill background for better visibility of the tag
+                ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
                     ?.let { withBackgroundDrawable(it) }
                 ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
             }
@@ -1458,7 +1458,7 @@ class CreateStoryActivity : BaseActivity() {
                 textView?.apply {
                     text = displayName
                     setTextColor(ContextCompat.getColor(activity, R.color.blue))
-                    background = null // pure text look for mention
+                    background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
                 }
 
                 // Hide edit pencil so user cannot edit the mention text
