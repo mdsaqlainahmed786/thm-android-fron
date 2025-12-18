@@ -3,5 +3,7 @@
     <item name="story_text_background_res_id" type="id" />
     <!-- Marker for non-editable story tag overlays (e.g. @username) -->
     <item name="story_tag_overlay_view" type="id" />
+    <!-- Marker for non-editable story location overlays (e.g. 📍 Hyderabad, Telangana) -->
+    <item name="story_location_overlay_view" type="id" />
 </resources>
 

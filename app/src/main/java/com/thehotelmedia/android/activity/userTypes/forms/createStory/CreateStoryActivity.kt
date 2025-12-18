@@ -9,6 +9,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Drawable
+import android.location.Address
+import android.location.Geocoder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -21,6 +23,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
@@ -56,6 +59,7 @@ import com.thehotelmedia.android.customClasses.imageEditor.CustomEmojiEntryDialo
 import com.thehotelmedia.android.customClasses.imageEditor.CustomTextEntryDialog
 import com.thehotelmedia.android.customDialog.PhotoVideoDialog
 import com.thehotelmedia.android.databinding.ActivityCreateStoryBinding
+import com.thehotelmedia.android.extensions.LocationHelper
 import com.thehotelmedia.android.extensions.navigateToMainActivity
 import com.thehotelmedia.android.extensions.setOnSwipeListener
 import com.thehotelmedia.android.repository.IndividualRepo
@@ -75,6 +79,7 @@ import ja.burhanrashid52.photoeditor.ViewType
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Locale
 
 class CreateStoryActivity : BaseActivity() {
 
@@ -97,6 +102,9 @@ class CreateStoryActivity : BaseActivity() {
     private var isFilterAvailable = true
     private var isUploading = false // Flag to prevent duplicate uploads
     private var selectedTagPeopleList: ArrayList<TagPeople> = arrayListOf()
+    private var selectedLocationLabel: String? = null
+    private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
+    private lateinit var locationHelper: LocationHelper
 
 
     private val pickMediaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -142,6 +150,50 @@ class CreateStoryActivity : BaseActivity() {
         }
     }
 
+    private fun initLocationTagging() {
+        locationPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+                val grantedFine = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+                val grantedCoarse = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                if (grantedFine || grantedCoarse) {
+                    // Permission granted, proceed to fetch location
+                    locationHelper.checkAndRequestLocation()
+                } else {
+                    Toast.makeText(this, "Location permission is required to tag location", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+        locationHelper = LocationHelper(
+            context = this,
+            permissionLauncher = locationPermissionLauncher,
+            locationCallback = { latitude, longitude ->
+                val label = getCityStateFromLatLng(latitude, longitude) ?: "Current location"
+                selectedLocationLabel = label
+                updateStoryLocationOverlay(label)
+            },
+            errorCallback = { errorMessage ->
+                Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    private fun getCityStateFromLatLng(latitude: Double, longitude: Double): String? {
+        return try {
+            val geocoder = Geocoder(this, Locale.getDefault())
+            val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
+            if (!addresses.isNullOrEmpty()) {
+                val address = addresses[0]
+                val city = address.locality?.trim().orEmpty()
+                val state = address.adminArea?.trim().orEmpty()
+                val combined = listOf(city, state).filter { it.isNotBlank() }.joinToString(", ")
+                combined.ifBlank { address.subAdminArea?.trim() ?: address.getAddressLine(0) }
+            } else null
+        } catch (e: Exception) {
+            Log.e("CreateStoryActivity", "Geocoder failed: ${e.message}", e)
+            null
+        }
+    }
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -156,6 +208,7 @@ class CreateStoryActivity : BaseActivity() {
         setupPhotoEditorListener()
         setupPositionMonitoring()
         binding.filterLayout.visibility = View.GONE
+        initLocationTagging()
 
         inItUi()
     }
@@ -231,6 +284,11 @@ class CreateStoryActivity : BaseActivity() {
             intent.putExtra("selectedTagPeopleList", selectedTagPeopleList)
             intent.putExtra("searchAllUsers", true) // Search all users (individual + business) for story tagging
             tagPeopleLauncher.launch(intent)
+        }
+
+        binding.tagLocationButton.setOnClickListener {
+            // Fetch current location and drop a draggable pill overlay on the story
+            locationHelper.checkAndRequestLocation()
         }
 
 
@@ -1211,6 +1269,7 @@ class CreateStoryActivity : BaseActivity() {
         val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText) ?: return
         val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
         val isTagOverlay = overlay.getTag(R.id.story_tag_overlay_view) as? Boolean ?: false
+        val isLocationOverlay = overlay.getTag(R.id.story_location_overlay_view) as? Boolean ?: false
 
         val detectedBackgroundRes = (overlay.getTag(R.id.story_text_background_res_id) as? Int) ?: run {
             val currentBackground = textView.background
@@ -1226,14 +1285,21 @@ class CreateStoryActivity : BaseActivity() {
         overlay.setTag(R.id.story_text_background_res_id, detectedBackgroundRes)
 
         // For normal text overlays, keep existing behavior (editable with background).
-        // For tag overlays (@username), we want plain blue, non-editable text.
-        if (isTagOverlay) {
+        // For tag overlays (@username) and location overlays, we want blue, non-editable pill style.
+        if (isTagOverlay || isLocationOverlay) {
             textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
             textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
+            if (isLocationOverlay) {
+                applyLocationIcon(textView)
+            } else {
+                // Ensure people tags don't get an icon
+                clearCompoundDrawables(textView)
+            }
             editIcon?.visibility = View.GONE
             editIcon?.setOnClickListener(null)
         } else {
             textView.background = ContextCompat.getDrawable(this, detectedBackgroundRes)
+            clearCompoundDrawables(textView)
             editIcon?.visibility = View.VISIBLE
         }
 
@@ -1478,6 +1544,82 @@ class CreateStoryActivity : BaseActivity() {
                 viewPositions[overlay] = Pair(overlay.x, overlay.y)
             }, 80)
         }
+    }
+
+    /**
+     * Create/update a non-editable, movable blue location overlay directly on the story preview.
+     * Example: "📍 Hyderabad, Telangana"
+     */
+    private fun updateStoryLocationOverlay(locationLabel: String) {
+        val parent = binding.photoEditorView
+        val viewsToRemove = mutableListOf<View>()
+        for (i in 0 until parent.childCount) {
+            val child = parent.getChildAt(i)
+            val isLocationOverlay = child.getTag(R.id.story_location_overlay_view) as? Boolean ?: false
+            if (isLocationOverlay) {
+                viewsToRemove.add(child)
+            }
+        }
+        viewsToRemove.forEach { view ->
+            try {
+                parent.removeView(view)
+            } catch (_: Exception) {
+                // ignore
+            }
+        }
+
+        val displayText = locationLabel.trim()
+        if (displayText.isBlank()) return
+
+        val textStyleBuilder = TextStyleBuilder().apply {
+            withTextColor(ContextCompat.getColor(activity, R.color.blue))
+            ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                ?.let { withBackgroundDrawable(it) }
+            ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
+        }
+        photoEditor.addText(displayText, textStyleBuilder)
+
+        binding.photoEditorView.postDelayed({
+            val overlay = getLatestTextOverlay() ?: return@postDelayed
+            overlay.setTag(R.id.story_location_overlay_view, true)
+
+            val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText)
+            val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
+
+            textView?.apply {
+                text = displayText
+                setTextColor(ContextCompat.getColor(activity, R.color.blue))
+                background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                applyLocationIcon(this)
+            }
+
+            editIcon?.visibility = View.GONE
+            editIcon?.setOnClickListener(null)
+
+            removeGravityConstraints(overlay)
+
+            // Default position: near top-left-ish
+            overlay.x = binding.photoEditorView.width * 0.20f
+            overlay.y = binding.photoEditorView.height * 0.20f
+            viewPositions[overlay] = Pair(overlay.x, overlay.y)
+        }, 80)
+    }
+
+    private fun applyLocationIcon(textView: TextView) {
+        val drawable = ContextCompat.getDrawable(this, R.drawable.ic_location_blue) ?: return
+        val sizePx = (14 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+
+        val wrapped = DrawableCompat.wrap(drawable.mutate())
+        DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.blue))
+        wrapped.setBounds(0, 0, sizePx, sizePx)
+
+        textView.setCompoundDrawablesRelative(wrapped, null, null, null)
+        textView.compoundDrawablePadding = (6 * resources.displayMetrics.density).toInt()
+    }
+
+    private fun clearCompoundDrawables(textView: TextView) {
+        textView.setCompoundDrawablesRelative(null, null, null, null)
+        textView.compoundDrawablePadding = 0
     }
 
     override fun onPause() {
