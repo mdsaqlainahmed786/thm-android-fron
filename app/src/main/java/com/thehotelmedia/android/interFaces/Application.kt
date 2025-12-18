@@ -677,8 +677,13 @@ interface Application {
     fun bookingCheckIn(
         @Header("x-access-token") token: String,
         @Field("businessProfileID") businessProfileID: String,
+        // Some backend deployments use different casing for this key. Sending both keeps backward compatibility.
+        @Field("businessProfileId") businessProfileId: String,
         @Field("checkIn") checkIn: String,
+        // Some backend deployments use different keys for these dates. Sending both keeps backward compatibility.
+        @Field("checkInDate") checkInDate: String,
         @Field("checkOut") checkOut: String,
+        @Field("checkOutDate") checkOutDate: String,
         @Field("adults") adultsCount: Int,
         @Field("children") childrenCount: Int,
         @Field("childrenAge") childrenAge: List<Int>,

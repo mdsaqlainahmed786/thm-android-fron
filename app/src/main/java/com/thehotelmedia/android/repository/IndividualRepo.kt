@@ -1206,8 +1206,20 @@ class IndividualRepo (private val context: Context){
         }
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
-            return@withContext call.bookingCheckIn(accessToken,businessProfileID,checkInDate,checkOutDate,adultsCount,
-                childrenCount,childrenAges,isTravellingWithPet).execute()
+            // Send both key variants for compatibility with differing backend field naming.
+            return@withContext call.bookingCheckIn(
+                accessToken,
+                businessProfileID,
+                businessProfileID,
+                checkInDate,
+                checkInDate,
+                checkOutDate,
+                checkOutDate,
+                adultsCount,
+                childrenCount,
+                childrenAges,
+                isTravellingWithPet
+            ).execute()
         }
     }
 

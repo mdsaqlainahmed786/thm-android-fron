@@ -2033,12 +2033,79 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
+                Log.d(
+                    tag,
+                    "bookingCheckIn request => businessProfileID=$businessProfileID, checkIn=$checkInDate, checkOut=$checkOutDate, adults=$adultsCount, children=$childrenCount, childrenAges=$childrenAges, pet=$isTravellingWithPet"
+                )
                 val response = individualRepo.bookingCheckIn(businessProfileID,checkInDate,checkOutDate,adultsCount, childrenCount,childrenAges,isTravellingWithPet)
                 if (response.isSuccessful) {
-//                    val res = response.body()
-//                    toastMessageLiveData.postValue(res?.message)
-                    _bookingCheckInResult.postValue(response.body())
-                    Log.wtf(tag, response.body().toString())
+                    val body = response.body()
+
+                    // Some backend versions return `data.availability` but keep `data.availableRooms` empty.
+                    // Our UI renders `availableRooms`, so we hydrate it by fetching full room details.
+                    val availabilityIds = body?.data?.availability
+                        ?.mapNotNull { it.id }
+                        ?.distinct()
+                        .orEmpty()
+
+                    val hasRoomCards = !body?.data?.availableRooms.isNullOrEmpty()
+
+                    if (!hasRoomCards && availabilityIds.isNotEmpty()) {
+                        val hydratedRooms = arrayListOf<com.thehotelmedia.android.modals.booking.checkIn.AvailableRooms>()
+                        for (roomId in availabilityIds) {
+                            try {
+                                val roomRes = individualRepo.fetchRoomDetails(roomId)
+                                if (roomRes.isSuccessful) {
+                                    val room = roomRes.body()?.data
+                                    if (room != null) {
+                                        hydratedRooms.add(
+                                            com.thehotelmedia.android.modals.booking.checkIn.AvailableRooms(
+                                                Id = room.Id,
+                                                bedType = room.bedType,
+                                                adults = room.adults,
+                                                children = room.children,
+                                                maxOccupancy = room.maxOccupancy,
+                                                availability = room.availability,
+                                                amenities = room.amenities,
+                                                title = room.title,
+                                                description = room.description,
+                                                pricePerNight = room.pricePerNight,
+                                                currency = room.currency,
+                                                mealPlan = room.mealPlan,
+                                                cover = room.cover?.let { c ->
+                                                    com.thehotelmedia.android.modals.booking.checkIn.Cover(
+                                                        Id = c.Id,
+                                                        isCoverImage = c.isCoverImage,
+                                                        sourceUrl = c.sourceUrl,
+                                                        thumbnailUrl = c.thumbnailUrl
+                                                    )
+                                                },
+                                                amenitiesRef = ArrayList(
+                                                    room.amenitiesRef.map { a ->
+                                                        com.thehotelmedia.android.modals.booking.checkIn.AmenitiesRef(
+                                                            Id = a.Id,
+                                                            name = a.name,
+                                                            category = a.category
+                                                        )
+                                                    }
+                                                )
+                                            )
+                                        )
+                                    }
+                                } else {
+                                    Log.w(tag, "fetchRoomDetails failed for roomId=$roomId : ${roomRes.message()}")
+                                }
+                            } catch (e: Exception) {
+                                Log.w(tag, "fetchRoomDetails exception for roomId=$roomId : ${e.message}")
+                            }
+                        }
+
+                        body?.data?.availableRooms?.clear()
+                        body?.data?.availableRooms?.addAll(hydratedRooms)
+                    }
+
+                    _bookingCheckInResult.postValue(body)
+                    Log.wtf(tag, body.toString())
                     _loading.postValue(false)
                 } else {
                     Log.wtf(tag + "ELSE", response.message().toString())

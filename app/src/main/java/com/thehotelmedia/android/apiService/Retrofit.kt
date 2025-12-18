@@ -9,6 +9,7 @@ import com.thehotelmedia.android.interFaces.Application
 import com.thehotelmedia.android.modals.feeds.feed.Collaborator
 import com.thehotelmedia.android.modals.feeds.feed.CollaboratorListTypeAdapter
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
@@ -58,10 +59,17 @@ object Retrofit {
     fun apiService(context: Context): Retrofit {
 
         // Use the custom SSL configuration from SslUtils
-        val httpClient = SslUtils.getOkHttpClientBuilder(context)
+        val okHttpBuilder = SslUtils.getOkHttpClientBuilder(context)
             .connectTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(AuthInterceptor(context))
-            .build()
+
+        // Debug-only HTTP logging to verify request/response payloads (helps diagnose empty lists like rooms availability).
+        if (BuildConfig.DEBUG) {
+            val logging = HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+            okHttpBuilder.addInterceptor(logging)
+        }
+
+        val httpClient = okHttpBuilder.build()
 
 
 //        val httpClient = OkHttpClient.Builder()

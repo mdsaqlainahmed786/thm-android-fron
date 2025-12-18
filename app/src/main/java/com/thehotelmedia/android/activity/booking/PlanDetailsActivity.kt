@@ -133,6 +133,10 @@ class PlanDetailsActivity : BaseActivity() {
                     binding.availableRoomTv.visibility = View.GONE
                     binding.roomsRv.visibility = View.GONE
                     binding.noDataFoundLayout.visibility = View.VISIBLE
+                    // Backend can return success with an empty list when filters (occupancy/dates/inventory) exclude all rooms.
+                    // Show the server message to make troubleshooting possible.
+                    val msg = result.message ?: getString(R.string.no_room_available)
+                    CustomSnackBar.showSnackBar(binding.root, msg)
                 }
 
             }else{
