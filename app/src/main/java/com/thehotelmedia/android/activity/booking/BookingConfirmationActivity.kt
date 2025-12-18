@@ -359,12 +359,19 @@ class BookingConfirmationActivity : BaseActivity(), PaymentResultWithDataListene
 
 
 
-        razorPayAmount = razorPayData?.amount.roundToTwoDecimal().toString()
+        // Razorpay expects amount in the smallest currency unit (e.g. paise) as an integer.
+        // Prefer server-provided order amount; fall back to total*100 if missing.
+        val serverAmountPaise = razorPayData?.amount
+            ?: razorPayData?.amountDue
+            ?: ((payment?.total ?: 0.0) * 100.0).toLong()
+        razorPayAmount = serverAmountPaise.toString()
         razorPayCurrency = razorPayData?.currency ?: ""
         razorPayEntity = razorPayData?.entity ?: ""
         razorPayReceipt = razorPayData?.receipt ?: ""
         razorPayOrderId = razorPayData?.id ?: ""
         razorPayDescription = razorPayData?.notes?.description ?: "Booking"
+
+        println("Booking Razorpay -> orderId=$razorPayOrderId amountPaise=$razorPayAmount currency=$razorPayCurrency")
 
 
 
