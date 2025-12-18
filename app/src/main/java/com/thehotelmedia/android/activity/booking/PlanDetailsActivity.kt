@@ -41,6 +41,14 @@ class PlanDetailsActivity : BaseActivity() {
     private var guestMessage: String = ""
 
     private lateinit var hotelRoomsAdapter: HotelRoomsAdapter
+    private var allRoomsForHotel: ArrayList<com.thehotelmedia.android.modals.booking.checkIn.AvailableRooms> = arrayListOf()
+    private var lastBookingId: String = ""
+    private var lastServerCheckIn: String = ""
+    private var lastServerCheckOut: String = ""
+    private var lastRoomsRequired: Int = 1
+    private var lastDialCode: String = ""
+    private var lastPhoneNumber: String = ""
+    private var lastIsNumberVerified: Boolean = true
 
 
     private lateinit var individualViewModal: IndividualViewModal
@@ -80,6 +88,15 @@ class PlanDetailsActivity : BaseActivity() {
     }
 
     override fun onResume() {
+        // Clear any previous state so rooms from other hotels can't "stick" in the adapter.
+        allRoomsForHotel = arrayListOf()
+        binding.roomsRv.adapter = null
+        binding.availableRoomTv.visibility = View.GONE
+        binding.roomsRv.visibility = View.GONE
+        binding.noDataFoundLayout.visibility = View.VISIBLE
+
+        // Fetch canonical rooms list so UI can show all room types like dashboard (with real images from backend)
+        individualViewModal.fetchRoomsForHotel(businessProfileId)
         getAvailableRoomsData()
         super.onResume()
     }
@@ -112,36 +129,29 @@ class PlanDetailsActivity : BaseActivity() {
             if (result.status == true){
 
                 val availableRoomsList = result.data?.availableRooms
-                val bookingID = result.data?.booking?.bookingID ?: ""
-                val checkInDate = result.data?.booking?.checkIn ?: ""
-                val checkOutDate = result.data?.booking?.checkOut ?: ""
-                val roomsRequired = result.data?.roomsRequired ?: 1
+                lastBookingId = result.data?.booking?.bookingID ?: ""
+                lastServerCheckIn = result.data?.booking?.checkIn ?: ""
+                lastServerCheckOut = result.data?.booking?.checkOut ?: ""
+                lastRoomsRequired = result.data?.roomsRequired ?: 1
 
                 val userData = result.data?.user
-                 val isNumberVerified = userData?.mobileVerified ?: true
-                 val phoneNumber = userData?.phoneNumber ?: ""
-                 val dialCode = userData?.dialCode ?: ""
+                lastIsNumberVerified = userData?.mobileVerified ?: true
+                lastPhoneNumber = userData?.phoneNumber ?: ""
+                lastDialCode = userData?.dialCode ?: ""
 
-
-                if (!availableRoomsList.isNullOrEmpty()){
-                    hotelRoomsAdapter = HotelRoomsAdapter(this,availableRoomsList,bookingID,checkInDate,checkOutDate,roomsRequired,guestCount,dialCode,phoneNumber,isNumberVerified)
-                    binding.roomsRv.adapter = hotelRoomsAdapter
-                    binding.availableRoomTv.visibility = View.VISIBLE
-                    binding.roomsRv.visibility = View.VISIBLE
-                    binding.noDataFoundLayout.visibility = View.GONE
-                }else{
-                    binding.availableRoomTv.visibility = View.GONE
-                    binding.roomsRv.visibility = View.GONE
-                    binding.noDataFoundLayout.visibility = View.VISIBLE
-                    // Backend can return success with an empty list when filters (occupancy/dates/inventory) exclude all rooms.
-                    // Show the server message to make troubleshooting possible.
-                    val msg = result.message ?: getString(R.string.no_room_available)
-                    CustomSnackBar.showSnackBar(binding.root, msg)
-                }
+                // Render with the best available list (prefer dashboard-parity rooms list).
+                renderRooms(preferRooms = allRoomsForHotel.ifEmpty { availableRoomsList ?: arrayListOf() }, serverMessage = result.message)
 
             }else{
                 val msg = result.message
                 Toast.makeText(this,msg, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        individualViewModal.roomsForHotelResult.observe(this) { rooms ->
+            allRoomsForHotel = rooms
+            if (lastBookingId.isNotEmpty()) {
+                renderRooms(preferRooms = allRoomsForHotel, serverMessage = null)
             }
         }
 
@@ -164,6 +174,36 @@ class PlanDetailsActivity : BaseActivity() {
 
     private fun getAvailableRoomsData() {
         individualViewModal.bookingCheckIn(businessProfileId,checkInDate,checkOutDate, guestCount,childrenCount,childrenAges,hasPet)
+    }
+
+    private fun renderRooms(
+        preferRooms: ArrayList<com.thehotelmedia.android.modals.booking.checkIn.AvailableRooms>,
+        serverMessage: String?
+    ) {
+        if (preferRooms.isNotEmpty()){
+            hotelRoomsAdapter = HotelRoomsAdapter(
+                this,
+                preferRooms,
+                lastBookingId,
+                lastServerCheckIn,
+                lastServerCheckOut,
+                lastRoomsRequired,
+                guestCount,
+                lastDialCode,
+                lastPhoneNumber,
+                lastIsNumberVerified
+            )
+            binding.roomsRv.adapter = hotelRoomsAdapter
+            binding.availableRoomTv.visibility = View.VISIBLE
+            binding.roomsRv.visibility = View.VISIBLE
+            binding.noDataFoundLayout.visibility = View.GONE
+        } else {
+            binding.availableRoomTv.visibility = View.GONE
+            binding.roomsRv.visibility = View.GONE
+            binding.noDataFoundLayout.visibility = View.VISIBLE
+            val msg = serverMessage ?: getString(R.string.no_room_available)
+            CustomSnackBar.showSnackBar(binding.root, msg)
+        }
     }
 
 

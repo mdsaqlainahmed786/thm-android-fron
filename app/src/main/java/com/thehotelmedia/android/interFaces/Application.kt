@@ -696,6 +696,15 @@ interface Application {
         @Path(value = "id", encoded = true) roomId: String,
     ): Call<RoomDetailsModal>
 
+    // List all rooms for a hotel/business profile (used to render full room list like dashboard).
+    @GET("rooms")
+    fun getRoomsByBusinessProfile(
+        @Header("x-access-token") token: String,
+        @Query("businessProfileID") businessProfileID: String,
+        // Some backend deployments use different casing for this key.
+        @Query("businessProfileId") businessProfileId: String,
+    ): Call<com.thehotelmedia.android.modals.booking.roomsList.RoomsListModal>
+
     @POST("bookings/checkout")
     @FormUrlEncoded
     fun bookingCheckOut(

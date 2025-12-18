@@ -1234,6 +1234,17 @@ class IndividualRepo (private val context: Context){
         }
     }
 
+    suspend fun getRoomsByBusinessProfile(businessProfileID: String): Response<com.thehotelmedia.android.modals.booking.roomsList.RoomsListModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.getRoomsByBusinessProfile(accessToken, businessProfileID, businessProfileID).execute()
+        }
+    }
+
     suspend fun bookingCheckOut(bookingId: String,roomId: String,quantity: Int,promoCode: String,price: Double): Response<BookingCheckOutModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {

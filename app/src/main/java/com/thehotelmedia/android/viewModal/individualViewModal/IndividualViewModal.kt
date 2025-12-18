@@ -29,6 +29,7 @@ import com.thehotelmedia.android.modals.booking.bookingSummary.BookingSummaryMod
 import com.thehotelmedia.android.modals.booking.checkIn.BookingCheckInModal
 import com.thehotelmedia.android.modals.booking.checkout.BookingCheckOutModal
 import com.thehotelmedia.android.modals.booking.roomDetails.RoomDetailsModal
+import com.thehotelmedia.android.modals.booking.roomsList.RoomsListModal
 import com.thehotelmedia.android.modals.chat.exportChat.ExportChatModal
 import com.thehotelmedia.android.modals.forms.taggedPeople.TaggedData
 import com.thehotelmedia.android.modals.checkIn.NearByPlacesModel
@@ -2028,6 +2029,120 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     //Booking CheckIn
     private val _bookingCheckInResult = MutableLiveData<BookingCheckInModal>()
     val bookingCheckInResult: LiveData<BookingCheckInModal> = _bookingCheckInResult
+
+    // Rooms list (all rooms for a business profile)
+    private val _roomsListResult = MutableLiveData<RoomsListModal>()
+    val roomsListResult: LiveData<RoomsListModal> = _roomsListResult
+
+    // Canonical room cards for booking UI (hydrated with images/details from backend)
+    private val _roomsForHotelResult = MutableLiveData<ArrayList<com.thehotelmedia.android.modals.booking.checkIn.AvailableRooms>>()
+    val roomsForHotelResult: LiveData<ArrayList<com.thehotelmedia.android.modals.booking.checkIn.AvailableRooms>> = _roomsForHotelResult
+
+    fun fetchRoomsByBusinessProfile(businessProfileID: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d(tag, "getRoomsByBusinessProfile request => businessProfileID=$businessProfileID")
+                val response = individualRepo.getRoomsByBusinessProfile(businessProfileID)
+                if (response.isSuccessful) {
+                    _roomsListResult.postValue(response.body())
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                }
+            } catch (t: Throwable) {
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
+
+    /**
+     * Fetch all room types for a hotel (dashboard parity), but hydrate each room with full details so
+     * the booking UI shows real images (not placeholders) and avoids duplicate rows.
+     */
+    fun fetchRoomsForHotel(businessProfileID: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d(tag, "fetchRoomsForHotel request => businessProfileID=$businessProfileID")
+                val listRes = individualRepo.getRoomsByBusinessProfile(businessProfileID)
+                if (!listRes.isSuccessful) {
+                    toastMessageLiveData.postValue(listRes.message())
+                    return@launch
+                }
+
+                val listBody = listRes.body()
+                val roomsFromList = listBody?.rooms().orEmpty()
+
+                // Some backend deployments ignore the businessProfileID query and return all rooms.
+                // Filter strictly on businessProfileID to avoid showing rooms from other hotels.
+                val roomsForThisHotel = roomsFromList.filter { it.businessProfileID == businessProfileID }
+                    .ifEmpty { roomsFromList } // fallback if backend doesn't include businessProfileID in list payload
+
+                // Deduplicate: some backends expand inventory into multiple rows (same title). We want unique room types.
+                val deduped = roomsForThisHotel.distinctBy { it.Id ?: it.title ?: "" }
+                    .ifEmpty { roomsForThisHotel.distinctBy { it.title ?: it.Id ?: "" } }
+
+                Log.d(tag, "fetchRoomsForHotel rooms from list=${roomsFromList.size}, filtered=${roomsForThisHotel.size}, deduped=${deduped.size}")
+
+                val hydrated = arrayListOf<com.thehotelmedia.android.modals.booking.checkIn.AvailableRooms>()
+                for (room in deduped) {
+                    val roomId = room.Id ?: continue
+                    try {
+                        val detailsRes = individualRepo.fetchRoomDetails(roomId)
+                        val details = if (detailsRes.isSuccessful) detailsRes.body()?.data else null
+                        val finalRoom = details ?: room
+                        hydrated.add(
+                            com.thehotelmedia.android.modals.booking.checkIn.AvailableRooms(
+                                Id = finalRoom.Id,
+                                bedType = finalRoom.bedType,
+                                adults = finalRoom.adults,
+                                children = finalRoom.children,
+                                maxOccupancy = finalRoom.maxOccupancy,
+                                availability = finalRoom.availability,
+                                amenities = finalRoom.amenities,
+                                title = finalRoom.title,
+                                description = finalRoom.description,
+                                pricePerNight = finalRoom.pricePerNight,
+                                currency = finalRoom.currency,
+                                mealPlan = finalRoom.mealPlan,
+                                cover = finalRoom.cover?.let { c ->
+                                    com.thehotelmedia.android.modals.booking.checkIn.Cover(
+                                        Id = c.Id,
+                                        isCoverImage = c.isCoverImage,
+                                        sourceUrl = c.sourceUrl,
+                                        thumbnailUrl = c.thumbnailUrl
+                                    )
+                                },
+                                roomImagesRef = ArrayList(
+                                    finalRoom.roomImagesRef.map { img ->
+                                        com.thehotelmedia.android.modals.booking.checkIn.Cover(
+                                            Id = img.Id,
+                                            isCoverImage = img.isCoverImage,
+                                            sourceUrl = img.sourceUrl,
+                                            thumbnailUrl = img.thumbnailUrl
+                                        )
+                                    }
+                                ),
+                                amenitiesRef = ArrayList(
+                                    finalRoom.amenitiesRef.map { a ->
+                                        com.thehotelmedia.android.modals.booking.checkIn.AmenitiesRef(
+                                            Id = a.Id,
+                                            name = a.name,
+                                            category = a.category
+                                        )
+                                    }
+                                )
+                            )
+                        )
+                    } catch (e: Exception) {
+                        Log.w(tag, "fetchRoomsForHotel fetchRoomDetails failed roomId=$roomId : ${e.message}")
+                    }
+                }
+
+                _roomsForHotelResult.postValue(hydrated)
+            } catch (t: Throwable) {
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
     fun bookingCheckIn(businessProfileID: String,checkInDate: String,checkOutDate: String,adultsCount: Int,childrenCount: Int,childrenAges: List<Int>,isTravellingWithPet : Boolean) {
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -2080,6 +2195,16 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                                                         thumbnailUrl = c.thumbnailUrl
                                                     )
                                                 },
+                                                roomImagesRef = ArrayList(
+                                                    room.roomImagesRef.map { img ->
+                                                        com.thehotelmedia.android.modals.booking.checkIn.Cover(
+                                                            Id = img.Id,
+                                                            isCoverImage = img.isCoverImage,
+                                                            sourceUrl = img.sourceUrl,
+                                                            thumbnailUrl = img.thumbnailUrl
+                                                        )
+                                                    }
+                                                ),
                                                 amenitiesRef = ArrayList(
                                                     room.amenitiesRef.map { a ->
                                                         com.thehotelmedia.android.modals.booking.checkIn.AmenitiesRef(

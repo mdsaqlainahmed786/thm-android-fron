@@ -1607,14 +1607,15 @@ class CreateStoryActivity : BaseActivity() {
 
     private fun applyLocationIcon(textView: TextView) {
         val drawable = ContextCompat.getDrawable(this, R.drawable.ic_location_blue) ?: return
-        val sizePx = (14 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        // Make the location icon a bit bigger so it matches the label prominence
+        val sizePx = (20 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
 
         val wrapped = DrawableCompat.wrap(drawable.mutate())
         DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.blue))
         wrapped.setBounds(0, 0, sizePx, sizePx)
 
         textView.setCompoundDrawablesRelative(wrapped, null, null, null)
-        textView.compoundDrawablePadding = (6 * resources.displayMetrics.density).toInt()
+        textView.compoundDrawablePadding = (8 * resources.displayMetrics.density).toInt()
     }
 
     private fun clearCompoundDrawables(textView: TextView) {
