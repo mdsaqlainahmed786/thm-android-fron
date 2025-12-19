@@ -291,11 +291,12 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
 
 
         individualViewModal.userProfileByIdResult.observe(this){result->
-            if (result.status == true){
+            if (result?.status == true){
                 handelProfileData(result)
             }else{
-                val msg = result.message.toString()
+                val msg = result?.message?.toString() ?: "Failed to load profile"
                 CustomSnackBar.showSnackBar(binding.root,msg)
+                progressBar.hide()
             }
         }
         individualViewModal.followUserResult.observe(this){result->
@@ -445,16 +446,31 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         notifyPostsFragmentFollowState()
         val bookingType = result?.data?.booking ?: ""
 
+        val businessTypeRef = result?.data?.businessProfileRef?.businessTypeRef
+        businessName = businessTypeRef?.name ?: ""
+        val isHotel = businessName.equals(getString(R.string.hotel), ignoreCase = true)
+
         when (bookingType) {
             "booking" -> {
                 binding.bookNowBtn.visibility = View.VISIBLE
                 binding.bookTableBtn.visibility = View.GONE
                 binding.bookBanquetBtn.visibility = View.GONE
+                if (isHotel) {
+                    binding.bookingTv.text = getString(R.string.book_room)
+                }
             }
             "book-table" -> {
-                binding.bookNowBtn.visibility = View.GONE
-                binding.bookTableBtn.visibility = View.VISIBLE
-                binding.bookBanquetBtn.visibility = View.GONE
+                if (isHotel) {
+                    // For hotels, show "Book Room" button instead of "Book Table"
+                    binding.bookNowBtn.visibility = View.VISIBLE
+                    binding.bookTableBtn.visibility = View.GONE
+                    binding.bookBanquetBtn.visibility = View.GONE
+                    binding.bookingTv.text = getString(R.string.book_room)
+                } else {
+                    binding.bookNowBtn.visibility = View.GONE
+                    binding.bookTableBtn.visibility = View.VISIBLE
+                    binding.bookBanquetBtn.visibility = View.GONE
+                }
             }
             "book-banquet" -> {
                 binding.bookNowBtn.visibility = View.GONE
@@ -462,9 +478,17 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
                 binding.bookBanquetBtn.visibility = View.VISIBLE
             }
             else -> {
-                binding.bookNowBtn.visibility = View.GONE
-                binding.bookTableBtn.visibility = View.VISIBLE
-                binding.bookBanquetBtn.visibility = View.GONE
+                if (isHotel) {
+                    // For hotels, show "Book Room" button by default
+                    binding.bookNowBtn.visibility = View.VISIBLE
+                    binding.bookTableBtn.visibility = View.GONE
+                    binding.bookBanquetBtn.visibility = View.GONE
+                    binding.bookingTv.text = getString(R.string.book_room)
+                } else {
+                    binding.bookNowBtn.visibility = View.GONE
+                    binding.bookTableBtn.visibility = View.VISIBLE
+                    binding.bookBanquetBtn.visibility = View.GONE
+                }
             }
         }
 
@@ -489,8 +513,6 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         val profilePic = result?.data?.profilePic
         username = result?.data?.username.toString()
 
-        val businessTypeRef = result?.data?.businessProfileRef?.businessTypeRef
-        businessName = businessTypeRef?.name ?: ""
         businessIcon = businessTypeRef?.icon ?: ""
 
         val dialCode = result?.data?.businessProfileRef?.dialCode ?: ""
@@ -610,18 +632,18 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
             userFullName = result?.data?.businessProfileRef?.name.toString()
             val businessProfile = result?.data?.businessProfileRef
             val businessProfilePic = businessProfile?.profilePic
-            amenitiesRef = businessProfile?.amenitiesRef!!
-            answerAmenitiesRef = businessProfile.businessAnswerRef
-            rating = businessProfile.rating ?: 0.0 // Replace with your dynamic rating
+            amenitiesRef = businessProfile?.amenitiesRef ?: arrayListOf()
+            answerAmenitiesRef = businessProfile?.businessAnswerRef ?: arrayListOf()
+            rating = businessProfile?.rating ?: 0.0 // Replace with your dynamic rating
             binding.ratingTv.setRatingWithStarWithoutBracket(rating, R.drawable.ic_rating_star)
 
 
             userMediumProfilePic = businessProfilePic?.medium.toString()
             userLargeProfilePic = businessProfilePic?.large.toString()
 
-            val tempMin = result.data?.weather?.main?.feelsLike ?: 0.0
-            val tempMax = result.data?.weather?.main?.tempMax ?: 0.0
-            val pm25Value = result.data?.weather?.airPollution?.list?.get(0)?.components?.pm25 ?: 0.0
+            val tempMin = result?.data?.weather?.main?.feelsLike ?: 0.0
+            val tempMax = result?.data?.weather?.main?.tempMax ?: 0.0
+            val pm25Value = result?.data?.weather?.airPollution?.list?.getOrNull(0)?.components?.pm25 ?: 0.0
             val tempMinC = (tempMin - 273.15).roundToInt()
             val tempMaxC = (tempMax - 273.15).roundToInt()
 
@@ -730,7 +752,12 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
     }
 
     private fun getUserProfile() {
-        individualViewModal.getUserProfileById(outerUserId)
+        // Use user profile endpoint first since the ID passed is typically a user ID
+        // The user endpoint will return business profile data if it's a business account
+        // The business endpoint requires the MongoDB ObjectId of the business profile, not the user ID
+        if (outerUserId.isNotEmpty()) {
+            individualViewModal.getUserProfileById(outerUserId)
+        }
     }
 
     private fun applyFontFamily(tab: TabLayout.Tab, typeface: Typeface?, isSelected: Boolean) {

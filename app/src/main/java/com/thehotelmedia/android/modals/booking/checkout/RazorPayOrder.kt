@@ -5,9 +5,10 @@ import com.google.gson.annotations.SerializedName
 
 data class RazorPayOrder (
 
-    @SerializedName("amount"      ) var amount     : Double?    = null,
-    @SerializedName("amount_due"  ) var amountDue  : Int?    = null,
-    @SerializedName("amount_paid" ) var amountPaid : Double?    = null,
+    // Razorpay Order API returns amounts in the smallest currency unit (e.g. paise) as integers.
+    @SerializedName("amount"      ) var amount     : Long?    = null,
+    @SerializedName("amount_due"  ) var amountDue  : Long?    = null,
+    @SerializedName("amount_paid" ) var amountPaid : Long?    = null,
     @SerializedName("attempts"    ) var attempts   : Int?    = null,
     @SerializedName("created_at"  ) var createdAt  : Int?    = null,
     @SerializedName("currency"    ) var currency   : String? = null,

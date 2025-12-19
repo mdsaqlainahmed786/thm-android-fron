@@ -192,6 +192,11 @@ interface Application {
         @Query("key") key: String
     ): Response<NearByPlacesModel>
 
+    @GET("business/{id}")
+    fun getBusinessProfileById(
+        @Path(value = "id",encoded = true) id: String
+    ): Call<UserProfileModel>
+
     @GET("business/get-by-place"+"/{id}")
     fun getCheckInData(
         @Header("x-access-token") token: String,
@@ -279,6 +284,7 @@ interface Application {
     @POST("story")
     fun createStory(
         @Header("x-access-token") token: RequestBody,
+        @Part tagged: List<MultipartBody.Part>,
         @Part imageFile: MultipartBody.Part?,
         @Part videoFile: MultipartBody.Part?
     ): Call<CreateStoryModal>
@@ -671,8 +677,13 @@ interface Application {
     fun bookingCheckIn(
         @Header("x-access-token") token: String,
         @Field("businessProfileID") businessProfileID: String,
+        // Some backend deployments use different casing for this key. Sending both keeps backward compatibility.
+        @Field("businessProfileId") businessProfileId: String,
         @Field("checkIn") checkIn: String,
+        // Some backend deployments use different keys for these dates. Sending both keeps backward compatibility.
+        @Field("checkInDate") checkInDate: String,
         @Field("checkOut") checkOut: String,
+        @Field("checkOutDate") checkOutDate: String,
         @Field("adults") adultsCount: Int,
         @Field("children") childrenCount: Int,
         @Field("childrenAge") childrenAge: List<Int>,
@@ -684,6 +695,15 @@ interface Application {
         @Header("x-access-token") token: String,
         @Path(value = "id", encoded = true) roomId: String,
     ): Call<RoomDetailsModal>
+
+    // List all rooms for a hotel/business profile (used to render full room list like dashboard).
+    @GET("rooms")
+    fun getRoomsByBusinessProfile(
+        @Header("x-access-token") token: String,
+        @Query("businessProfileID") businessProfileID: String,
+        // Some backend deployments use different casing for this key.
+        @Query("businessProfileId") businessProfileId: String,
+    ): Call<com.thehotelmedia.android.modals.booking.roomsList.RoomsListModal>
 
     @POST("bookings/checkout")
     @FormUrlEncoded

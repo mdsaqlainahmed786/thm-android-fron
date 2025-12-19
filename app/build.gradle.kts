@@ -55,7 +55,7 @@ android {
             manifestPlaceholders["DEEP_LINK_HOST"] = "thehotelmedia.com"
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
+        } 
 
         release {
             buildConfigField("String","ADMIN_DOMAIN","\"https://admin.thehotelmedia.com\"")

@@ -342,7 +342,7 @@ class IndividualProfileFragment : Fragment() {
 
             val tempMin = result.data?.weather?.main?.feelsLike ?: 0.0
             val tempMax = result.data?.weather?.main?.tempMax ?: 0.0
-            val pm25Value = result.data?.weather?.airPollution?.list?.get(0)?.components?.pm25 ?: 0.0
+            val pm25Value = result.data?.weather?.airPollution?.list?.firstOrNull()?.components?.pm25 ?: 0.0
             val tempMinC = (tempMin - 273.15).roundToInt()
             val tempMaxC = (tempMax - 273.15).roundToInt()
             val overallAqi = pm25Value.toAQI()

@@ -86,32 +86,49 @@ class UserPostsViewerActivity : DarkBaseActivity() {
             ownerUserId,
             ::onPostScrolled,
             ::onLikeUpdated,
-            ::onCommentUpdated
+            ::onCommentUpdated,
+            filterMediaType // Pass filterMediaType to adapter
         )
 
         layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
         binding.postsRecyclerView.layoutManager = layoutManager
         binding.postsRecyclerView.adapter = adapter.withLoadStateFooter(footer = LoaderAdapter())
 
-        // Use PagerSnapHelper for Reel-like snap scrolling
-        snapHelper = PagerSnapHelper()
-        snapHelper.attachToRecyclerView(binding.postsRecyclerView)
+        // Use PagerSnapHelper only for videos/reels (not for photos feed-style)
+        if (filterMediaType != "image") {
+            snapHelper = PagerSnapHelper()
+            snapHelper.attachToRecyclerView(binding.postsRecyclerView)
+        }
 
         // Enable nested scrolling for smooth vertical scrolling
         binding.postsRecyclerView.isNestedScrollingEnabled = true
 
-        binding.postsRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                super.onScrollStateChanged(recyclerView, newState)
-                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    val snapView = snapHelper.findSnapView(layoutManager) ?: return
-                    val position = layoutManager.getPosition(snapView)
-                    if (position != RecyclerView.NO_POSITION) {
-                        updateActivePosition(position)
+        // Only add snap scroll listener for videos/reels
+        if (filterMediaType != "image") {
+            binding.postsRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    super.onScrollStateChanged(recyclerView, newState)
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        val snapView = snapHelper.findSnapView(layoutManager) ?: return
+                        val position = layoutManager.getPosition(snapView)
+                        if (position != RecyclerView.NO_POSITION) {
+                            updateActivePosition(position)
+                        }
                     }
                 }
-            }
-        })
+            })
+        } else {
+            // For feed-style photos, update active position on scroll
+            binding.postsRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
+                    if (firstVisible != RecyclerView.NO_POSITION && firstVisible != activePosition) {
+                        updateActivePosition(firstVisible)
+                    }
+                }
+            })
+        }
 
         adapter.addLoadStateListener { loadStates ->
             val refreshState = loadStates.refresh
@@ -307,13 +324,15 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         adapter.setActivePosition(position)
         if (previous != RecyclerView.NO_POSITION && previous != position) {
             val previousHolder = binding.postsRecyclerView.findViewHolderForAdapterPosition(previous)
-            if (previousHolder is UserPostsViewerAdapter.PostViewHolder) {
-                previousHolder.updateActiveState(false)
+            when (previousHolder) {
+                is UserPostsViewerAdapter.PostViewHolder -> previousHolder.updateActiveState(false)
+                is UserPostsViewerAdapter.FeedViewHolder -> previousHolder.updateActiveState(false)
             }
         }
         val currentHolder = binding.postsRecyclerView.findViewHolderForAdapterPosition(position)
-        if (currentHolder is UserPostsViewerAdapter.PostViewHolder) {
-            currentHolder.updateActiveState(true)
+        when (currentHolder) {
+            is UserPostsViewerAdapter.PostViewHolder -> currentHolder.updateActiveState(true)
+            is UserPostsViewerAdapter.FeedViewHolder -> currentHolder.updateActiveState(true)
         }
     }
 

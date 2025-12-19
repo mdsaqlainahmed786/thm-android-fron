@@ -85,6 +85,7 @@ class CheckInActivity : TransparentBaseActivity(), OnMapReadyCallback {
         val requestCode = AUTOCOMPLETE_REQUEST_CODE
         val resultCode = result.resultCode
         val data = result.data
+        
         if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
             when (resultCode) {
                 Activity.RESULT_OK -> {

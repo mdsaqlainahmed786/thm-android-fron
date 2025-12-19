@@ -141,12 +141,12 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
     }
 
     override fun onPause() {
-
         socketViewModel.leavePrivateChat(userName)
 //        socketViewModel.leaveChat()
-        socketViewModel.removeAllListeners()
+        // DON'T remove all listeners - the Fragment still needs them!
+        // Only remove listeners specific to this activity if needed
+        // socketViewModel.removeAllListeners()
         super.onPause()
-
     }
 
     /**

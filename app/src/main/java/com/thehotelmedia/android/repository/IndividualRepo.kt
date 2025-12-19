@@ -565,7 +565,9 @@ class IndividualRepo (private val context: Context){
     }
 
     suspend fun createStory(
-        imageFile: File?, videoFile: File?
+        imageFile: File?,
+        videoFile: File?,
+        taggedList: List<String>
     ): Response<CreateStoryModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
@@ -589,11 +591,15 @@ class IndividualRepo (private val context: Context){
         } else {
             null
         }
+        // Convert tagged list to MultipartBody.Part similar to createPost
+        val taggedParts = taggedList.map { tagId ->
+            MultipartBody.Part.createFormData("tagged[]", tagId)
+        }
         // Make the API call
         return withContext(Dispatchers.IO) {
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
-                accessTokenBody, imagePart,videoPart
+                accessTokenBody, taggedParts, imagePart, videoPart
             ).execute()
         }
     }
@@ -732,6 +738,14 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.getUserProfileById(accessToken,userId).execute()
+        }
+    }
+
+    suspend fun getBusinessProfileById(businessProfileId: String): Response<UserProfileModel> {
+        return withContext(Dispatchers.IO) {
+            // Use authApiService since this endpoint doesn't require authentication
+            val call = Retrofit.authApiService(context).create(Application::class.java)
+            return@withContext call.getBusinessProfileById(businessProfileId).execute()
         }
     }
 
@@ -1192,8 +1206,20 @@ class IndividualRepo (private val context: Context){
         }
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
-            return@withContext call.bookingCheckIn(accessToken,businessProfileID,checkInDate,checkOutDate,adultsCount,
-                childrenCount,childrenAges,isTravellingWithPet).execute()
+            // Send both key variants for compatibility with differing backend field naming.
+            return@withContext call.bookingCheckIn(
+                accessToken,
+                businessProfileID,
+                businessProfileID,
+                checkInDate,
+                checkInDate,
+                checkOutDate,
+                checkOutDate,
+                adultsCount,
+                childrenCount,
+                childrenAges,
+                isTravellingWithPet
+            ).execute()
         }
     }
 
@@ -1205,6 +1231,17 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.fetchRoomDetails(accessToken,roomId).execute()
+        }
+    }
+
+    suspend fun getRoomsByBusinessProfile(businessProfileID: String): Response<com.thehotelmedia.android.modals.booking.roomsList.RoomsListModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.getRoomsByBusinessProfile(accessToken, businessProfileID, businessProfileID).execute()
         }
     }
 

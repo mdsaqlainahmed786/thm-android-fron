@@ -18,6 +18,8 @@ data class AvailableRooms (
   @SerializedName("currency"      ) var currency      : String?                 = null,
   @SerializedName("mealPlan"      ) var mealPlan      : String?                 = null,
   @SerializedName("cover"         ) var cover         : Cover?                  = Cover(),
+  // Used as fallback for image rendering when cover is missing
+  @SerializedName("roomImagesRef" ) var roomImagesRef : ArrayList<Cover>        = arrayListOf(),
   @SerializedName("amenitiesRef"  ) var amenitiesRef  : ArrayList<AmenitiesRef> = arrayListOf()
 
 )

@@ -10,6 +10,7 @@ class SocketManager private constructor(private val url: String, private val use
 
     private val TAG = "SocketManager"
     private var socket: Socket? = null
+    private val connectionCallbacks = mutableListOf<() -> Unit>()
 
     // Companion object for Singleton pattern
     companion object {
@@ -23,12 +24,27 @@ class SocketManager private constructor(private val url: String, private val use
             return instance!!
         }
     }
+    
+    /**
+     * Register a callback to be invoked when the socket connects.
+     * If already connected, the callback is invoked immediately.
+     */
+    fun onConnected(callback: () -> Unit) {
+        if (socket?.connected() == true) {
+            callback()
+        } else {
+            connectionCallbacks.add(callback)
+        }
+    }
 
     // Initialize socket with authentication and options
     fun initializeSocket() {
         // Check if the socket is already initialized and connected
         if (socket != null && socket?.connected() == true) {
             Log.d(TAG, "Socket is already connected  $username")
+            // Invoke any pending connection callbacks since we're already connected
+            connectionCallbacks.forEach { it.invoke() }
+            connectionCallbacks.clear()
             return
         }
 
@@ -52,6 +68,9 @@ class SocketManager private constructor(private val url: String, private val use
                 Log.d(TAG, "Connected to socket  $username")
                 // Emit username after connection
                 socket?.emit("set_username", username)
+                // Invoke all registered connection callbacks
+                connectionCallbacks.forEach { it.invoke() }
+                connectionCallbacks.clear()
             }
 
             socket?.on(Socket.EVENT_DISCONNECT) {
@@ -109,8 +128,16 @@ class SocketManager private constructor(private val url: String, private val use
 
 
     // Listen for events
+    // This can be called before socket is initialized - listeners will be attached when socket is created
     fun on(event: String, listener: (args: Array<Any>) -> Unit) {
-        socket?.on(event) { args -> listener(args) } ?: Log.e(TAG, "Socket is not initialized")
+        if (socket != null) {
+            socket?.on(event) { args -> listener(args) }
+        } else {
+            // If socket not yet initialized, we'll attach the listener after initialization
+            // For now, log a warning but don't fail - the listener will be attached in initializeSocket
+            // if needed, but typically listeners are attached after initializeSocket is called
+            Log.w(TAG, "Socket not initialized when attaching listener for: $event. Ensure initializeSocket() is called first.")
+        }
     }
 
     // Disconnect the socket
@@ -142,5 +169,13 @@ class SocketManager private constructor(private val url: String, private val use
 
     fun removeAllListeners() {
         socket?.off() // Removes all event listeners
+        connectionCallbacks.clear()
+    }
+    
+    /**
+     * Check if socket is connected
+     */
+    fun isConnected(): Boolean {
+        return socket?.connected() == true
     }
 }

@@ -28,8 +28,10 @@ import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.FragmentIndividualChatBinding
 import com.thehotelmedia.android.extensions.NotificationDotUtil
 import com.thehotelmedia.android.extensions.setOnSwipeListener
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.paging.PagingDataAdapter
 
 class IndividualChatFragment : Fragment() {
 
@@ -41,6 +43,8 @@ class IndividualChatFragment : Fragment() {
     private lateinit var progressBar: CustomProgressBar
     private var query: String = ""
     private var userName: String = ""
+    private var chatPagingSource: ChatScreenPagingSource? = null
+    private var pagerJob: Job? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
@@ -54,6 +58,8 @@ class IndividualChatFragment : Fragment() {
         initUI()
         initializeAndUpdateNotificationDot()
         setupSwipeGestures()
+        // Set up socket observation and Pager
+        observeSocketStatus()
         return binding.root
     }
 
@@ -68,13 +74,33 @@ class IndividualChatFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         refreshData()
+        // Ensure listeners are re-attached in case they were removed by another activity
+        ensureListenersAttached()
+    }
+    
+    /**
+     * Ensure socket listeners are attached. This is important because
+     * other activities might remove listeners, but the Fragment still needs them.
+     */
+    private fun ensureListenersAttached() {
+        // Re-attach listeners in case they were removed by another activity
+        // This ensures the Fragment can still receive socket events
+        if (isAdded && userName.isNotEmpty()) {
+            socketViewModel.reattachListeners()
+            // Also ensure socket is connected
+            socketViewModel.connectSocket(userName)
+        }
     }
     
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
         if (!hidden && isAdded) {
-            // Fragment became visible, refresh data
+            // Fragment became visible, refresh data and ensure listeners
+            ensureListenersAttached()
             refreshData()
+        } else if (hidden) {
+            // Fragment hidden, disable auto-fetch
+            socketViewModel.disableAutoFetchChatScreen()
         }
     }
     
@@ -88,14 +114,46 @@ class IndividualChatFragment : Fragment() {
         if (isAdded) {
             userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
             socketViewModel.connectSocket(userName)
-            fetchSocketData()
+            // Set up Pager FIRST so it's ready to receive data
+            setupChatPager()
+            // Enable auto-fetch so CHAT_SCREEN is emitted when socket connects
+            socketViewModel.enableAutoFetchChatScreen()
+        }
+    }
+    
+    /**
+     * Set up the chat Pager. This should be called when socket is connected
+     * so that the PagingSource is ready to receive responses.
+     */
+    private fun setupChatPager() {
+        // Cancel previous collection if exists
+        pagerJob?.cancel()
+        
+        // Always set up a new Pager to ensure fresh data
+        pagerJob = lifecycleScope.launch {
+            // Invalidate previous if exists
+            chatPagingSource?.invalidate()
+            chatPagingSource = null
+            
+            val chatFlow = Pager(PagingConfig(pageSize = 20, enablePlaceholders = false)) {
+                ChatScreenPagingSource(socketViewModel, query).also {
+                    chatPagingSource = it
+                }
+            }.flow
+
+            chatFlow.collectLatest { pagingData ->
+                handleLoadingState()
+                chatListAdapter.submitData(pagingData)
+            }
         }
     }
 
     override fun onPause() {
         super.onPause()
         socketViewModel.leaveChat()
-        socketViewModel.removeAllListeners()
+        socketViewModel.disableAutoFetchChatScreen()
+        // Don't remove all listeners - we want them to persist for reconnection
+        // socketViewModel.removeAllListeners()
     }
 
     override fun onDestroy() {
@@ -125,21 +183,62 @@ class IndividualChatFragment : Fragment() {
             override fun afterTextChanged(s: Editable?) {}
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                query = s.toString().trim()
-                // Remove any previous callbacks
-                searchRunnable?.let { handler.removeCallbacks(it) }
-                // Create a new delayed task
-                searchRunnable = Runnable {
-                    fetchChatData()
+                val newQuery = s.toString().trim()
+                // Only update if query actually changed
+                if (newQuery != query) {
+                    val oldQuery = query
+                    query = newQuery
+                    // Remove any previous callbacks
+                    searchRunnable?.let { handler.removeCallbacks(it) }
+                    // Create a new delayed task
+                    searchRunnable = Runnable {
+                        // If search was cleared (had text before, now empty), explicitly fetch all chats
+                        if (oldQuery.isNotEmpty() && query.isEmpty()) {
+                            // Search cleared - fetch all chats by emitting CHAT_SCREEN with empty query
+                            lifecycleScope.launch {
+                                socketViewModel.fetchChatScreen(1, 20, "")
+                            }
+                        } else {
+                            // Normal search - refresh chat data with new query
+                            refreshChatData()
+                        }
+                    }
+                    // Post with delay (e.g., 300ms)
+                    handler.postDelayed(searchRunnable!!, 300)
                 }
-                // Post with delay (e.g., 500ms)
-                handler.postDelayed(searchRunnable!!, 300)
             }
         })
 
 
 
         setupRecyclerViews()
+    }
+
+    /**
+     * Observe socket connection status.
+     * When socket connects, ensure Pager is set up and trigger initial load.
+     */
+    private fun observeSocketStatus() {
+        // Check current status immediately in case socket is already connected
+        val currentStatus = socketViewModel.socketStatus.value
+        if (currentStatus == "Connected") {
+            // Socket is already connected
+            setupChatPager()
+            // Trigger initial load by invalidating PagingSource
+            chatPagingSource?.invalidate()
+            fetchUserData()
+        }
+        
+        // Also observe future status changes
+        socketViewModel.socketStatus.observe(viewLifecycleOwner) { status ->
+            if (status == "Connected") {
+                // Socket is ready
+                setupChatPager()
+                // Trigger initial load by invalidating PagingSource
+                chatPagingSource?.invalidate()
+                fetchUserData()
+            }
+        }
     }
 
     private fun setupRecyclerViews() {
@@ -152,10 +251,13 @@ class IndividualChatFragment : Fragment() {
     }
 
     private fun fetchSocketData() {
-        fetchChatData()
-        fetchUserData()
-
-        userConnectDisconnect()
+        // Note: Chat data is now fetched automatically when socket connects
+        // (via enableAutoFetchChatScreen() in refreshData())
+        // We only need to fetch user data here
+        handler.postDelayed({
+            fetchUserData()
+            userConnectDisconnect()
+        }, 200)
     }
 
     private fun userConnectDisconnect() {
@@ -171,8 +273,15 @@ class IndividualChatFragment : Fragment() {
 
     private fun fetchChatData() {
         lifecycleScope.launch {
+            // Invalidate previous PagingSource if it exists to cancel any ongoing loads
+            chatPagingSource?.invalidate()
+            chatPagingSource = null
+
+            // Create a new Pager flow with the current query
             val chatFlow = Pager(PagingConfig(pageSize = 20, enablePlaceholders = false)) {
-                ChatScreenPagingSource(socketViewModel, query)
+                ChatScreenPagingSource(socketViewModel, query).also {
+                    chatPagingSource = it
+                }
             }.flow
 
             chatFlow.collectLatest { pagingData ->
@@ -180,6 +289,11 @@ class IndividualChatFragment : Fragment() {
                 chatListAdapter.submitData(pagingData)
             }
         }
+    }
+    
+    private fun refreshChatData() {
+        // Simply call fetchChatData which will create a new Pager with updated query
+        fetchChatData()
     }
 
     private fun fetchUserData() {

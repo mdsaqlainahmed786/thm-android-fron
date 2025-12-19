@@ -49,6 +49,8 @@ class SocketViewModel : ViewModel() {
     val conversationList: LiveData<FetchConversationModal> get() = _conversationList
 
     private lateinit var socketManager: SocketManager
+    private var listenersAttached = false
+    private var shouldEmitChatScreenOnConnect = false
 
 
 
@@ -63,9 +65,20 @@ class SocketViewModel : ViewModel() {
 
         // Initialize socket with URL and username
         socketManager = SocketManager.getInstance(socketUrl, userName)
+        
+        // Attach ALL listeners BEFORE initializing socket connection
+        // This ensures listeners are ready when connection completes
+        attachSocketListeners()
+        
+        // Now initialize the socket (this will trigger connection)
         socketManager.initializeSocket()
-
-        // Observe connection status
+        
+        // Register callback when connected - Fragment will handle triggering load
+        socketManager.onConnected {
+            _socketStatus.postValue("Connected")
+        }
+        
+        // Also observe connection status for UI updates
         socketManager.on(Socket.EVENT_CONNECT) {
             _socketStatus.postValue("Connected")
         }
@@ -75,7 +88,23 @@ class SocketViewModel : ViewModel() {
         socketManager.on(Socket.EVENT_CONNECT_ERROR) { args ->
             _socketStatus.postValue("Error: ${args[0]}")
         }
+    }
 
+    /**
+     * Attach all socket event listeners.
+     * This should be called BEFORE initializeSocket() to ensure listeners are ready.
+     * Can be called multiple times safely - Socket.IO handles duplicate listeners.
+     */
+    private fun attachSocketListeners() {
+        // Check if socket manager is initialized
+        if (!::socketManager.isInitialized) {
+            return
+        }
+        
+        // Note: We allow re-attaching listeners even if already attached
+        // This is important when listeners are removed by other components
+        // Socket.IO's on() method can handle multiple listeners for the same event
+        
         // Listen for incoming messages
         socketManager.on("private message") { args ->
             if (args.isNotEmpty()) {
@@ -230,7 +259,51 @@ class SocketViewModel : ViewModel() {
 
             }
         }
-
+        
+        listenersAttached = true
+    }
+    
+    /**
+     * Force re-attach listeners. Useful when listeners were removed
+     * by other components but the Fragment still needs them.
+     */
+    fun reattachListeners() {
+        if (::socketManager.isInitialized) {
+            listenersAttached = false // Reset flag to force re-attachment
+            attachSocketListeners()
+        }
+    }
+    
+    /**
+     * Enable automatic CHAT_SCREEN emission on connection.
+     * Call this when the Messages screen is opened.
+     * Note: This doesn't actually emit - it just marks that we should.
+     * The Fragment will handle triggering the PagingSource load.
+     */
+    fun enableAutoFetchChatScreen() {
+        shouldEmitChatScreenOnConnect = true
+    }
+    
+    /**
+     * Disable automatic CHAT_SCREEN emission on connection.
+     * Call this when leaving the Messages screen.
+     */
+    fun disableAutoFetchChatScreen() {
+        shouldEmitChatScreenOnConnect = false
+    }
+    
+    /**
+     * Emit CHAT_SCREEN with empty query for initial load.
+     * This fetches all chats.
+     */
+    private fun emitInitialChatScreen() {
+        if (::socketManager.isInitialized && socketManager.isConnected()) {
+            val jsonData = JSONObject()
+            jsonData.put("pageNumber", 1)
+            jsonData.put("pageSize", 20)
+            // Don't include query - server returns all chats when query is missing/empty
+            socketManager.emitEvent("chat screen", jsonData)
+        }
     }
 
 
@@ -305,13 +378,20 @@ class SocketViewModel : ViewModel() {
     }
     // Fetch chat screen data with pagination support
     suspend fun fetchChatScreen(pageNumber: Int, pageSize: Int, query: String) {
-
+        // Clear previous data to ensure PagingSource waits for fresh response
+        _chatScreenList.postValue(null)
+        
         val jsonData = JSONObject()
 
-        // Add data to the JSON object
-        jsonData.put("query", query)
+        // Only send the query when it's not blank so that the server
+        // returns the full chat list on initial load / when search is cleared.
+        if (query.isNotBlank()) {
+            jsonData.put("query", query)
+        }
+
         jsonData.put("pageNumber", pageNumber)
-        // Handle server data fetching with pagination (You may need to update your SocketManager and server to support this)
+        jsonData.put("pageSize", pageSize)
+
         socketManager.emitEvent("chat screen", jsonData)
     }
 
@@ -334,6 +414,7 @@ class SocketViewModel : ViewModel() {
     fun removeAllListeners() {
         if (::socketManager.isInitialized) {
             socketManager.removeAllListeners() // Delegates to SocketManager for cleanup
+            listenersAttached = false // Reset flag so listeners can be re-attached
         }
     }
 

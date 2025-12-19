@@ -3,6 +3,7 @@ package com.thehotelmedia.android.modals.Stories
 import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
+import com.thehotelmedia.android.modals.feeds.feed.TaggedRef
 
 data class StoriesRef (
 
@@ -15,6 +16,7 @@ data class StoriesRef (
     @SerializedName("likesRef"  ) var likesRef  : ArrayList<LikesRef> = arrayListOf(),
     @SerializedName("viewsRef"  ) var viewsRef  : ArrayList<LikesRef> = arrayListOf(),
     @SerializedName("likes"     ) var likes     : Int?                = null,
-    @SerializedName("views"     ) var views     : Int?                = null
+    @SerializedName("views"     ) var views     : Int?                = null,
+    @SerializedName("taggedRef" ) var taggedRef : ArrayList<TaggedRef> = arrayListOf()
 
 )

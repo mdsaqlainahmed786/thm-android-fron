@@ -29,11 +29,15 @@ import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.customClasses.MessageStore
 import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.ItemUserPostViewerBinding
+import com.thehotelmedia.android.databinding.PostItemsLayoutBinding
+import com.thehotelmedia.android.adapters.userTypes.individual.home.MediaPagerAdapter
 import com.thehotelmedia.android.extensions.calculateDaysAgo
 import com.thehotelmedia.android.extensions.formatCount
+import com.thehotelmedia.android.extensions.setRatingWithStar
 import com.thehotelmedia.android.extensions.sharePostWithDeepLink
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
+import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator
 import java.util.Locale
 
 class UserPostsViewerAdapter(
@@ -43,8 +47,9 @@ class UserPostsViewerAdapter(
     private val ownerUserId: String,
     private val onPostScrolled: (Int, ExoPlayer?) -> Unit,
     private val onLikeUpdated: (String, Boolean, Int) -> Unit,
-    private val onCommentUpdated: (String, Int) -> Unit
-) : PagingDataAdapter<Data, UserPostsViewerAdapter.PostViewHolder>(POST_DIFF_CALLBACK) {
+    private val onCommentUpdated: (String, Int) -> Unit,
+    private val filterMediaType: String? = null // "image" for feed-style, "video" or null for reel-style
+) : PagingDataAdapter<Data, RecyclerView.ViewHolder>(POST_DIFF_CALLBACK) {
 
     private val exoPlayers = mutableMapOf<String, ExoPlayer>()
     private val postStates = mutableMapOf<String, PostState>()
@@ -733,23 +738,46 @@ class UserPostsViewerAdapter(
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PostViewHolder {
-        val binding = ItemUserPostViewerBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
-        return PostViewHolder(binding)
+    override fun getItemViewType(position: Int): Int {
+        return if (filterMediaType == "image") {
+            VIEW_TYPE_FEED
+        } else {
+            VIEW_TYPE_REEL
+        }
     }
 
-    override fun onBindViewHolder(holder: PostViewHolder, position: Int) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return when (viewType) {
+            VIEW_TYPE_FEED -> {
+                val binding = PostItemsLayoutBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+                FeedViewHolder(binding)
+            }
+            else -> {
+                val binding = ItemUserPostViewerBinding.inflate(
+                    LayoutInflater.from(parent.context),
+                    parent,
+                    false
+                )
+                PostViewHolder(binding)
+            }
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = getItem(position)
         val isActive = position == activePosition
-        item?.let { holder.bind(it, isActive) }
+        when (holder) {
+            is PostViewHolder -> item?.let { holder.bind(it, isActive) }
+            is FeedViewHolder -> item?.let { holder.bind(it, isActive) }
+        }
     }
 
     override fun onBindViewHolder(
-        holder: PostViewHolder,
+        holder: RecyclerView.ViewHolder,
         position: Int,
         payloads: MutableList<Any>
     ) {
@@ -758,18 +786,27 @@ class UserPostsViewerAdapter(
                 when (payload) {
                     PAYLOAD_ACTIVE -> {
                         val isActive = position == activePosition
-                        holder.updateActiveState(isActive)
+                        when (holder) {
+                            is PostViewHolder -> holder.updateActiveState(isActive)
+                            is FeedViewHolder -> holder.updateActiveState(isActive)
+                        }
                     }
                     PAYLOAD_LIKE -> {
                         val postId = getItem(position)?.Id ?: return@forEach
                         postStates[postId]?.let { state ->
-                            holder.refreshLikeState(state)
+                            when (holder) {
+                                is PostViewHolder -> holder.refreshLikeState(state)
+                                is FeedViewHolder -> holder.refreshLikeState(state)
+                            }
                         }
                     }
                     PAYLOAD_FOLLOW_STATE -> {
                         val post = getItem(position) ?: return@forEach
                         postStates[post.Id ?: return@forEach]?.let { state ->
-                            holder.refreshFollowState(post, state)
+                            when (holder) {
+                                is PostViewHolder -> holder.refreshFollowState(post, state)
+                                is FeedViewHolder -> { /* Feed doesn't have follow button */ }
+                            }
                         }
                     }
                     else -> {
@@ -792,6 +829,239 @@ class UserPostsViewerAdapter(
         }
         if (activePosition != RecyclerView.NO_POSITION) {
             notifyItemChanged(activePosition, PAYLOAD_ACTIVE)
+        }
+    }
+
+    inner class FeedViewHolder(
+        val binding: PostItemsLayoutBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+        
+        private var mediaPagerAdapter: MediaPagerAdapter? = null
+        private var dotsIndicator: SpringDotsIndicator? = null
+        var postId: String = ""
+            private set
+        private var currentPost: Data? = null
+        private var isHolderActive: Boolean = false
+
+        fun bind(post: Data, isActive: Boolean) {
+            postId = post.Id ?: ""
+            currentPost = post
+            isHolderActive = isActive
+
+            val state = postStates.getOrPut(postId) {
+                PostState(
+                    isLiked = post.likedByMe ?: false,
+                    likeCount = post.likes ?: 0,
+                    commentCount = post.comments ?: 0,
+                    isSaved = post.savedByMe ?: false
+                )
+            }
+
+            state.isLiked = post.likedByMe ?: state.isLiked
+            state.likeCount = post.likes ?: state.likeCount
+            state.commentCount = post.comments ?: state.commentCount
+            state.isSaved = post.savedByMe ?: state.isSaved
+
+            setupPostData(post, state)
+            updateActiveState(isActive)
+        }
+
+        private fun setupPostData(post: Data, state: PostState) {
+            val mediaList = post.mediaRef ?: emptyList()
+            val postOwnerId = extractOwnerId(post)
+
+            // Setup media
+            if (mediaList.isNotEmpty()) {
+                dotsIndicator = binding.indicatorLayout.apply {
+                    dotsClickable = false
+                    setDotIndicatorColor(ContextCompat.getColor(context, R.color.blue))
+                    setStrokeDotsIndicatorColor(ContextCompat.getColor(context, R.color.grey))
+                }
+
+                mediaPagerAdapter = MediaPagerAdapter(
+                    context,
+                    ArrayList(mediaList),
+                    isHolderActive,
+                    postId,
+                    state.isLiked,
+                    state.likeCount,
+                    state.commentCount,
+                    individualViewModal
+                ) { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                    state.isLiked = updatedIsLikedByMe
+                    state.likeCount = updatedLikeCount
+                    state.commentCount = updatedCommentCount
+                    updateLikeButton(state.isLiked, state.likeCount)
+                    binding.likeTv.text = formatCount(state.likeCount)
+                    binding.commentTv.text = formatCount(state.commentCount)
+                }
+
+                binding.viewPager.adapter = mediaPagerAdapter
+                binding.mediaLayout.visibility = View.VISIBLE
+
+                if (mediaList.size > 1) {
+                    binding.indicatorLayout.visibility = View.VISIBLE
+                    dotsIndicator?.attachTo(binding.viewPager)
+                } else {
+                    binding.indicatorLayout.visibility = View.GONE
+                }
+            } else {
+                binding.mediaLayout.visibility = View.GONE
+            }
+
+            // Setup profile info
+            val postedBy = post.postedBy
+            val accountType = postedBy?.accountType
+            var name = ""
+            var profilePic = ""
+
+            if (accountType == "individual") {
+                binding.businessTypeLayout.visibility = View.GONE
+                binding.profileCv.strokeColor = ContextCompat.getColor(context, R.color.transparent)
+                name = postedBy?.name ?: ""
+                profilePic = postedBy?.profilePic?.large ?: ""
+            } else {
+                binding.businessTypeLayout.visibility = View.VISIBLE
+                val businessProfile = postedBy?.businessProfileRef
+                val businessType = businessProfile?.businessTypeRef?.name ?: ""
+                val businessSubType = businessProfile?.businessSubtypeRef?.name ?: ""
+                val averageRating = businessProfile?.businessRating ?: 0.0
+
+                binding.averageRatingTv.setRatingWithStar(averageRating, R.drawable.ic_rating_star)
+                binding.typeTv.text = "$businessType - $businessSubType"
+                binding.profileCv.strokeColor = ContextCompat.getColor(context, R.color.post_stroke)
+
+                name = businessProfile?.name ?: ""
+                profilePic = businessProfile?.profilePic?.large ?: ""
+            }
+
+            Glide.with(context)
+                .load(profilePic)
+                .placeholder(R.drawable.ic_profile_placeholder)
+                .error(R.drawable.ic_profile_placeholder)
+                .into(binding.profileIv)
+
+            binding.nameTv.text = name
+
+            val createdAt = post.createdAt ?: ""
+            val formattedCreatedAt = calculateDaysAgo(createdAt, context)
+            binding.locationTv.text = formattedCreatedAt
+
+            // Setup content
+            val content = post.content.orEmpty().trim()
+            if (content.isNotEmpty()) {
+                binding.allDescriptionTv.text = content
+                binding.allDescriptionTv.visibility = View.VISIBLE
+            } else {
+                binding.allDescriptionTv.visibility = View.GONE
+            }
+
+            // Setup engagement
+            updateLikeButton(state.isLiked, state.likeCount)
+            binding.commentTv.text = formatCount(state.commentCount)
+            binding.shareTv.text = formatCount(post.shared ?: 0)
+            updateSaveButton(state.isSaved)
+
+            // Setup click listeners
+            binding.likeBtn.setOnClickListener {
+                individualViewModal.likePost(postId)
+                state.isLiked = !state.isLiked
+                state.likeCount = if (state.isLiked) state.likeCount + 1 else state.likeCount - 1
+                updateLikeButton(state.isLiked, state.likeCount)
+                onLikeUpdated(postId, state.isLiked, state.likeCount)
+                mediaPagerAdapter?.updateLikeBtn(state.isLiked, state.likeCount)
+            }
+
+            binding.commentBtn.setOnClickListener {
+                val bottomSheetFragment = CommentsBottomSheetFragment().apply {
+                    arguments = Bundle().apply {
+                        putString("POST_ID", postId)
+                        putInt("COMMENTS_COUNT", state.commentCount)
+                    }
+                }
+                bottomSheetFragment.onCommentSent = { comment ->
+                    if (comment.isNotEmpty()) {
+                        state.commentCount++
+                        binding.commentTv.text = formatCount(state.commentCount)
+                        onCommentUpdated(postId, state.commentCount)
+                    }
+                }
+                bottomSheetFragment.show(fragmentManager, bottomSheetFragment.tag)
+            }
+
+            binding.shareBtn.setOnClickListener {
+                if (postId.isNotBlank() && postOwnerId.isNotBlank()) {
+                    val selectedMedia = if (mediaList.isNotEmpty()) {
+                        val currentIndex = binding.viewPager.currentItem.coerceIn(0, mediaList.size - 1)
+                        mediaList.getOrNull(currentIndex)
+                    } else null
+
+                    val mediaType = selectedMedia?.mediaType?.lowercase(Locale.getDefault())
+                    SharePostBottomSheetFragment.newInstance(
+                        postId = postId,
+                        ownerUserId = postOwnerId,
+                        mediaType = mediaType,
+                        mediaUrl = selectedMedia?.sourceUrl,
+                        thumbnailUrl = selectedMedia?.thumbnailUrl,
+                        mediaId = selectedMedia?.Id
+                    ).show(fragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
+                } else {
+                    context.sharePostWithDeepLink(postId, postOwnerId)
+                }
+            }
+
+            binding.saveIv.setOnClickListener {
+                individualViewModal.savePost(postId)
+                state.isSaved = !state.isSaved
+                updateSaveButton(state.isSaved)
+            }
+
+            binding.userLayout.setOnClickListener {
+                // Navigate to profile - can be implemented if needed
+            }
+        }
+
+        private fun updateLikeButton(isLiked: Boolean, likeCount: Int) {
+            binding.likeIv.setImageResource(if (isLiked) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon)
+            binding.likeTv.text = formatCount(likeCount)
+        }
+
+        private fun updateSaveButton(isSaved: Boolean) {
+            binding.saveIv.setImageResource(if (isSaved) R.drawable.ic_save_icon_white else R.drawable.ic_unsave_icon)
+        }
+
+        fun updateActiveState(isActive: Boolean) {
+            isHolderActive = isActive
+            // Recreate MediaPagerAdapter with new active state if media exists
+            currentPost?.let { post ->
+                val mediaList = post.mediaRef ?: emptyList()
+                if (mediaList.isNotEmpty()) {
+                    val state = postStates[postId] ?: return@let
+                    // Recreate adapter with updated active state
+                    mediaPagerAdapter = MediaPagerAdapter(
+                        context,
+                        ArrayList(mediaList),
+                        isActive,
+                        postId,
+                        state.isLiked,
+                        state.likeCount,
+                        state.commentCount,
+                        individualViewModal
+                    ) { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                        state.isLiked = updatedIsLikedByMe
+                        state.likeCount = updatedLikeCount
+                        state.commentCount = updatedCommentCount
+                        updateLikeButton(state.isLiked, state.likeCount)
+                        binding.likeTv.text = formatCount(state.likeCount)
+                        binding.commentTv.text = formatCount(state.commentCount)
+                    }
+                    binding.viewPager.adapter = mediaPagerAdapter
+                }
+            }
+        }
+
+        fun refreshLikeState(state: PostState) {
+            updateLikeButton(state.isLiked, state.likeCount)
         }
     }
 
@@ -845,19 +1115,28 @@ class UserPostsViewerAdapter(
         activePosition = RecyclerView.NO_POSITION
     }
 
-    override fun onViewAttachedToWindow(holder: PostViewHolder) {
+    override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
         super.onViewAttachedToWindow(holder)
-        holder.onViewAttachedToWindow()
+        when (holder) {
+            is PostViewHolder -> holder.onViewAttachedToWindow()
+            is FeedViewHolder -> { /* Feed doesn't need special handling */ }
+        }
     }
 
-    override fun onViewDetachedFromWindow(holder: PostViewHolder) {
+    override fun onViewDetachedFromWindow(holder: RecyclerView.ViewHolder) {
         super.onViewDetachedFromWindow(holder)
-        holder.onViewDetachedFromWindow()
+        when (holder) {
+            is PostViewHolder -> holder.onViewDetachedFromWindow()
+            is FeedViewHolder -> { /* Feed doesn't need special handling */ }
+        }
     }
 
-    override fun onViewRecycled(holder: PostViewHolder) {
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         super.onViewRecycled(holder)
-        holder.release()
+        when (holder) {
+            is PostViewHolder -> holder.release()
+            is FeedViewHolder -> { /* Feed doesn't need special cleanup */ }
+        }
     }
 
     fun updateLikeState(postId: String, isLiked: Boolean, likeCount: Int) {
@@ -981,6 +1260,8 @@ class UserPostsViewerAdapter(
     }
 
     companion object {
+        private const val VIEW_TYPE_REEL = 0
+        private const val VIEW_TYPE_FEED = 1
         private const val PAYLOAD_ACTIVE = "payload_active"
         private const val PAYLOAD_LIKE = "payload_like"
         private const val PAYLOAD_FOLLOW_STATE = "payload_follow_state"

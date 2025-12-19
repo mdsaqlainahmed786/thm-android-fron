@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.activity.booking.RoomDetailsActivity
 import com.thehotelmedia.android.databinding.BookingRoomItemLayoutBinding
@@ -43,15 +44,20 @@ class HotelRoomsAdapter(
         val description = rooms.description ?: ""
         val pricePerNight = rooms.pricePerNight ?: 0.0
         val currency = rooms.currency ?: ""
-        val coverImage = rooms.cover?.sourceUrl ?: ""
+        val coverImage = selectBestRoomImageUrl(rooms)
         val amenitiesRef = rooms.amenitiesRef
 
         val bedType = rooms.bedType ?: ""
 
 
-        Glide.with(context).load(coverImage).placeholder(R.drawable.ic_post_placeholder).into(binding.coverIv)
+        Glide.with(context)
+            .load(coverImage)
+            .placeholder(R.drawable.room_image)
+            .error(R.drawable.room_image)
+            .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+            .into(binding.coverIv)
         binding.roomTypeTv.text = title
-        binding.roomPriceTv.text = "₹${pricePerNight.toInt()}/"
+        binding.roomPriceTv.text = formatPrice(pricePerNight, currency)
         binding.roomDescriptionTv.text = description
 
 
@@ -94,4 +100,35 @@ class HotelRoomsAdapter(
     }
 
     override fun getItemCount(): Int = availableRoomsList.size
+
+    private fun selectBestRoomImageUrl(room: AvailableRooms): String {
+        val fromCover = room.cover?.sourceUrl?.takeIf { it.isNotBlank() }
+            ?: room.cover?.thumbnailUrl?.takeIf { it.isNotBlank() }
+        if (!fromCover.isNullOrBlank()) return normalizeUrl(fromCover)
+
+        val fromImages = room.roomImagesRef
+            .firstOrNull { it.isCoverImage == true }?.sourceUrl?.takeIf { it.isNotBlank() }
+            ?: room.roomImagesRef.firstOrNull()?.sourceUrl?.takeIf { it.isNotBlank() }
+            ?: room.roomImagesRef.firstOrNull { it.thumbnailUrl?.isNotBlank() == true }?.thumbnailUrl
+
+        return normalizeUrl(fromImages ?: "")
+    }
+
+    private fun normalizeUrl(url: String): String {
+        val trimmed = url.trim()
+        if (trimmed.isBlank()) return ""
+        // Force https for common misconfigured http URLs.
+        return if (trimmed.startsWith("http://")) "https://${trimmed.removePrefix("http://")}" else trimmed
+    }
+
+    private fun formatPrice(pricePerNight: Double, currency: String): String {
+        val symbol = when (currency.trim().uppercase()) {
+            "INR", "₹" -> "₹"
+            "USD", "$" -> "$"
+            "EUR", "€" -> "€"
+            "GBP", "£" -> "£"
+            else -> if (currency.isNotBlank()) currency.trim() else "₹"
+        }
+        return "${symbol}${pricePerNight.toInt()}/"
+    }
 }

@@ -240,6 +240,7 @@
     <string name="block_text">Are you really want to block this user?</string>
     <string name="photo_video">Photo/video</string>
     <string name="tag_people">Tag people</string>
+    <string name="tag_location">Tag location</string>
     <string name="invite_collaborator">Invite collaborator</string>
     <string name="feeling_activity">Feeling/activity</string>
     <string name="check_in">Check in</string>
@@ -637,6 +638,7 @@
     <string name="add_profession">Add Profession</string>
     <string name="try_changing_location">Try changing location!</string>
     <string name="book_table">Book Table</string>
+    <string name="book_room">Book Room</string>
     <string name="book_banquet">Book Banquet</string>
     <string name="no_room_available">No room available</string>
     <string name="reject">Reject</string>
