@@ -286,7 +286,10 @@ interface Application {
         @Header("x-access-token") token: RequestBody,
         @Part tagged: List<MultipartBody.Part>,
         @Part imageFile: MultipartBody.Part?,
-        @Part videoFile: MultipartBody.Part?
+        @Part videoFile: MultipartBody.Part?,
+        @Part("placeName") placeName: RequestBody?,
+        @Part("lat") lat: RequestBody?,
+        @Part("lng") lng: RequestBody?
     ): Call<CreateStoryModal>
 
     @POST("posts/saved-posts"+"/{id}")

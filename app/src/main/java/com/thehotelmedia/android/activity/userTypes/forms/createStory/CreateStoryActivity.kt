@@ -64,7 +64,7 @@ import com.thehotelmedia.android.extensions.navigateToMainActivity
 import com.thehotelmedia.android.extensions.setOnSwipeListener
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
-import com.yalantis.ucrop.UCrop
+import com.yalantis.ucrop.UCrop       
 import com.yalantis.ucrop.model.AspectRatio
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -103,6 +103,8 @@ class CreateStoryActivity : BaseActivity() {
     private var isUploading = false // Flag to prevent duplicate uploads
     private var selectedTagPeopleList: ArrayList<TagPeople> = arrayListOf()
     private var selectedLocationLabel: String? = null
+    private var selectedLocationLat: Double? = null
+    private var selectedLocationLng: Double? = null
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var locationHelper: LocationHelper
 
@@ -169,6 +171,8 @@ class CreateStoryActivity : BaseActivity() {
             locationCallback = { latitude, longitude ->
                 val label = getCityStateFromLatLng(latitude, longitude) ?: "Current location"
                 selectedLocationLabel = label
+                selectedLocationLat = latitude
+                selectedLocationLng = longitude
                 updateStoryLocationOverlay(label)
             },
             errorCallback = { errorMessage ->
@@ -1443,7 +1447,14 @@ class CreateStoryActivity : BaseActivity() {
 
     private fun postStory(imageFile: File?, videoFile: File?) {
         val selectedTagIdList = selectedTagPeopleList.map { it.id }
-        individualViewModal.createStory(imageFile, videoFile, selectedTagIdList)
+        individualViewModal.createStory(
+            imageFile, 
+            videoFile, 
+            selectedTagIdList,
+            selectedLocationLabel,
+            selectedLocationLat,
+            selectedLocationLng
+        )
     }
 
     private fun setTagsFlexList(selectedPeopleList: ArrayList<TagPeople>) {

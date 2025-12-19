@@ -53,25 +53,78 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-
         <androidx.appcompat.widget.LinearLayoutCompat
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:clickable="true"
+            android:focusable="false">
 
             <View
                 android:id="@+id/btnPrevious"
                 android:layout_weight="1"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"/>
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:focusable="false"/>
             <View
                 android:id="@+id/btnNext"
                 android:layout_weight="1"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"/>
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:focusable="false"/>
 
 
         </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <!-- Floating Location Button - Placed AFTER navigation buttons so it's on top -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/locationButtonCard"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="80dp"
+            android:layout_marginStart="12dp"
+            android:visibility="gone"
+            android:elevation="50dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:duplicateParentState="false"
+            app:cardCornerRadius="20dp"
+            app:cardBackgroundColor="@color/white"
+            app:strokeWidth="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+            
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:clickable="false"
+                android:focusable="false">
+                
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_location_blue"
+                    android:layout_marginEnd="6dp"/>
+                
+                <TextView
+                    android:id="@+id/locationButtonText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/blue"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/comic_regular"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
 
         <androidx.appcompat.widget.LinearLayoutCompat
@@ -81,6 +134,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:clickable="false"
+            android:focusable="false"
             app:layout_constraintTop_toBottomOf="@+id/storyProgressContainer">
 
             <com.google.android.material.imageview.ShapeableImageView
@@ -108,7 +163,9 @@
                 android:layout_gravity="center_vertical"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:clickable="false"
+                android:focusable="false">
                 <TextView
                     android:id="@+id/nameTv"
                     android:layout_width="match_parent"
@@ -134,6 +191,24 @@
                     android:fontFamily="@font/comic_regular"
                     android:textSize="11sp"
                     android:textColor="@color/blue_50"/>
+                <TextView
+                    android:id="@+id/locationTv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:visibility="gone"
+                    android:fontFamily="@font/comic_regular"
+                    android:textSize="11sp"
+                    android:textColor="@color/blue_50"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:elevation="10dp"/>
 
             </androidx.appcompat.widget.LinearLayoutCompat>
 
@@ -161,8 +236,6 @@
 
 
         </androidx.appcompat.widget.LinearLayoutCompat>
-
-
 
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/bottomLayout"

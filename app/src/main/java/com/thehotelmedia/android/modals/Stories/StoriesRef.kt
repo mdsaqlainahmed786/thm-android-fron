@@ -17,6 +17,7 @@ data class StoriesRef (
     @SerializedName("viewsRef"  ) var viewsRef  : ArrayList<LikesRef> = arrayListOf(),
     @SerializedName("likes"     ) var likes     : Int?                = null,
     @SerializedName("views"     ) var views     : Int?                = null,
-    @SerializedName("taggedRef" ) var taggedRef : ArrayList<TaggedRef> = arrayListOf()
+    @SerializedName("taggedRef" ) var taggedRef : ArrayList<TaggedRef> = arrayListOf(),
+    @SerializedName("location"  ) var location  : StoryLocation? = null
 
 )

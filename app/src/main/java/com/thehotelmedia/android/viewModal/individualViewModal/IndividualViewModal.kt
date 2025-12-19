@@ -855,11 +855,11 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     //Create Story
     private val _createStoryResult = MutableLiveData<CreateStoryModal>()
     val createStoryResult: LiveData<CreateStoryModal> = _createStoryResult
-    fun createStory(imageFile: File?, videoFile: File?, taggedIds: List<String>) {
+    fun createStory(imageFile: File?, videoFile: File?, taggedIds: List<String>, placeName: String?, lat: Double?, lng: Double?) {
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
-                val response = individualRepo.createStory(imageFile, videoFile, taggedIds)
+                val response = individualRepo.createStory(imageFile, videoFile, taggedIds, placeName, lat, lng)
                 if (response.isSuccessful) {
 //                    val res = response.body()
 //                    toastMessageLiveData.postValue(res?.message)

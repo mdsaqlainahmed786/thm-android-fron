@@ -567,7 +567,10 @@ class IndividualRepo (private val context: Context){
     suspend fun createStory(
         imageFile: File?,
         videoFile: File?,
-        taggedList: List<String>
+        taggedList: List<String>,
+        placeName: String?,
+        lat: Double?,
+        lng: Double?
     ): Response<CreateStoryModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
@@ -595,11 +598,15 @@ class IndividualRepo (private val context: Context){
         val taggedParts = taggedList.map { tagId ->
             MultipartBody.Part.createFormData("tagged[]", tagId)
         }
+        // Convert location data to RequestBody
+        val placeNameBody = placeName?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val latBody = lat?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val lngBody = lng?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         // Make the API call
         return withContext(Dispatchers.IO) {
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
-                accessTokenBody, taggedParts, imagePart, videoPart
+                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody
             ).execute()
         }
     }
