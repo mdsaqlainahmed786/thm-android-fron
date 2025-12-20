@@ -19,6 +19,10 @@ data class MyStories (
   @SerializedName("taggedRef" ) var taggedRef : ArrayList<com.thehotelmedia.android.modals.feeds.feed.TaggedRef> = arrayListOf(),
   @SerializedName("location"  ) var location  : StoryLocation? = null,
   @SerializedName("locationPositionX" ) var locationPositionX : Float? = null,  // Normalized x position (0.0-1.0)
-  @SerializedName("locationPositionY" ) var locationPositionY : Float? = null   // Normalized y position (0.0-1.0)
+  @SerializedName("locationPositionY" ) var locationPositionY : Float? = null,  // Normalized y position (0.0-1.0)
+  @SerializedName("userTagged") var userTaggedName : String? = null,  // Name of tagged user
+  @SerializedName("userTaggedId") var userTaggedId : String? = null,  // ID of tagged user
+  @SerializedName("userTaggedPositionX" ) var userTaggedPositionX : Float? = null,  // Normalized x position (0.0-1.0)
+  @SerializedName("userTaggedPositionY" ) var userTaggedPositionY : Float? = null   // Normalized y position (0.0-1.0)
 
 )

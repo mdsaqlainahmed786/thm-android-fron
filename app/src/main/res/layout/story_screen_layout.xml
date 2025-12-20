@@ -126,6 +126,48 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Floating User Tag Button - Placed AFTER navigation buttons so it's on top -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/userTagButtonCard"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="80dp"
+            android:layout_marginStart="12dp"
+            android:visibility="gone"
+            android:elevation="50dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:duplicateParentState="false"
+            app:cardCornerRadius="20dp"
+            app:cardBackgroundColor="@color/white"
+            app:strokeWidth="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+            
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:clickable="false"
+                android:focusable="false">
+                
+                <TextView
+                    android:id="@+id/userTagButtonText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@color/blue"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/comic_regular"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
 
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/topLayout"

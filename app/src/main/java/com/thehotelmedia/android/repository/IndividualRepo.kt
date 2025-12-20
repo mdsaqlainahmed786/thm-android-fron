@@ -572,7 +572,11 @@ class IndividualRepo (private val context: Context){
         lat: Double?,
         lng: Double?,
         locationX: Float? = null,
-        locationY: Float? = null
+        locationY: Float? = null,
+        userTaggedId: String? = null,
+        userTaggedName: String? = null,
+        userTaggedX: Float? = null,
+        userTaggedY: Float? = null
     ): Response<CreateStoryModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
@@ -606,14 +610,19 @@ class IndividualRepo (private val context: Context){
         val lngBody = lng?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val locationPositionXBody = locationX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val locationPositionYBody = locationY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedBody = userTaggedName?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedIdBody = userTaggedId?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedXBody = userTaggedX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedYBody = userTaggedY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         
         android.util.Log.d("IndividualRepo", "Creating story with location - placeName: $placeName, lat: $lat, lng: $lng, locationPositionX: $locationX, locationPositionY: $locationY")
+        android.util.Log.d("IndividualRepo", "Creating story with user tag - userTaggedId: $userTaggedId, userTaggedName: $userTaggedName, userTaggedX: $userTaggedX, userTaggedY: $userTaggedY")
         
         // Make the API call
         return withContext(Dispatchers.IO) {
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
-                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody, locationPositionXBody, locationPositionYBody
+                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody, locationPositionXBody, locationPositionYBody, userTaggedBody, userTaggedIdBody, userTaggedXBody, userTaggedYBody
             ).execute()
         }
     }

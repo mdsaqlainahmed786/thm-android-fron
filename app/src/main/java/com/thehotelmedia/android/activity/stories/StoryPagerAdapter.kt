@@ -283,13 +283,10 @@ class StoryPagerAdapter(
             val story = users.storiesRef[currentStoryIndex]
             
             val taggedPeople = story.taggedRef ?: arrayListOf()
-            if (taggedPeople.isNotEmpty()) {
-                setupTaggedPeopleLinks(binding, taggedPeople)
-            } else {
+            // Hide the old text-based tagged people view (replaced with floating tag button)
                 binding.taggedPeopleTv.visibility = View.GONE
                 binding.taggedPeopleTv.text = ""
                 binding.taggedPeopleTv.setOnClickListener(null)
-            }
             
             // Hide locationTv (the TextView), but show the floating button
             binding.locationTv.visibility = View.GONE
@@ -318,6 +315,42 @@ class StoryPagerAdapter(
                 }
             } else {
                 hideLocationViews(binding) // Explicitly hide if no location data
+            }
+            
+            // Display user tag if it exists - use floating button
+            // Get first tagged user for the user tag button
+            val firstTaggedUser = taggedPeople.firstOrNull()
+            
+            // Backend returns userTagged (name), but we may need ID from taggedRef
+            val userTaggedName = story.userTaggedName ?: firstTaggedUser?.name
+            val userTaggedX = story.userTaggedPositionX
+            val userTaggedY = story.userTaggedPositionY
+            
+            // Determine the final user ID - prioritize story.userTaggedId, then firstTaggedUser.Id
+            val finalUserId = story.userTaggedId 
+                ?: firstTaggedUser?.Id
+                ?: ""
+            
+            android.util.Log.d("StoryPagerAdapter", "User tag data - userTaggedName: $userTaggedName, story.userTaggedId: '${story.userTaggedId}', firstTaggedUser?.Id: '${firstTaggedUser?.Id}', finalUserId: '$finalUserId', userTaggedX: $userTaggedX, userTaggedY: $userTaggedY, taggedPeople count: ${taggedPeople.size}")
+            
+            // Show the tag if we have a name (ID may be missing for older stories, but we still show the tag)
+            if (!userTaggedName.isNullOrEmpty()) {
+                // Show the tag - click handler will handle missing ID gracefully
+                android.util.Log.d("StoryPagerAdapter", "Showing user tag - name: $userTaggedName, id: '$finalUserId' (${if (finalUserId.isNotEmpty()) "with navigation" else "no ID - click will show toast"})")
+                setupUserTagButton(binding, userTaggedName, finalUserId, userTaggedX, userTaggedY)
+            } else if (taggedPeople.isNotEmpty() && firstTaggedUser != null) {
+                // Fallback: If we have taggedPeople but no userTaggedName, use the first tagged user
+                val name = firstTaggedUser.name
+                val id = firstTaggedUser.Id ?: ""
+                if (!name.isNullOrEmpty()) {
+                    android.util.Log.d("StoryPagerAdapter", "Using first tagged user as fallback - name: $name, id: '$id'")
+                    setupUserTagButton(binding, name, id, userTaggedX, userTaggedY)
+                } else {
+                    hideUserTagViews(binding)
+                }
+            } else {
+                android.util.Log.d("StoryPagerAdapter", "No user tag data found - hiding user tag views")
+                hideUserTagViews(binding)
             }
         } else {
             binding.taggedPeopleTv.visibility = View.GONE
@@ -560,6 +593,86 @@ class StoryPagerAdapter(
         
         // Last resort: Show error message
         android.widget.Toast.makeText(context, "Unable to open maps. Please install a map application.", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    private fun hideUserTagViews(binding: StoryScreenLayoutBinding) {
+        val userTagButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.userTagButtonCard)
+        userTagButtonCard?.visibility = View.GONE
+        userTagButtonCard?.setOnClickListener(null)
+    }
+    
+    private fun setupUserTagButton(binding: StoryScreenLayoutBinding, userName: String, userId: String, userTaggedX: Float? = null, userTaggedY: Float? = null) {
+        val userTagButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.userTagButtonCard)
+        val userTagButtonText = binding.root.findViewById<android.widget.TextView>(R.id.userTagButtonText)
+        
+        if (userTagButtonCard != null && userTagButtonText != null) {
+            // Set visibility and text (display as @username)
+            userTagButtonCard.visibility = View.VISIBLE
+            val displayName = if (userName.startsWith("@")) userName else "@$userName"
+            userTagButtonText.text = displayName
+            
+            // Make the user tag view clickable and focusable
+            userTagButtonCard.isClickable = true
+            userTagButtonCard.isFocusable = true
+            userTagButtonCard.isFocusableInTouchMode = true
+            
+            // Ensure inner LinearLayout doesn't intercept clicks
+            val userTagLayout = userTagButtonCard.getChildAt(0) as? android.view.ViewGroup
+            userTagLayout?.isClickable = false
+            userTagLayout?.isFocusable = false
+            
+            // Position the user tag at saved x/y coordinates, or use default position
+            // Remove constraints to allow free positioning via x/y
+            val layoutParams = userTagButtonCard.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            layoutParams?.let {
+                it.leftToLeft = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.leftMargin = 0
+                it.topMargin = 0
+                userTagButtonCard.layoutParams = it
+            }
+            
+            binding.root.post {
+                val parentWidth = binding.root.width.toFloat()
+                val parentHeight = binding.root.height.toFloat()
+                
+                android.util.Log.d("StoryPagerAdapter", "Positioning user tag - parentWidth: $parentWidth, parentHeight: $parentHeight, userTaggedX: $userTaggedX, userTaggedY: $userTaggedY")
+                
+                if (parentWidth > 0 && parentHeight > 0) {
+                    if (userTaggedX != null && userTaggedY != null) {
+                        // Use saved position (normalized 0.0-1.0 converted to pixels)
+                        val xPosition = userTaggedX * parentWidth
+                        val yPosition = userTaggedY * parentHeight
+                        userTagButtonCard.x = xPosition
+                        userTagButtonCard.y = yPosition
+                        android.util.Log.d("StoryPagerAdapter", "Positioned user tag at x: $xPosition, y: $yPosition (normalized: x=$userTaggedX, y=$userTaggedY)")
+                    } else {
+                        // Default position: top-left area (matching Create Story default)
+                        userTagButtonCard.x = parentWidth * 0.25f  // 25% from left
+                        userTagButtonCard.y = parentHeight * 0.25f  // 25% from top
+                        android.util.Log.d("StoryPagerAdapter", "Using default position for user tag - x: ${userTagButtonCard.x}, y: ${userTagButtonCard.y} (userTaggedX and userTaggedY are null)")
+                    }
+                } else {
+                    android.util.Log.w("StoryPagerAdapter", "Cannot position user tag - invalid parent dimensions (width: $parentWidth, height: $parentHeight)")
+                }
+            }
+            
+            // Bring to front to ensure it's above other views
+            userTagButtonCard.bringToFront()
+            
+            // Set click listener to navigate to user profile
+            userTagButtonCard.setOnClickListener {
+                pauseStory(binding)
+                if (userId.isNotEmpty()) {
+                    moveToProfileDetailsActivity(userId)
+                } else {
+                    android.util.Log.w("StoryPagerAdapter", "Cannot navigate to profile - user ID is missing for user: $userName")
+                    android.widget.Toast.makeText(context, "Unable to open profile. User ID not available.", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            userTagButtonCard.setOnTouchListener(null)
+        }
     }
 
     private fun setupTaggedPeopleLinks(binding: StoryScreenLayoutBinding, taggedRef: List<TaggedRef>) {
