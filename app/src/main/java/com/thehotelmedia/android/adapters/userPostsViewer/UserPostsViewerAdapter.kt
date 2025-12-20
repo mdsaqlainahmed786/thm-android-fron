@@ -164,7 +164,16 @@ class UserPostsViewerAdapter(
             mediaList: List<com.thehotelmedia.android.modals.feeds.feed.MediaRef>,
             state: PostState
         ) {
-            if (mediaList.isEmpty()) return
+            // Filter media by type if filterMediaType is specified
+            val filteredMediaList = if (filterMediaType != null) {
+                mediaList.filter { media ->
+                    media.mediaType?.lowercase() == filterMediaType?.lowercase()
+                }
+            } else {
+                mediaList
+            }
+            
+            if (filteredMediaList.isEmpty()) return
 
             val exoPlayer = exoPlayers.getOrPut(postId) {
                 ExoPlayer.Builder(context).build()
@@ -176,7 +185,7 @@ class UserPostsViewerAdapter(
                 exoPlayer.removeListener(it)
             }
 
-            val mediaItems = mediaList.map { mediaRef ->
+            val mediaItems = filteredMediaList.map { mediaRef ->
                 val mediaType = when (mediaRef.mediaType?.lowercase()) {
                     "image" -> MediaType.IMAGE
                     "video" -> MediaType.VIDEO
@@ -189,7 +198,7 @@ class UserPostsViewerAdapter(
                 context,
                 mediaItems,
                 exoPlayer,
-                mediaList.firstOrNull()?.Id ?: "",
+                filteredMediaList.firstOrNull()?.Id ?: "",
                 postId,
                 individualViewModal,
                 { _ -> },
@@ -867,8 +876,15 @@ class UserPostsViewerAdapter(
         }
 
         private fun setupPostData(post: Data, state: PostState) {
-            val mediaList = post.mediaRef ?: emptyList()
+            var mediaList = post.mediaRef ?: emptyList()
             val postOwnerId = extractOwnerId(post)
+
+            // Filter media by type if filterMediaType is specified
+            if (filterMediaType != null) {
+                mediaList = mediaList.filter { media ->
+                    media.mediaType?.lowercase() == filterMediaType?.lowercase()
+                }
+            }
 
             // Setup media
             if (mediaList.isNotEmpty()) {

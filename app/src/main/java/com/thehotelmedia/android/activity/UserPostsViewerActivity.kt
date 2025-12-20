@@ -167,11 +167,11 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                     // Filter posts by media type if specified
                     val filteredPagingData = if (filterMediaType != null) {
                         pagingData.filter { post ->
-                            // Only include posts where ALL media match the filter type
-                            // This ensures photos-only or videos-only scrolling
+                            // Include posts that have at least one media matching the filter type
+                            // This allows posts with mixed media to show up when filtering
                             val mediaRef = post.mediaRef
                             if (mediaRef.isNotEmpty()) {
-                                mediaRef.all { media ->
+                                mediaRef.any { media ->
                                     media.mediaType?.lowercase() == filterMediaType?.lowercase()
                                 }
                             } else {

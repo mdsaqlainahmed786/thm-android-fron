@@ -16,6 +16,14 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
@@ -33,11 +41,12 @@ import com.thehotelmedia.android.extensions.openAppSettings
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 
-class LocationSelectionActivity : BaseActivity() {
+class LocationSelectionActivity : BaseActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityLocationSelectionBinding
     private lateinit var locationHelper: LocationHelper
     private lateinit var individualViewModal: IndividualViewModal
     private lateinit var progressBar: CustomProgressBar
+    private lateinit var mMap: GoogleMap
     private val activity = this@LocationSelectionActivity
     private val tag: String = "LocationSelectionActivity"
     private val AUTOCOMPLETE_REQUEST_CODE = 1
@@ -46,6 +55,7 @@ class LocationSelectionActivity : BaseActivity() {
     private var selectedPlaceLat: Double? = null
     private var selectedPlaceLng: Double? = null
     private var selectedPlaceAddress: String? = null
+    private var selectedMarker: com.google.android.gms.maps.model.Marker? = null
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -92,6 +102,8 @@ class LocationSelectionActivity : BaseActivity() {
                         // Enable the "Add location" button
                         binding.addLocationBtn.isEnabled = true
                         binding.addLocationBtn.alpha = 1.0f
+                        // Update map to show selected location
+                        previewLocationOnMap(latitude, longitude, selectedPlaceName ?: "Selected location")
                     }
                 }
                 AutocompleteActivity.RESULT_ERROR -> {
@@ -111,13 +123,18 @@ class LocationSelectionActivity : BaseActivity() {
         binding = ActivityLocationSelectionBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.backBtn.setColorFilter(ContextCompat.getColor(this, R.color.white))
+        binding.backBtn.setColorFilter(ContextCompat.getColor(this, R.color.icon_color))
 
         // Initialize progress bar
         progressBar = CustomProgressBar(this)
 
         // Initialize Places API
         initPlaces()
+
+        // Initialize map fragment
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.map) as? SupportMapFragment
+        mapFragment?.getMapAsync(this)
 
         // Initialize UI
         initUI()
@@ -142,12 +159,7 @@ class LocationSelectionActivity : BaseActivity() {
             finish()
         }
 
-        binding.cancelBtn.setOnClickListener {
-            setResult(Activity.RESULT_CANCELED)
-            finish()
-        }
-
-        binding.searchEt.setOnClickListener {
+        binding.searchBtn.setOnClickListener {
             try {
                 val fields = listOf(Place.Field.ID, Place.Field.NAME, Place.Field.ADDRESS, Place.Field.LAT_LNG)
                 val intent = Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields).build(this)
@@ -166,9 +178,11 @@ class LocationSelectionActivity : BaseActivity() {
         }
 
         binding.previewOnMapBtn.setOnClickListener {
-            // Optional: Open CheckInActivity to preview on map
-            // For now, just show a toast
-            Toast.makeText(this, "Preview on map feature coming soon", Toast.LENGTH_SHORT).show()
+            if (selectedPlaceLat != null && selectedPlaceLng != null) {
+                previewLocationOnMap(selectedPlaceLat!!, selectedPlaceLng!!, selectedPlaceName ?: "Selected location")
+            } else {
+                Toast.makeText(this, "Please select a location first", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // Initially disable the "Add location" button
@@ -208,7 +222,7 @@ class LocationSelectionActivity : BaseActivity() {
         }
     }
 
-    private fun onPlaceSelected(placeId: String, name: String, address: String, lat: Double, lng: Double) {
+    private fun onPlaceSelected(_placeId: String, name: String, address: String, lat: Double, lng: Double) {
         selectedPlaceName = name
         selectedPlaceAddress = address
         selectedPlaceLat = lat
@@ -217,6 +231,9 @@ class LocationSelectionActivity : BaseActivity() {
         // Enable the "Add location" button
         binding.addLocationBtn.isEnabled = true
         binding.addLocationBtn.alpha = 1.0f
+        
+        // Update map to show selected location
+        previewLocationOnMap(lat, lng, name)
     }
 
     private fun returnSelectedLocation() {
@@ -248,10 +265,11 @@ class LocationSelectionActivity : BaseActivity() {
             context = this,
             permissionLauncher = permissionLauncher,
             locationCallback = { latitude, longitude ->
-                // Handle the location callback - fetch nearby places
+                // Handle the location callback - fetch nearby places and update map
                 val lat = latitude.toString()
                 val lng = longitude.toString()
                 getNearbyPlaces(lat, lng)
+                updateMapLocation(latitude, longitude)
             },
             errorCallback = { errorMessage ->
                 // Handle error callback
@@ -295,6 +313,65 @@ class LocationSelectionActivity : BaseActivity() {
 
     private fun getNearbyPlaces(lat: String, lng: String) {
         individualViewModal.getNearbyPlaces(lat, lng)
+    }
+
+    override fun onMapReady(googleMap: GoogleMap) {
+        // Disable default UI controls
+        googleMap.uiSettings.apply {
+            isZoomControlsEnabled = false
+            isCompassEnabled = false
+            isMapToolbarEnabled = false
+            isMyLocationButtonEnabled = false
+        }
+
+        // Enable gestures for map interaction (users can explore the map)
+        googleMap.uiSettings.isScrollGesturesEnabled = true
+        googleMap.uiSettings.isZoomGesturesEnabled = true
+
+        // Store the GoogleMap instance
+        mMap = googleMap
+
+        // Apply custom style to the map
+        try {
+            val success = mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style))
+            if (!success) {
+                Log.d(tag, "Map style parsing failed.")
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Can't find map style. Error: ${e.message}")
+        }
+
+        // If we already have location, update map camera
+        if (::locationHelper.isInitialized) {
+            // Map will be updated when location is received
+        }
+    }
+
+    private fun updateMapLocation(latitude: Double, longitude: Double) {
+        if (::mMap.isInitialized) {
+            val currentLatLng = LatLng(latitude, longitude)
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f))
+            mMap.addMarker(MarkerOptions().position(currentLatLng).title("You are here"))
+        }
+    }
+
+    private fun previewLocationOnMap(latitude: Double, longitude: Double, title: String) {
+        if (::mMap.isInitialized) {
+            val locationLatLng = LatLng(latitude, longitude)
+            
+            // Remove previous marker if exists
+            selectedMarker?.remove()
+            
+            // Add new marker for selected location
+            selectedMarker = mMap.addMarker(
+                MarkerOptions()
+                    .position(locationLatLng)
+                    .title(title)
+            )
+            
+            // Animate camera to show the location
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(locationLatLng, 15f))
+        }
     }
 
     companion object {
