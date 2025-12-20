@@ -235,6 +235,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".activity.userTypes.forms.createStory.LocationSelectionActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activity.camera.CustomCameraActivity"
             android:configChanges="uiMode"
             android:exported="false"

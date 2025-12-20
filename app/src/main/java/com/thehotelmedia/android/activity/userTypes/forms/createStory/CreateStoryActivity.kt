@@ -160,6 +160,25 @@ class CreateStoryActivity : BaseActivity() {
         }
     }
 
+    private val locationSelectionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data
+            val placeName = data?.getStringExtra("PLACE_NAME")
+            val placeAddress = data?.getStringExtra("PLACE_ADDRESS")
+            val placeLat = data?.getDoubleExtra("PLACE_LAT", 0.0)
+            val placeLng = data?.getDoubleExtra("PLACE_LNG", 0.0)
+
+            if (placeName != null && placeLat != null && placeLng != null && placeLat != 0.0 && placeLng != 0.0) {
+                // Use place name or address as the label
+                val locationLabel = placeName.takeIf { it.isNotEmpty() } ?: placeAddress ?: "Selected location"
+                selectedLocationLabel = locationLabel
+                selectedLocationLat = placeLat
+                selectedLocationLng = placeLng
+                updateStoryLocationOverlay(locationLabel)
+            }
+        }
+    }
+
     private fun initLocationTagging() {
         locationPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -325,8 +344,9 @@ class CreateStoryActivity : BaseActivity() {
         }
 
         binding.tagLocationButton.setOnClickListener {
-            // Fetch current location and drop a draggable pill overlay on the story
-            locationHelper.checkAndRequestLocation()
+            // Launch LocationSelectionActivity to let user choose a location
+            val intent = Intent(this, LocationSelectionActivity::class.java)
+            locationSelectionLauncher.launch(intent)
         }
 
 
