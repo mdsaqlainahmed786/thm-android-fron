@@ -350,20 +350,27 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <ImageView
-                android:id="@+id/photoMenuBtn"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+            <FrameLayout
+                android:id="@+id/photoMenuBtnContainer"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:layout_marginStart="8dp"
-                android:src="@drawable/ic_three_dot_blue"
-                android:contentDescription="Menu"
                 android:clickable="true"
                 android:focusable="true"
-                android:focusableInTouchMode="true"
-                android:elevation="20dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="8dp"
-                android:visibility="gone" />
+                android:elevation="25dp"
+                android:background="?attr/selectableItemBackgroundBorderless">
+                
+                <ImageView
+                    android:id="@+id/photoMenuBtn"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_three_dot_blue"
+                    android:contentDescription="Menu"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:visibility="gone" />
+            </FrameLayout>
 
         </LinearLayout>
 

@@ -271,6 +271,14 @@ class IndividualHomeFragment : Fragment() {
 //            CustomSnackBar.showSnackBar(binding.root,it)
             Toast.makeText(activity,it, Toast.LENGTH_SHORT).show()
         }
+        
+        // Observe story publish result and refresh stories list
+        individualViewModal.publishStoryResult.observe(viewLifecycleOwner) { result ->
+            if (result?.status == true) {
+                // Story published successfully, refresh the stories list
+                feedAdapter.refreshStories()
+            }
+        }
 
         getSubscriptionData()
 

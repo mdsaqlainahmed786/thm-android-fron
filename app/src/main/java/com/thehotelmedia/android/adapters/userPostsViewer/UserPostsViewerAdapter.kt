@@ -160,49 +160,21 @@ class UserPostsViewerAdapter(
             // Setup menu button AFTER layout is updated to ensure header is visible
             setupMenuButton(post, state)
             
-            // Add touch interceptor to root view to catch header touches before RecyclerView consumes them
+            // Setup menu button click handler on the FrameLayout wrapper
             if (!currentMediaIsVideo) {
-                binding.root.setOnTouchListener { v, event ->
-                    if (binding.photoHeaderContainer.visibility == View.VISIBLE && binding.photoMenuBtn.visibility == View.VISIBLE) {
-                        val headerBounds = android.graphics.Rect()
-                        binding.photoHeaderContainer.getGlobalVisibleRect(headerBounds)
-                        val buttonBounds = android.graphics.Rect()
-                        binding.photoMenuBtn.getGlobalVisibleRect(buttonBounds)
-                        
-                        val x = event.rawX.toInt()
-                        val y = event.rawY.toInt()
-                        
-                        android.util.Log.d("MenuButton", "Root touch: action=${event.action}, x=$x, y=$y")
-                        android.util.Log.d("MenuButton", "Header bounds: $headerBounds, Button bounds: $buttonBounds")
-                        
-                        if (buttonBounds.contains(x, y)) {
-                            android.util.Log.d("MenuButton", "Touch on button area - handling directly")
-                            // Handle the touch directly
-                            when (event.action) {
-                                android.view.MotionEvent.ACTION_DOWN -> {
-                                    binding.photoMenuBtn.alpha = 0.7f
-                                    true
-                                }
-                                android.view.MotionEvent.ACTION_UP -> {
-                                    binding.photoMenuBtn.alpha = 1.0f
-                                    if (postId.isNotEmpty()) {
-                                        showMenuDialog(binding.photoMenuBtn, postId, post, isOwner)
-                                    }
-                                    true
-                                }
-                                android.view.MotionEvent.ACTION_CANCEL -> {
-                                    binding.photoMenuBtn.alpha = 1.0f
-                                    false
-                                }
-                                else -> true
-                            }
-                        } else {
-                            false // Not on button, let RecyclerView handle it
-                        }
+                binding.photoMenuBtnContainer.setOnClickListener { view ->
+                    android.util.Log.d("MenuButton", "Menu button container clicked for post: $postId")
+                    if (postId.isNotEmpty()) {
+                        showMenuDialog(view, postId, post, isOwner)
                     } else {
-                        false
+                        android.util.Log.e("MenuButton", "PostId is empty, cannot show menu")
                     }
                 }
+                
+                binding.photoMenuBtnContainer.visibility = View.VISIBLE
+                binding.photoMenuBtn.visibility = View.VISIBLE
+            } else {
+                binding.photoMenuBtnContainer.visibility = View.GONE
             }
             
             // Force button to be visible and clickable after setup
@@ -626,65 +598,15 @@ class UserPostsViewerAdapter(
                     }
                 }
                 
-                // Remove any existing listeners first
-                binding.photoMenuBtn.setOnClickListener(null)
-                binding.photoMenuBtn.setOnTouchListener(null)
-                
-                // Make button visible and interactive
+                // Make button and container visible
+                binding.photoMenuBtnContainer.visibility = View.VISIBLE
                 binding.photoMenuBtn.visibility = View.VISIBLE
-                binding.photoMenuBtn.isClickable = true
-                binding.photoMenuBtn.isFocusable = true
-                binding.photoMenuBtn.isEnabled = true
-                binding.photoMenuBtn.alpha = 1.0f
-                binding.photoMenuBtn.bringToFront()
-                
-                // Also bring header container to front
+                binding.photoMenuBtnContainer.isClickable = true
+                binding.photoMenuBtnContainer.isFocusable = true
+                binding.photoMenuBtnContainer.bringToFront()
                 binding.photoHeaderContainer.bringToFront()
                 
-                // Set the click listener with explicit touch handling
-                binding.photoMenuBtn.setOnTouchListener { view, event ->
-                    android.util.Log.d("MenuButton", "Touch event on menu button: ${event.action}, x=${event.x}, y=${event.y}")
-                    when (event.action) {
-                        android.view.MotionEvent.ACTION_DOWN -> {
-                            android.util.Log.d("MenuButton", "Touch DOWN on menu button")
-                            view.alpha = 0.7f
-                            view.parent?.requestDisallowInterceptTouchEvent(true)
-                            true // Consume the event
-                        }
-                        android.view.MotionEvent.ACTION_UP -> {
-                            android.util.Log.d("MenuButton", "Touch UP on menu button - showing dialog")
-                            view.alpha = 1.0f
-                            view.parent?.requestDisallowInterceptTouchEvent(false)
-                            if (postId.isNotEmpty()) {
-                                showMenuDialog(view, postId, post, isOwner)
-                            } else {
-                                android.util.Log.e("MenuButton", "PostId is empty, cannot show menu")
-                            }
-                            true // Consume the event
-                        }
-                        android.view.MotionEvent.ACTION_CANCEL -> {
-                            view.alpha = 1.0f
-                            view.parent?.requestDisallowInterceptTouchEvent(false)
-                            false
-                        }
-                        else -> {
-                            view.parent?.requestDisallowInterceptTouchEvent(true)
-                            true
-                        }
-                    }
-                }
-                
-                // Also set click listener as backup
-                binding.photoMenuBtn.setOnClickListener { view ->
-                    android.util.Log.d("MenuButton", "Menu button clicked for post: $postId")
-                    if (postId.isNotEmpty()) {
-                        showMenuDialog(view, postId, post, isOwner)
-                    } else {
-                        android.util.Log.e("MenuButton", "PostId is empty, cannot show menu")
-                    }
-                }
-                
-                android.util.Log.d("MenuButton", "Photo menu button setup complete - visibility: ${binding.photoMenuBtn.visibility}, clickable: ${binding.photoMenuBtn.isClickable}, enabled: ${binding.photoMenuBtn.isEnabled}")
+                android.util.Log.d("MenuButton", "Photo menu button setup complete - container visible: ${binding.photoMenuBtnContainer.visibility}, button visible: ${binding.photoMenuBtn.visibility}")
                 
                 // Hide reel menu button for photos
                 binding.reelMenuBtn.visibility = View.GONE
