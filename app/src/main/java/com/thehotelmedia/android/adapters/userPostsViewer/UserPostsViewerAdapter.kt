@@ -960,7 +960,15 @@ class UserPostsViewerAdapter(
             binding.nameTv.text = name
 
             val createdAt = post.createdAt ?: ""
-            val formattedCreatedAt = calculateDaysAgo(createdAt, context)
+            val formattedCreatedAt = if (createdAt.isNotEmpty()) {
+                try {
+                    calculateDaysAgo(createdAt, context)
+                } catch (e: Exception) {
+                    context.getString(R.string.just_now)
+                }
+            } else {
+                context.getString(R.string.just_now)
+            }
             binding.locationTv.text = formattedCreatedAt
 
             // Setup content
