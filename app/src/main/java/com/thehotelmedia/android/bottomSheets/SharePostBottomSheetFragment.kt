@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -20,12 +21,15 @@ import com.thehotelmedia.android.BuildConfig
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.Socket.SocketViewModel
 import com.thehotelmedia.android.SocketModals.chatScreen.Messages
+import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.adapters.socket.ShareChatListAdapter
 import com.thehotelmedia.android.customClasses.Constants
 import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.BottomSheetSharePostBinding
 import com.thehotelmedia.android.extensions.EncryptionHelper
 import com.thehotelmedia.android.extensions.sharePostWithDeepLink
+import com.thehotelmedia.android.repository.IndividualRepo
+import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -35,6 +39,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
     private lateinit var binding: BottomSheetSharePostBinding
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var chatAdapter: ShareChatListAdapter
+    private lateinit var individualViewModal: IndividualViewModal
 
     private var postId: String = ""
     private var ownerUserId: String = ""
@@ -64,11 +69,21 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        initViewModel()
         initArgs()
         setupRecycler()
         setupListeners()
         observeChatData()
+        observeStoryPublishResult()
         connectAndFetchChats()
+    }
+
+    private fun initViewModel() {
+        val individualRepo = IndividualRepo(requireContext())
+        individualViewModal = ViewModelProvider(
+            requireActivity(),
+            ViewModelFactory(null, individualRepo, null)
+        )[IndividualViewModal::class.java]
     }
 
     override fun onDestroyView() {
@@ -118,6 +133,17 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
             }
         }
 
+        // Show/hide share to story button based on media presence
+        val hasMedia = hasShareableMedia()
+        binding.shareToStoryBtn.apply {
+            isVisible = hasMedia
+            setOnClickListener {
+                if (postId.isNotBlank()) {
+                    individualViewModal.publishPostToStory(postId)
+                }
+            }
+        }
+
         binding.searchEt.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -128,6 +154,32 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
 
             override fun afterTextChanged(s: Editable?) = Unit
         })
+    }
+
+    private fun hasShareableMedia(): Boolean {
+        if (sharedMediaUrl.isNullOrBlank()) return false
+        val normalizedType = when (sharedMediaType?.lowercase(Locale.getDefault())) {
+            Constants.IMAGE -> Constants.IMAGE
+            Constants.VIDEO -> Constants.VIDEO
+            else -> null
+        }
+        return !normalizedType.isNullOrBlank()
+    }
+
+    private fun observeStoryPublishResult() {
+        individualViewModal.publishStoryResult.observe(viewLifecycleOwner) { result ->
+            if (result?.status == true) {
+                val message = result.message?.takeIf { it.isNotBlank() }
+                    ?: getString(R.string.story_publish_success)
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                dismissAllowingStateLoss()
+            } else if (result != null) {
+                // Error case - result is not null but status is false
+                val message = result.message?.takeIf { it.isNotBlank() }
+                    ?: getString(R.string.something_went_wrong)
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun observeChatData() {

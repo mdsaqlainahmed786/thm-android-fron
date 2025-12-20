@@ -816,6 +816,8 @@ class FeedAdapter(
         }
 
 
+        binding.menuBtn.isClickable = true
+        binding.menuBtn.isFocusable = true
         binding.menuBtn.setOnClickListener { view ->
             showMenuDialog(view, postId, post, canShareToStory = false)
         }
@@ -985,6 +987,8 @@ class FeedAdapter(
             }
         }
 
+        binding.menuBtn.isClickable = true
+        binding.menuBtn.isFocusable = true
         binding.menuBtn.setOnClickListener { view ->
             showMenuDialog(view, postId, review)
         }

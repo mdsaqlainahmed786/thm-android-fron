@@ -234,6 +234,8 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
             imageDialog.showImage(userLargeProfilePic)
         }
 
+        binding.menuBtn.isClickable = true
+        binding.menuBtn.isFocusable = true
         binding.menuBtn.setOnClickListener { view ->
             showMenuDialog(view)
         }

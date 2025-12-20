@@ -535,7 +535,9 @@
                 app:strokeColor="@color/transparent"
                 android:layout_width="@dimen/_20sdp"
                 android:layout_height="@dimen/_20sdp"
-                android:src="@drawable/ic_post_menu"/>
+                android:src="@drawable/ic_post_menu"
+                android:clickable="true"
+                android:focusable="true"/>
 
         </com.google.android.material.card.MaterialCardView>
 
