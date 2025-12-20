@@ -281,9 +281,6 @@ class StoryPagerAdapter(
         // Display tagged people if they exist
         if (currentStoryIndex in users.storiesRef.indices) {
             val story = users.storiesRef[currentStoryIndex]
-            android.util.Log.d("StoryPagerAdapter", "=== BINDING STORY ===")
-            android.util.Log.d("StoryPagerAdapter", "Story ID: ${story.Id}, currentStoryIndex: $currentStoryIndex")
-            android.util.Log.d("StoryPagerAdapter", "Full story object: $story")
             
             val taggedPeople = story.taggedRef ?: arrayListOf()
             if (taggedPeople.isNotEmpty()) {
@@ -294,63 +291,34 @@ class StoryPagerAdapter(
                 binding.taggedPeopleTv.setOnClickListener(null)
             }
             
-            // Always hide location views first, then show if location exists
-            hideLocationViews(binding)
+            // Hide locationTv (the TextView), but show the floating button
+            binding.locationTv.visibility = View.GONE
+            binding.locationTv.text = ""
+            binding.locationTv.setOnClickListener(null)
+            binding.locationTv.setOnTouchListener(null)
             
             // Display location if it exists - use floating button
             val location = story.location
-            android.util.Log.d("StoryPagerAdapter", "=== LOCATION PARSING DEBUG ===")
-            android.util.Log.d("StoryPagerAdapter", "Story ID: ${story.Id}")
-            android.util.Log.d("StoryPagerAdapter", "Story location object: $location")
-            android.util.Log.d("StoryPagerAdapter", "Location is null: ${location == null}")
             
-            if (location != null) {
-                android.util.Log.d("StoryPagerAdapter", "Location placeName: ${location.placeName}")
-                android.util.Log.d("StoryPagerAdapter", "Location lat: ${location.lat} (type: ${location.lat?.javaClass?.simpleName})")
-                android.util.Log.d("StoryPagerAdapter", "Location lng: ${location.lng} (type: ${location.lng?.javaClass?.simpleName})")
-            }
-            
-            // CRITICAL: Only show location button if we have valid location data
+            // Show floating location button if we have valid location data
             if (location != null && location.placeName != null && location.placeName!!.isNotEmpty()) {
-                android.util.Log.d("StoryPagerAdapter", "✓ Location found - placeName: '${location.placeName}', lat: ${location.lat}, lng: ${location.lng}")
-                
-                // StoryLocation uses Double? directly, no conversion needed
                 val lat = location.lat
                 val lng = location.lng
+                // Get position from root level (locationPositionX/locationPositionY), not from location object
+                val locationX = story.locationPositionX  // Normalized x position (0.0-1.0)
+                val locationY = story.locationPositionY  // Normalized y position (0.0-1.0)
                 
-                android.util.Log.d("StoryPagerAdapter", "Coordinates - lat: $lat, lng: $lng")
+                android.util.Log.d("StoryPagerAdapter", "Location data - placeName: ${location.placeName}, lat: $lat, lng: $lng, x: $locationX, y: $locationY")
                 
                 if (lat != null && lng != null && lat.isFinite() && lng.isFinite()) {
-                    android.util.Log.d("StoryPagerAdapter", "✓✓✓ VALID coordinates - Setting up location button with:")
-                    android.util.Log.d("StoryPagerAdapter", "   placeName: '${location.placeName}'")
-                    android.util.Log.d("StoryPagerAdapter", "   lat: $lat")
-                    android.util.Log.d("StoryPagerAdapter", "   lng: $lng")
-                    // Only use the floating location button (locationButtonCard), not the TextView (locationTv)
-                    setupLocationFloatingButton(binding, location.placeName!!, lat, lng)
-                    android.util.Log.d("StoryPagerAdapter", "✓✓✓ Location button setup complete!")
+                    // Show and setup the floating location button with saved position
+                    setupLocationFloatingButton(binding, location.placeName!!, lat, lng, locationX, locationY)
                 } else {
-                    android.util.Log.e("StoryPagerAdapter", "✗ Invalid lat/lng values: lat=$lat, lng=$lng - HIDING location button")
-                    hideLocationViews(binding) // Ensure button is hidden if coordinates are invalid
+                    hideLocationViews(binding) // Hide button if coordinates are invalid
                 }
             } else {
-                android.util.Log.d("StoryPagerAdapter", "✗ No valid location data - location: $location, placeName: ${location?.placeName} - HIDING location button")
-                
-                // WORKAROUND: Check if location button card is visible (from image overlay)
-                // If it is, we need to make it clickable even if API doesn't return location
-                val locationButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.locationButtonCard)
-                val locationButtonText = binding.root.findViewById<android.widget.TextView>(R.id.locationButtonText)
-                
-                if (locationButtonCard != null && locationButtonCard.visibility == View.VISIBLE) {
-                    android.util.Log.w("StoryPagerAdapter", "⚠️ Location button card is VISIBLE but location data is NULL!")
-                    android.util.Log.w("StoryPagerAdapter", "⚠️ This means location tag is from image overlay, but API didn't return location data")
-                    android.util.Log.w("StoryPagerAdapter", "⚠️ Cannot make it clickable without location coordinates")
-                    android.util.Log.w("StoryPagerAdapter", "⚠️ Story ID: ${story.Id}")
-                    android.util.Log.w("StoryPagerAdapter", "⚠️ Please check backend - location should be returned in API response")
-                }
-                
                 hideLocationViews(binding) // Explicitly hide if no location data
             }
-            android.util.Log.d("StoryPagerAdapter", "=== END LOCATION PARSING DEBUG ===")
         } else {
             binding.taggedPeopleTv.visibility = View.GONE
             binding.taggedPeopleTv.text = ""
@@ -462,60 +430,9 @@ class StoryPagerAdapter(
         val end: Int,
         val userId: String
     )
-
-    /**
-     * Build "With Name1, Name2" text where each name is a blue, clickable link
-     * that opens the tagged user's profile.
-     */
-    private fun setupLocationView(binding: StoryScreenLayoutBinding, placeName: String, lat: Double, lng: Double) {
-        binding.locationTv.text = placeName
-        binding.locationTv.visibility = View.VISIBLE
-        binding.locationTv.isClickable = true
-        binding.locationTv.isFocusable = true
-        binding.locationTv.isFocusableInTouchMode = true
-        
-        // Bring the topLayout to front so interactive elements can receive touches
-        binding.topLayout.bringToFront()
-        binding.topLayout.isClickable = false
-        binding.topLayout.isFocusable = false
-        
-        // Handle touch events to consume them and prevent parent views from handling
-        binding.locationTv.setOnTouchListener { view, event ->
-            when (event.action) {
-                android.view.MotionEvent.ACTION_DOWN -> {
-                    // Consume the DOWN event to prevent parent views from handling it
-                    view.parent?.requestDisallowInterceptTouchEvent(true)
-                    true
-                }
-                android.view.MotionEvent.ACTION_UP -> {
-                    view.parent?.requestDisallowInterceptTouchEvent(false)
-                    // Pause story while opening maps
-                    pauseStory(binding)
-                    
-                    // Open location in Google Maps
-                    openLocationInMaps(placeName, lat, lng)
-                    true // Consume the event
-                }
-                android.view.MotionEvent.ACTION_CANCEL -> {
-                    view.parent?.requestDisallowInterceptTouchEvent(false)
-                    false
-                }
-                else -> false
-            }
-        }
-        
-        // Also set click listener as backup
-        binding.locationTv.setOnClickListener {
-            // Pause story while opening maps
-            pauseStory(binding)
-            // Open location in Google Maps
-            openLocationInMaps(placeName, lat, lng)
-        }
-    }
     
     private fun hideLocationViews(binding: StoryScreenLayoutBinding) {
-        android.util.Log.d("StoryPagerAdapter", "Hiding location views")
-        // Always hide the TextView location (locationTv) - we only use the floating button
+        // Hide the TextView location (locationTv)
         binding.locationTv.visibility = View.GONE
         binding.locationTv.text = ""
         binding.locationTv.setOnClickListener(null)
@@ -527,264 +444,121 @@ class StoryPagerAdapter(
             locationButtonCard.visibility = View.GONE
             locationButtonCard.setOnClickListener(null)
             locationButtonCard.setOnTouchListener(null)
-            locationButtonCard.setOnLongClickListener(null)
-            // Clear the text
             val locationButtonText = binding.root.findViewById<android.widget.TextView>(R.id.locationButtonText)
             locationButtonText?.text = ""
-            android.util.Log.d("StoryPagerAdapter", "Location button hidden and listeners cleared")
         }
     }
     
-    private fun setupLocationFloatingButton(binding: StoryScreenLayoutBinding, placeName: String, lat: Double, lng: Double) {
-        // Use findViewById to get the views since data binding might not have generated them yet
+    private fun setupLocationFloatingButton(binding: StoryScreenLayoutBinding, placeName: String, lat: Double, lng: Double, locationX: Float? = null, locationY: Float? = null) {
         val locationButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.locationButtonCard)
         val locationButtonText = binding.root.findViewById<android.widget.TextView>(R.id.locationButtonText)
         
-        android.util.Log.d("StoryPagerAdapter", "Setting up location button - card found: ${locationButtonCard != null}, text found: ${locationButtonText != null}")
-        
         if (locationButtonCard != null && locationButtonText != null) {
+            // Set visibility and text
             locationButtonCard.visibility = View.VISIBLE
             locationButtonText.text = placeName
             
-            android.util.Log.d("StoryPagerAdapter", "Location button visible and text set to: $placeName")
-            
-            // Ensure the button is visible and on top
-            locationButtonCard.post {
-                locationButtonCard.bringToFront()
-                binding.topLayout.bringToFront()
-            }
-            
-            // Make sure it's clickable and focusable
+            // Make the location tag view clickable and focusable
             locationButtonCard.isClickable = true
             locationButtonCard.isFocusable = true
             locationButtonCard.isFocusableInTouchMode = true
-            locationButtonCard.isEnabled = true
             
-            // Bring to front to ensure it's above other views (especially navigation buttons)
-            locationButtonCard.bringToFront()
-            binding.topLayout.bringToFront()
-            
-            // Force elevation and translationZ to be on top
-            locationButtonCard.elevation = 50f
-            locationButtonCard.translationZ = 50f
-            
-            // Make parent views non-clickable to prevent interception
-            val parent = locationButtonCard.parent as? android.view.ViewGroup
-            parent?.isClickable = false
-            parent?.isFocusable = false
-            
-            // Create a click handler function
-            val clickHandler = {
-                android.util.Log.d("StoryPagerAdapter", "*** Location button clicked: $placeName at ($lat, $lng) ***")
-                android.util.Log.d("StoryPagerAdapter", "*** Button click handler executing - opening maps ***")
-                try {
-                    // Pause story while opening maps
-                    pauseStory(binding)
-                    android.util.Log.d("StoryPagerAdapter", "Story paused, opening Google Maps...")
-                    // Open location in Google Maps
-                    openLocationInMaps(placeName, lat, lng)
-                    android.util.Log.d("StoryPagerAdapter", "Google Maps intent sent successfully")
-                } catch (e: Exception) {
-                    android.util.Log.e("StoryPagerAdapter", "ERROR in location click handler: ${e.message}", e)
-                    e.printStackTrace()
-                }
-            }
-            
-            // Set click listener on the card
-            locationButtonCard.setOnClickListener {
-                android.util.Log.d("StoryPagerAdapter", "onClickListener triggered")
-                clickHandler()
-            }
-            
-            // Also make the inner LinearLayout non-clickable so card handles it
+            // Ensure inner LinearLayout doesn't intercept clicks
             val locationLayout = locationButtonCard.getChildAt(0) as? android.view.ViewGroup
             locationLayout?.isClickable = false
             locationLayout?.isFocusable = false
             
-            // Handle touch events to prevent parent views from intercepting
-            locationButtonCard.setOnTouchListener { view, event ->
-                val x = event.rawX.toInt()
-                val y = event.rawY.toInt()
+            // Position the location tag at saved x/y coordinates, or use default position
+            // Remove constraints to allow free positioning via x/y
+            val layoutParams = locationButtonCard.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            layoutParams?.let {
+                it.leftToLeft = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.leftMargin = 0
+                it.topMargin = 0
+                locationButtonCard.layoutParams = it
+            }
+            
+            binding.root.post {
+                val parentWidth = binding.root.width.toFloat()
+                val parentHeight = binding.root.height.toFloat()
                 
-                // CRITICAL: Always consume ALL touch events to prevent navigation buttons and ViewPager2 from receiving them
-                when (event.action) {
-                    android.view.MotionEvent.ACTION_DOWN -> {
-                        android.util.Log.d("StoryPagerAdapter", "Location button touch DOWN at ($x, $y)")
-                        // Prevent ViewPager2 from intercepting touches
-                        viewPager.isUserInputEnabled = false
-                        // Prevent ALL parent views from intercepting touches
-                        var parent = view.parent
-                        while (parent != null) {
-                            if (parent is android.view.ViewGroup) {
-                                parent.requestDisallowInterceptTouchEvent(true)
-                            }
-                            // Specifically handle ViewPager2's RecyclerView
-                            if (parent is androidx.recyclerview.widget.RecyclerView) {
-                                parent.requestDisallowInterceptTouchEvent(true)
-                            }
-                            parent = parent.parent
-                        }
-                        // Disable navigation buttons temporarily to prevent their click listeners from firing
-                        binding.btnNext?.isEnabled = false
-                        binding.btnNext?.isClickable = false
-                        binding.btnPrevious?.isEnabled = false
-                        binding.btnPrevious?.isClickable = false
-                        view.isPressed = true
-                        view.alpha = 0.8f
-                        // CRITICAL: Return true to consume the event and prevent it from reaching navigation buttons
-                        return@setOnTouchListener true
+                android.util.Log.d("StoryPagerAdapter", "Positioning location tag - parentWidth: $parentWidth, parentHeight: $parentHeight, locationX: $locationX, locationY: $locationY")
+                
+                if (parentWidth > 0 && parentHeight > 0) {
+                    if (locationX != null && locationY != null) {
+                        // Use saved position (normalized 0.0-1.0 converted to pixels)
+                        val xPosition = locationX * parentWidth
+                        val yPosition = locationY * parentHeight
+                        locationButtonCard.x = xPosition
+                        locationButtonCard.y = yPosition
+                        android.util.Log.d("StoryPagerAdapter", "Positioned location tag at x: $xPosition, y: $yPosition (normalized: x=$locationX, y=$locationY)")
+                    } else {
+                        // Default position: top-left area (matching Create Story default)
+                        locationButtonCard.x = parentWidth * 0.12f  // 12% from left
+                        locationButtonCard.y = parentHeight * 0.20f  // 20% from top
+                        android.util.Log.d("StoryPagerAdapter", "Using default position - x: ${locationButtonCard.x}, y: ${locationButtonCard.y} (locationX and locationY are null)")
                     }
-                    android.view.MotionEvent.ACTION_UP -> {
-                        android.util.Log.d("StoryPagerAdapter", "Location button touch UP at ($x, $y)")
-                        view.isPressed = false
-                        view.alpha = 1.0f
-                        // Execute the click FIRST before re-enabling navigation buttons
-                        android.util.Log.d("StoryPagerAdapter", "Executing location click handler from touch UP")
-                        clickHandler()
-                        // Re-enable ViewPager2
-                        viewPager.isUserInputEnabled = true
-                        // Re-enable navigation buttons AFTER handling the click
-                        binding.btnNext?.isEnabled = true
-                        binding.btnNext?.isClickable = true
-                        binding.btnPrevious?.isEnabled = true
-                        binding.btnPrevious?.isClickable = true
-                        // Allow parent views to intercept again
-                        var parent = view.parent
-                        while (parent != null) {
-                            if (parent is android.view.ViewGroup) {
-                                parent.requestDisallowInterceptTouchEvent(false)
-                            }
-                            if (parent is androidx.recyclerview.widget.RecyclerView) {
-                                parent.requestDisallowInterceptTouchEvent(false)
-                            }
-                            parent = parent.parent
-                        }
-                        // CRITICAL: Return true to consume the event and prevent navigation button clicks
-                        return@setOnTouchListener true
-                    }
-                    android.view.MotionEvent.ACTION_CANCEL -> {
-                        android.util.Log.d("StoryPagerAdapter", "Location button touch CANCEL")
-                        view.isPressed = false
-                        view.alpha = 1.0f
-                        // Re-enable ViewPager2
-                        viewPager.isUserInputEnabled = true
-                        binding.btnNext?.isEnabled = true
-                        binding.btnNext?.isClickable = true
-                        binding.btnPrevious?.isEnabled = true
-                        binding.btnPrevious?.isClickable = true
-                        var parent = view.parent
-                        while (parent != null) {
-                            if (parent is android.view.ViewGroup) {
-                                parent.requestDisallowInterceptTouchEvent(false)
-                            }
-                            if (parent is androidx.recyclerview.widget.RecyclerView) {
-                                parent.requestDisallowInterceptTouchEvent(false)
-                            }
-                            parent = parent.parent
-                        }
-                        // CRITICAL: Return true to consume cancel event
-                        return@setOnTouchListener true
-                    }
-                    android.view.MotionEvent.ACTION_MOVE -> {
-                        // Keep preventing interception during move
-                        var parent = view.parent
-                        while (parent != null) {
-                            if (parent is android.view.ViewGroup) {
-                                parent.requestDisallowInterceptTouchEvent(true)
-                            }
-                            if (parent is androidx.recyclerview.widget.RecyclerView) {
-                                parent.requestDisallowInterceptTouchEvent(true)
-                            }
-                            parent = parent.parent
-                        }
-                        // CRITICAL: Return true to consume move events
-                        return@setOnTouchListener true
-                    }
-                    else -> {
-                        // For other events, still prevent interception
-                        var parent = view.parent
-                        while (parent != null) {
-                            if (parent is android.view.ViewGroup) {
-                                parent.requestDisallowInterceptTouchEvent(true)
-                            }
-                            if (parent is androidx.recyclerview.widget.RecyclerView) {
-                                parent.requestDisallowInterceptTouchEvent(true)
-                            }
-                            parent = parent.parent
-                        }
-                        // CRITICAL: Return true to consume all events
-                        return@setOnTouchListener true
-                    }
+                } else {
+                    android.util.Log.w("StoryPagerAdapter", "Cannot position location tag - invalid parent dimensions (width: $parentWidth, height: $parentHeight)")
                 }
             }
             
-            // Also add a long click listener as backup
-            locationButtonCard.setOnLongClickListener {
-                android.util.Log.d("StoryPagerAdapter", "Location button long clicked")
-                clickHandler()
-                true
+            // Bring to front to ensure it's above other views (image/video/navigation buttons)
+            locationButtonCard.bringToFront()
+            
+            // Simple click listener - the location tag view is the ONLY element handling clicks
+            locationButtonCard.setOnClickListener {
+                pauseStory(binding)
+                openLocationInMaps(placeName, lat, lng)
             }
             
-            // Test: Add a simple test click to verify button is working
-            android.util.Log.d("StoryPagerAdapter", "Location button setup complete. Button should be clickable now.")
-        } else {
-            android.util.Log.e("StoryPagerAdapter", "Location button views not found! Card: ${locationButtonCard != null}, Text: ${locationButtonText != null}")
+            // Clear any previous touch listeners - we don't need them
+            locationButtonCard.setOnTouchListener(null)
         }
     }
     
     private fun openLocationInMaps(placeName: String, lat: Double, lng: Double) {
-        android.util.Log.d("StoryPagerAdapter", "openLocationInMaps called with placeName=$placeName, lat=$lat, lng=$lng")
-        
         try {
             // First, try to open Google Maps app directly
             val gmmIntentUri = Uri.parse("geo:$lat,$lng?q=$lat,$lng(${Uri.encode(placeName)})")
-            android.util.Log.d("StoryPagerAdapter", "Created geo URI: $gmmIntentUri")
-            
             val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
             mapIntent.setPackage("com.google.android.apps.maps")
             
             // Check if Google Maps is available
             val resolveInfo = context.packageManager.resolveActivity(mapIntent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
-            android.util.Log.d("StoryPagerAdapter", "Google Maps resolveActivity result: $resolveInfo")
-            
             if (resolveInfo != null) {
-                android.util.Log.d("StoryPagerAdapter", "Starting Google Maps activity...")
                 context.startActivity(mapIntent)
-                android.util.Log.d("StoryPagerAdapter", "Google Maps activity started successfully")
                 return
             }
         } catch (e: android.content.ActivityNotFoundException) {
-            android.util.Log.d("StoryPagerAdapter", "Google Maps app not found, trying alternatives...")
+            // Continue to fallback
         } catch (e: Exception) {
-            android.util.Log.e("StoryPagerAdapter", "Error opening Google Maps app: ${e.message}", e)
+            // Continue to fallback
         }
         
         // Fallback 1: Try Google Maps web URL
         try {
-            android.util.Log.d("StoryPagerAdapter", "Trying Google Maps web URL...")
             val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng"))
             webIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(webIntent)
-            android.util.Log.d("StoryPagerAdapter", "Google Maps web URL opened successfully")
             return
         } catch (e: Exception) {
-            android.util.Log.e("StoryPagerAdapter", "Error opening Google Maps web URL: ${e.message}", e)
+            // Continue to fallback
         }
         
         // Fallback 2: Try generic geo intent (opens any map app)
         try {
-            android.util.Log.d("StoryPagerAdapter", "Trying generic geo intent...")
             val geoIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lng?q=${Uri.encode(placeName)}"))
             geoIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(geoIntent)
-            android.util.Log.d("StoryPagerAdapter", "Generic geo intent opened successfully")
             return
         } catch (e: Exception) {
-            android.util.Log.e("StoryPagerAdapter", "Error opening geo intent: ${e.message}", e)
+            // Show error message
         }
         
         // Last resort: Show error message
-        android.util.Log.e("StoryPagerAdapter", "All map opening methods failed. No map app available.")
         android.widget.Toast.makeText(context, "Unable to open maps. Please install a map application.", android.widget.Toast.LENGTH_SHORT).show()
     }
 
@@ -1191,40 +965,12 @@ class StoryPagerAdapter(
     }
 
     private fun setClickListener(binding: StoryScreenLayoutBinding, users: Stories) {
-        
-        binding.btnNext.setOnClickListener { view ->
-            // Final safety check: verify touch is NOT on location button
-            val locationButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.locationButtonCard)
-            if (locationButtonCard != null && locationButtonCard.visibility == View.VISIBLE) {
-                // Get the last touch coordinates from the view
-                val locationButtonLocation = IntArray(2)
-                locationButtonCard.getLocationOnScreen(locationButtonLocation)
-                val viewLocation = IntArray(2)
-                view.getLocationOnScreen(viewLocation)
-                
-                // Estimate touch position (center of view for click events)
-                val touchX = viewLocation[0] + view.width / 2
-                val touchY = viewLocation[1] + view.height / 2
-                
-                val left = locationButtonLocation[0]
-                val top = locationButtonLocation[1]
-                val right = left + locationButtonCard.width
-                val bottom = top + locationButtonCard.height
-                
-                if (touchX >= left && touchX <= right && touchY >= top && touchY <= bottom) {
-                    android.util.Log.d("StoryPagerAdapter", "btnNext onClick: touch is on location button - ignoring")
-                    return@setOnClickListener // Don't execute navigation
-                }
-            }
-            
-            android.util.Log.d("StoryPagerAdapter", "btnNext onClick triggered")
-            
+        binding.btnNext.setOnClickListener {
             // Fill the progress bars of previous stories immediately
             if (currentStoryIndex < progressBars.size - 1) {
                 // Stop the current progress bar animation
                 progressBars[currentStoryIndex].progress = 1000
                 currentAnimator?.cancel()
-//                currentStoryIndex++
                 if (currentStoryIndex < users.storiesRef.size - 1) {
                     currentStoryIndex++
                 }
@@ -1242,43 +988,19 @@ class StoryPagerAdapter(
                 if (previousPageIndex + 1 < userList.size) {
                     viewPager.setCurrentItem(previousPageIndex + 1, true)
                 } else {
-                    // Optionally loop back to the first user or stop the sequence
-                    // viewPager.setCurrentItem(0, true)  // Uncomment to loop
-
-//                    Toast.makeText(context, "All users' stories finished", Toast.LENGTH_SHORT).show()
                     moveToMainScreen()
                 }
             }
             notifyItemChanged(previousPageIndex)
         }
 
-        binding.btnPrevious.setOnClickListener { view ->
-            // Final safety check: verify touch is NOT on location button
-            val locationButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.locationButtonCard)
-            if (locationButtonCard != null && locationButtonCard.visibility == View.VISIBLE) {
-                // Get the last touch coordinates from the view
-                val locationButtonLocation = IntArray(2)
-                locationButtonCard.getLocationOnScreen(locationButtonLocation)
-                val viewLocation = IntArray(2)
-                view.getLocationOnScreen(viewLocation)
-                
-                // Estimate touch position (center of view for click events)
-                val touchX = viewLocation[0] + view.width / 2
-                val touchY = viewLocation[1] + view.height / 2
-                
-                val left = locationButtonLocation[0]
-                val top = locationButtonLocation[1]
-                val right = left + locationButtonCard.width
-                val bottom = top + locationButtonCard.height
-                
-                if (touchX >= left && touchX <= right && touchY >= top && touchY <= bottom) {
-                    android.util.Log.d("StoryPagerAdapter", "btnPrevious onClick: touch is on location button - ignoring")
-                    return@setOnClickListener // Don't execute navigation
-                }
-            }
-            
-            android.util.Log.d("StoryPagerAdapter", "btnPrevious onClick triggered")
-            
+        binding.btnNext.setOnLongClickListener {
+            // Handle long press: pause the story
+            pauseStory(binding)
+            true // Consume the long press event
+        }
+
+        binding.btnPrevious.setOnClickListener {
             // If we're at the first story of the first user, do nothing
             if (previousPageIndex == 0 && currentStoryIndex == 0) {
                 return@setOnClickListener  // Do nothing
@@ -1300,82 +1022,6 @@ class StoryPagerAdapter(
                 showCurrentStory(storyMedia, binding, users)  // Display the previous story
             }
             notifyItemChanged(previousPageIndex)
-        }
-
-        // Combined touch listener for btnNext that checks location button AND handles long press
-        binding.btnNext.setOnTouchListener { view, event ->
-            // FIRST: Check if touch is on location button - this takes priority
-            val locationButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.locationButtonCard)
-            if (locationButtonCard != null && locationButtonCard.visibility == View.VISIBLE) {
-                val location = IntArray(2)
-                locationButtonCard.getLocationOnScreen(location)
-                val x = event.rawX.toInt()
-                val y = event.rawY.toInt()
-                
-                val left = location[0]
-                val top = location[1]
-                val right = left + locationButtonCard.width
-                val bottom = top + locationButtonCard.height
-                
-                if (x >= left && x <= right && y >= top && y <= bottom) {
-                    // Touch is on location button - CONSUME the event
-                    android.util.Log.d("StoryPagerAdapter", "btnNext touch on location button - consuming")
-                    return@setOnTouchListener true // Consume to prevent click listener
-                }
-            }
-            
-            // SECOND: Handle long press pause/resume
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    // Start long press timer (Android handles this automatically)
-                }
-                MotionEvent.ACTION_UP -> {
-                    // Resume the story when touch is released
-                    resumeStory(binding)
-                }
-            }
-            false // Don't consume, let click listener handle it if not on location button
-        }
-        
-        binding.btnNext.setOnLongClickListener {
-            // Handle long press: pause the story
-            pauseStory(binding)
-            true // Consume the long press event
-        }
-
-        // Combined touch listener for btnPrevious that checks location button AND handles long press
-        binding.btnPrevious.setOnTouchListener { view, event ->
-            // FIRST: Check if touch is on location button - this takes priority
-            val locationButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.locationButtonCard)
-            if (locationButtonCard != null && locationButtonCard.visibility == View.VISIBLE) {
-                val location = IntArray(2)
-                locationButtonCard.getLocationOnScreen(location)
-                val x = event.rawX.toInt()
-                val y = event.rawY.toInt()
-                
-                val left = location[0]
-                val top = location[1]
-                val right = left + locationButtonCard.width
-                val bottom = top + locationButtonCard.height
-                
-                if (x >= left && x <= right && y >= top && y <= bottom) {
-                    // Touch is on location button - CONSUME the event
-                    android.util.Log.d("StoryPagerAdapter", "btnPrevious touch on location button - consuming")
-                    return@setOnTouchListener true // Consume to prevent click listener
-                }
-            }
-            
-            // SECOND: Handle long press pause/resume
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    // Start long press timer (Android handles this automatically)
-                }
-                MotionEvent.ACTION_UP -> {
-                    // Resume the story when touch is released
-                    resumeStory(binding)
-                }
-            }
-            false // Don't consume, let click listener handle it if not on location button
         }
         
         binding.btnPrevious.setOnLongClickListener {

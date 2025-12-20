@@ -570,7 +570,9 @@ class IndividualRepo (private val context: Context){
         taggedList: List<String>,
         placeName: String?,
         lat: Double?,
-        lng: Double?
+        lng: Double?,
+        locationX: Float? = null,
+        locationY: Float? = null
     ): Response<CreateStoryModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
@@ -602,11 +604,16 @@ class IndividualRepo (private val context: Context){
         val placeNameBody = placeName?.toRequestBody("text/plain".toMediaTypeOrNull())
         val latBody = lat?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val lngBody = lng?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val locationPositionXBody = locationX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val locationPositionYBody = locationY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        
+        android.util.Log.d("IndividualRepo", "Creating story with location - placeName: $placeName, lat: $lat, lng: $lng, locationPositionX: $locationX, locationPositionY: $locationY")
+        
         // Make the API call
         return withContext(Dispatchers.IO) {
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
-                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody
+                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody, locationPositionXBody, locationPositionYBody
             ).execute()
         }
     }

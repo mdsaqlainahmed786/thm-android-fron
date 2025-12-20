@@ -55,7 +55,7 @@ class StoriesPagingSource(
                 // Log location data for debugging
                 Log.d(tag, "myStories count: ${myStories.size}")
                 myStories.forEachIndexed { index, storyRef ->
-                    Log.d(tag, "myStories[$index] _id: ${storyRef.Id}, location: ${storyRef.location}, placeName: ${storyRef.location?.placeName}, lat: ${storyRef.location?.lat}, lng: ${storyRef.location?.lng}")
+                    Log.d(tag, "myStories[$index] _id: ${storyRef.Id}, location: ${storyRef.location}, placeName: ${storyRef.location?.placeName}, lat: ${storyRef.location?.lat}, lng: ${storyRef.location?.lng}, locationPositionX: ${storyRef.locationPositionX}, locationPositionY: ${storyRef.locationPositionY}")
                     // Log all fields of the story to see what's available
                     Log.d(tag, "myStories[$index] full object: $storyRef")
                 }
@@ -84,10 +84,12 @@ class StoriesPagingSource(
                         likes = myStory.likes,
                         views = myStory.views,
                         taggedRef = myStory.taggedRef,
-                        location = myStory.location  // CRITICAL: Preserve location data from API response
+                        location = myStory.location,  // CRITICAL: Preserve location data from API response
+                        locationPositionX = myStory.locationPositionX,  // Preserve x position
+                        locationPositionY = myStory.locationPositionY   // Preserve y position
                     ).also {
                         // Log to verify location is being preserved
-                        Log.d(tag, "Converted MyStories to StoriesRef - location: ${it.location}, placeName: ${it.location?.placeName}, lat: ${it.location?.lat}, lng: ${it.location?.lng}")
+                        Log.d(tag, "Converted MyStories to StoriesRef - location: ${it.location}, placeName: ${it.location?.placeName}, lat: ${it.location?.lat}, lng: ${it.location?.lng}, x: ${it.locationPositionX}, y: ${it.locationPositionY}")
                     }
                 }
 

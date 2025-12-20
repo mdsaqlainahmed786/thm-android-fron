@@ -105,6 +105,9 @@ class CreateStoryActivity : BaseActivity() {
     private var selectedLocationLabel: String? = null
     private var selectedLocationLat: Double? = null
     private var selectedLocationLng: Double? = null
+    private var selectedLocationX: Float? = null  // Normalized x position (0.0-1.0)
+    private var selectedLocationY: Float? = null  // Normalized y position (0.0-1.0)
+    private var locationOverlayView: View? = null  // Reference to the location overlay view
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var locationHelper: LocationHelper
 
@@ -974,7 +977,7 @@ class CreateStoryActivity : BaseActivity() {
                 }
             }
 
-            override fun onStopViewChangeListener(viewType: ViewType?) {
+                            override fun onStopViewChangeListener(viewType: ViewType?) {
                 // Immediately restore positions to prevent flicker
                 // First, try immediate restoration (synchronous if possible)
                 val childCount = binding.photoEditorView.childCount
@@ -998,6 +1001,13 @@ class CreateStoryActivity : BaseActivity() {
                             }
                             
                             removeGravityConstraints(view)
+                            
+                            // Update location position if this is the location overlay
+                            val isLocationOverlay = view.getTag(R.id.story_location_overlay_view) as? Boolean ?: false
+                            if (isLocationOverlay) {
+                                // Update normalized position when location overlay is moved
+                                updateLocationPosition(view)
+                            }
                         }
                     }
                 }
@@ -1029,6 +1039,13 @@ class CreateStoryActivity : BaseActivity() {
                                         kotlin.math.abs(currentY - centerY) > 100) {
                                         viewPositions[view] = Pair(currentX, currentY)
                                     }
+                                }
+                                
+                                // Update location position if this is the location overlay
+                                val isLocationOverlay = view.getTag(R.id.story_location_overlay_view) as? Boolean ?: false
+                                if (isLocationOverlay) {
+                                    // Update normalized position when location overlay is moved
+                                    updateLocationPosition(view)
                                 }
                             }
                         }
@@ -1390,6 +1407,11 @@ class CreateStoryActivity : BaseActivity() {
             // Hide all edit icons before saving
             hideAllEditIcons()
             
+            // Remove location overlay from photoEditor before saving
+            // This prevents it from being merged into the bitmap
+            // The location tag will be rendered as a View in the Story Viewer instead
+            removeLocationOverlayFromEditor()
+            
             // Give a small delay to ensure UI updates are complete
             binding.photoEditorView.postDelayed({
                 val newDir = File(filesDir, "edited_images").apply {
@@ -1447,13 +1469,17 @@ class CreateStoryActivity : BaseActivity() {
 
     private fun postStory(imageFile: File?, videoFile: File?) {
         val selectedTagIdList = selectedTagPeopleList.map { it.id }
+        // Pass location position (x/y) to API so it can be stored and used in Story Viewer
+        Log.d("CreateStoryActivity", "Posting story with location - placeName: $selectedLocationLabel, lat: $selectedLocationLat, lng: $selectedLocationLng, x: $selectedLocationX, y: $selectedLocationY")
         individualViewModal.createStory(
             imageFile, 
             videoFile, 
             selectedTagIdList,
             selectedLocationLabel,
             selectedLocationLat,
-            selectedLocationLng
+            selectedLocationLng,
+            selectedLocationX,  // Normalized x position (0.0-1.0)
+            selectedLocationY   // Normalized y position (0.0-1.0)
         )
     }
 
@@ -1593,6 +1619,9 @@ class CreateStoryActivity : BaseActivity() {
         binding.photoEditorView.postDelayed({
             val overlay = getLatestTextOverlay() ?: return@postDelayed
             overlay.setTag(R.id.story_location_overlay_view, true)
+            
+            // Store reference to location overlay
+            locationOverlayView = overlay
 
             val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText)
             val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
@@ -1613,6 +1642,11 @@ class CreateStoryActivity : BaseActivity() {
             overlay.x = binding.photoEditorView.width * 0.20f
             overlay.y = binding.photoEditorView.height * 0.20f
             viewPositions[overlay] = Pair(overlay.x, overlay.y)
+            
+            // Store normalized position (0.0-1.0) for later use - use post to ensure dimensions are available
+            binding.photoEditorView.post {
+                updateLocationPosition(overlay)
+            }
         }, 80)
     }
 
@@ -1632,6 +1666,38 @@ class CreateStoryActivity : BaseActivity() {
     private fun clearCompoundDrawables(textView: TextView) {
         textView.setCompoundDrawablesRelative(null, null, null, null)
         textView.compoundDrawablePadding = 0
+    }
+    
+    /**
+     * Update the stored location tag position (normalized 0.0-1.0)
+     */
+    private fun updateLocationPosition(overlay: View) {
+        val viewWidth = binding.photoEditorView.width.toFloat()
+        val viewHeight = binding.photoEditorView.height.toFloat()
+        if (viewWidth > 0 && viewHeight > 0) {
+            selectedLocationX = overlay.x / viewWidth
+            selectedLocationY = overlay.y / viewHeight
+            Log.d("CreateStoryActivity", "Updated location position - x: $selectedLocationX, y: $selectedLocationY (overlay.x: ${overlay.x}, overlay.y: ${overlay.y}, width: $viewWidth, height: $viewHeight)")
+        } else {
+            Log.w("CreateStoryActivity", "Cannot update location position - view dimensions are invalid (width: $viewWidth, height: $viewHeight)")
+        }
+    }
+    
+    /**
+     * Remove location overlay from photoEditor before saving to prevent it from being merged into bitmap
+     */
+    private fun removeLocationOverlayFromEditor() {
+        locationOverlayView?.let { overlay ->
+            try {
+                // Remove the view from photoEditorView to prevent it from being saved in the bitmap
+                val parent = overlay.parent as? ViewGroup
+                parent?.removeView(overlay)
+                locationOverlayView = null
+                Log.d("CreateStoryActivity", "Location overlay removed from photoEditor before saving")
+            } catch (e: Exception) {
+                Log.e("CreateStoryActivity", "Error removing location overlay: ${e.message}", e)
+            }
+        }
     }
 
     override fun onPause() {

@@ -18,6 +18,8 @@ data class StoriesRef (
     @SerializedName("likes"     ) var likes     : Int?                = null,
     @SerializedName("views"     ) var views     : Int?                = null,
     @SerializedName("taggedRef" ) var taggedRef : ArrayList<TaggedRef> = arrayListOf(),
-    @SerializedName("location"  ) var location  : StoryLocation? = null
+    @SerializedName("location"  ) var location  : StoryLocation? = null,
+    @SerializedName("locationPositionX" ) var locationPositionX : Float? = null,  // Normalized x position (0.0-1.0)
+    @SerializedName("locationPositionY" ) var locationPositionY : Float? = null   // Normalized y position (0.0-1.0)
 
 )

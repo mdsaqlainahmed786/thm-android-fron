@@ -289,7 +289,9 @@ interface Application {
         @Part videoFile: MultipartBody.Part?,
         @Part("placeName") placeName: RequestBody?,
         @Part("lat") lat: RequestBody?,
-        @Part("lng") lng: RequestBody?
+        @Part("lng") lng: RequestBody?,
+        @Part("locationPositionX") locationPositionX: RequestBody?,
+        @Part("locationPositionY") locationPositionY: RequestBody?
     ): Call<CreateStoryModal>
 
     @POST("posts/saved-posts"+"/{id}")
