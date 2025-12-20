@@ -190,10 +190,36 @@ class CreateStoryActivity : BaseActivity() {
             val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
             if (!addresses.isNullOrEmpty()) {
                 val address = addresses[0]
-                val city = address.locality?.trim().orEmpty()
-                val state = address.adminArea?.trim().orEmpty()
-                val combined = listOf(city, state).filter { it.isNotBlank() }.joinToString(", ")
-                combined.ifBlank { address.subAdminArea?.trim() ?: address.getAddressLine(0) }
+                
+                // Try to get full address first (most complete)
+                val fullAddress = address.getAddressLine(0)?.trim()
+                
+                // If full address is not available or too short, build from components
+                val locationText = if (fullAddress.isNullOrBlank()) {
+                    // Combine address components: thoroughfare, locality, adminArea
+                    val parts = mutableListOf<String>()
+                    address.thoroughfare?.trim()?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+                    address.locality?.trim()?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+                    address.subLocality?.trim()?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+                    address.adminArea?.trim()?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+                    
+                    if (parts.isNotEmpty()) {
+                        parts.joinToString(", ")
+                    } else {
+                        // Fallback to subAdminArea or country
+                        address.subAdminArea?.trim() ?: address.countryName?.trim() ?: "Unknown location"
+                    }
+                } else {
+                    fullAddress
+                }
+                
+                // Truncate if too long (max 45 characters to leave room for ellipsis)
+                val maxLength = 45
+                if (locationText.length > maxLength) {
+                    locationText.substring(0, maxLength).trim() + "..."
+                } else {
+                    locationText
+                }
             } else null
         } catch (e: Exception) {
             Log.e("CreateStoryActivity", "Geocoder failed: ${e.message}", e)
@@ -1311,6 +1337,16 @@ class CreateStoryActivity : BaseActivity() {
             textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
             textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
             if (isLocationOverlay) {
+                // Match viewing UI: 12sp text size, ellipsize, padding
+                textView.textSize = 12f
+                textView.maxLines = 1
+                textView.ellipsize = android.text.TextUtils.TruncateAt.END
+                textView.setPadding(
+                    (12 * resources.displayMetrics.density).toInt(),
+                    (8 * resources.displayMetrics.density).toInt(),
+                    (12 * resources.displayMetrics.density).toInt(),
+                    (8 * resources.displayMetrics.density).toInt()
+                )
                 applyLocationIcon(textView)
             } else {
                 // Ensure people tags don't get an icon
@@ -1630,6 +1666,18 @@ class CreateStoryActivity : BaseActivity() {
                 text = displayText
                 setTextColor(ContextCompat.getColor(activity, R.color.blue))
                 background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                // Match viewing UI: 12sp text size
+                textSize = 12f
+                // Ensure text truncates with ellipsis if too long
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                // Match viewing UI padding: 12dp horizontal, 8dp vertical
+                setPadding(
+                    (12 * resources.displayMetrics.density).toInt(),
+                    (8 * resources.displayMetrics.density).toInt(),
+                    (12 * resources.displayMetrics.density).toInt(),
+                    (8 * resources.displayMetrics.density).toInt()
+                )
                 applyLocationIcon(this)
             }
 
@@ -1652,15 +1700,15 @@ class CreateStoryActivity : BaseActivity() {
 
     private fun applyLocationIcon(textView: TextView) {
         val drawable = ContextCompat.getDrawable(this, R.drawable.ic_location_blue) ?: return
-        // Make the location icon a bit bigger so it matches the label prominence
-        val sizePx = (20 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        // Match viewing UI: 16dp icon with 6dp margin
+        val sizePx = (16 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
 
         val wrapped = DrawableCompat.wrap(drawable.mutate())
         DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.blue))
         wrapped.setBounds(0, 0, sizePx, sizePx)
 
         textView.setCompoundDrawablesRelative(wrapped, null, null, null)
-        textView.compoundDrawablePadding = (8 * resources.displayMetrics.density).toInt()
+        textView.compoundDrawablePadding = (6 * resources.displayMetrics.density).toInt()
     }
 
     private fun clearCompoundDrawables(textView: TextView) {
