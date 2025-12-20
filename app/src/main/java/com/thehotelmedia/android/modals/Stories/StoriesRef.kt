@@ -17,6 +17,13 @@ data class StoriesRef (
     @SerializedName("viewsRef"  ) var viewsRef  : ArrayList<LikesRef> = arrayListOf(),
     @SerializedName("likes"     ) var likes     : Int?                = null,
     @SerializedName("views"     ) var views     : Int?                = null,
-    @SerializedName("taggedRef" ) var taggedRef : ArrayList<TaggedRef> = arrayListOf()
+    @SerializedName("taggedRef" ) var taggedRef : ArrayList<TaggedRef> = arrayListOf(),
+    @SerializedName("location"  ) var location  : StoryLocation? = null,
+    @SerializedName("locationPositionX" ) var locationPositionX : Float? = null,  // Normalized x position (0.0-1.0)
+    @SerializedName("locationPositionY" ) var locationPositionY : Float? = null,  // Normalized y position (0.0-1.0)
+    @SerializedName("userTagged") var userTaggedName : String? = null,  // Name of tagged user (backend field name)
+    @SerializedName("userTaggedId") var userTaggedId : String? = null,  // ID of tagged user (may not be in response, use taggedRef[0].Id as fallback)
+    @SerializedName("userTaggedPositionX" ) var userTaggedPositionX : Float? = null,  // Normalized x position (0.0-1.0)
+    @SerializedName("userTaggedPositionY" ) var userTaggedPositionY : Float? = null   // Normalized y position (0.0-1.0)
 
 )

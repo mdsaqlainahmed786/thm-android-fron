@@ -530,10 +530,19 @@ class VideoTrimmerActivity : BaseActivity() {
                 renderOverlayOnVideo(uri) { videoFile ->
                     runOnUiThread {
                         giffProgressBar.hide()
-                        if (videoFile != null && videoFile.exists() && validateVideoFile(videoFile)) {
-                            Log.d("VideoTrimmerActivity", "Video with overlay ready (${videoFile.length()} bytes), uploading...")
-                            val taggedIds = selectedTagPeopleList?.map { it.id } ?: emptyList()
-                            individualViewModal.createStory(null, videoFile, taggedIds)
+                                if (videoFile != null && videoFile.exists() && validateVideoFile(videoFile)) {
+                                    Log.d("VideoTrimmerActivity", "Video with overlay ready (${videoFile.length()} bytes), uploading...")
+                                    val taggedIds = selectedTagPeopleList?.map { it.id } ?: emptyList()
+                                    // Stories created from the trimmer currently do not carry a location tag.
+                                    // Pass null for placeName/lat/lng so the backend treats them as absent.
+                                    individualViewModal.createStory(
+                                        null,
+                                        videoFile,
+                                        taggedIds,
+                                        null,
+                                        null,
+                                        null
+                                    )
                         } else {
                             Log.e("VideoTrimmerActivity", "Composited video is invalid or missing, falling back to original")
                             // Fallback to original video
@@ -544,7 +553,14 @@ class VideoTrimmerActivity : BaseActivity() {
                                         if (originalVideoFile != null && originalVideoFile.exists() && validateVideoFile(originalVideoFile)) {
                                             Log.d("VideoTrimmerActivity", "Using original video without overlay (${originalVideoFile.length()} bytes)")
                                             val taggedIds = selectedTagPeopleList?.map { it.id } ?: emptyList()
-                                            individualViewModal.createStory(null, originalVideoFile, taggedIds)
+                                            individualViewModal.createStory(
+                                                null,
+                                                originalVideoFile,
+                                                taggedIds,
+                                                null,
+                                                null,
+                                                null
+                                            )
                                         } else {
                             setSavingState(false)
                                             showToast("Unable to prepare video")
@@ -573,7 +589,14 @@ class VideoTrimmerActivity : BaseActivity() {
                             if (videoFile != null && videoFile.exists() && validateVideoFile(videoFile)) {
                                 Log.d("VideoTrimmerActivity", "Video ready (${videoFile.length()} bytes), uploading...")
                                 val taggedIds = selectedTagPeopleList?.map { it.id } ?: emptyList()
-                                individualViewModal.createStory(null, videoFile, taggedIds)
+                                individualViewModal.createStory(
+                                    null,
+                                    videoFile,
+                                    taggedIds,
+                                    null,
+                                    null,
+                                    null
+                                )
                             } else {
                                 setSavingState(false)
                                 showToast("Video file is invalid or corrupted. Please try again.")

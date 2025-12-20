@@ -64,7 +64,7 @@ import com.thehotelmedia.android.extensions.navigateToMainActivity
 import com.thehotelmedia.android.extensions.setOnSwipeListener
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
-import com.yalantis.ucrop.UCrop
+import com.yalantis.ucrop.UCrop       
 import com.yalantis.ucrop.model.AspectRatio
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexboxLayoutManager
@@ -103,6 +103,16 @@ class CreateStoryActivity : BaseActivity() {
     private var isUploading = false // Flag to prevent duplicate uploads
     private var selectedTagPeopleList: ArrayList<TagPeople> = arrayListOf()
     private var selectedLocationLabel: String? = null
+    private var selectedLocationLat: Double? = null
+    private var selectedLocationLng: Double? = null
+    private var selectedLocationX: Float? = null  // Normalized x position (0.0-1.0)
+    private var selectedLocationY: Float? = null  // Normalized y position (0.0-1.0)
+    private var locationOverlayView: View? = null  // Reference to the location overlay view
+    private var selectedUserTagX: Float? = null  // Normalized x position (0.0-1.0) for first user tag
+    private var selectedUserTagY: Float? = null  // Normalized y position (0.0-1.0) for first user tag
+    private var userTagOverlayView: View? = null  // Reference to the first user tag overlay view
+    private var selectedUserTagId: String? = null  // ID of the first tagged user
+    private var selectedUserTagName: String? = null  // Name of the first tagged user
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var locationHelper: LocationHelper
 
@@ -169,6 +179,8 @@ class CreateStoryActivity : BaseActivity() {
             locationCallback = { latitude, longitude ->
                 val label = getCityStateFromLatLng(latitude, longitude) ?: "Current location"
                 selectedLocationLabel = label
+                selectedLocationLat = latitude
+                selectedLocationLng = longitude
                 updateStoryLocationOverlay(label)
             },
             errorCallback = { errorMessage ->
@@ -183,10 +195,36 @@ class CreateStoryActivity : BaseActivity() {
             val addresses: List<Address>? = geocoder.getFromLocation(latitude, longitude, 1)
             if (!addresses.isNullOrEmpty()) {
                 val address = addresses[0]
-                val city = address.locality?.trim().orEmpty()
-                val state = address.adminArea?.trim().orEmpty()
-                val combined = listOf(city, state).filter { it.isNotBlank() }.joinToString(", ")
-                combined.ifBlank { address.subAdminArea?.trim() ?: address.getAddressLine(0) }
+                
+                // Try to get full address first (most complete)
+                val fullAddress = address.getAddressLine(0)?.trim()
+                
+                // If full address is not available or too short, build from components
+                val locationText = if (fullAddress.isNullOrBlank()) {
+                    // Combine address components: thoroughfare, locality, adminArea
+                    val parts = mutableListOf<String>()
+                    address.thoroughfare?.trim()?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+                    address.locality?.trim()?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+                    address.subLocality?.trim()?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+                    address.adminArea?.trim()?.takeIf { it.isNotBlank() }?.let { parts.add(it) }
+                    
+                    if (parts.isNotEmpty()) {
+                        parts.joinToString(", ")
+                    } else {
+                        // Fallback to subAdminArea or country
+                        address.subAdminArea?.trim() ?: address.countryName?.trim() ?: "Unknown location"
+                    }
+                } else {
+                    fullAddress
+                }
+                
+                // Truncate if too long (max 45 characters to leave room for ellipsis)
+                val maxLength = 45
+                if (locationText.length > maxLength) {
+                    locationText.substring(0, maxLength).trim() + "..."
+                } else {
+                    locationText
+                }
             } else null
         } catch (e: Exception) {
             Log.e("CreateStoryActivity", "Geocoder failed: ${e.message}", e)
@@ -944,12 +982,70 @@ class CreateStoryActivity : BaseActivity() {
             }
 
             override fun onRemoveViewListener(viewType: ViewType?, numberOfAddedViews: Int) {
-                if (viewType == ViewType.TEXT && activeTextOverlay != null) {
-                    val stillPresent = (0 until binding.photoEditorView.childCount)
+                if (viewType == ViewType.TEXT) {
+                    // Check if any location overlay was removed
+                    val hasLocationOverlay = (0 until binding.photoEditorView.childCount)
                         .map { binding.photoEditorView.getChildAt(it) }
-                        .any { it == activeTextOverlay }
-                    if (!stillPresent) {
-                        activeTextOverlay = null
+                        .any { view ->
+                            view.getTag(R.id.story_location_overlay_view) as? Boolean ?: false
+                        }
+                    
+                    if (!hasLocationOverlay && locationOverlayView != null) {
+                        // Location overlay was removed - clear location data
+                        Log.d("CreateStoryActivity", "Location overlay removed - clearing location data")
+                        locationOverlayView = null
+                        selectedLocationLabel = null
+                        selectedLocationLat = null
+                        selectedLocationLng = null
+                        selectedLocationX = null
+                        selectedLocationY = null
+                    } else if (hasLocationOverlay) {
+                        // Update locationOverlayView reference if it changed
+                        val currentLocationOverlay = (0 until binding.photoEditorView.childCount)
+                            .map { binding.photoEditorView.getChildAt(it) }
+                            .firstOrNull { view ->
+                                view.getTag(R.id.story_location_overlay_view) as? Boolean ?: false
+                            }
+                        if (currentLocationOverlay != null && currentLocationOverlay != locationOverlayView) {
+                            locationOverlayView = currentLocationOverlay
+                        }
+                    }
+                    
+                    // Check if the first user tag overlay was removed
+                    val hasFirstUserTag = (0 until binding.photoEditorView.childCount)
+                        .map { binding.photoEditorView.getChildAt(it) }
+                        .any { view ->
+                            view.getTag(R.id.story_user_tag_first) as? Boolean ?: false
+                        }
+                    
+                    if (!hasFirstUserTag && userTagOverlayView != null) {
+                        // User tag overlay was removed - clear user tag data
+                        Log.d("CreateStoryActivity", "User tag overlay removed - clearing user tag data")
+                        userTagOverlayView = null
+                        selectedUserTagId = null
+                        selectedUserTagName = null
+                        selectedUserTagX = null
+                        selectedUserTagY = null
+                    } else if (hasFirstUserTag) {
+                        // Update userTagOverlayView reference if it changed
+                        val currentUserTagOverlay = (0 until binding.photoEditorView.childCount)
+                            .map { binding.photoEditorView.getChildAt(it) }
+                            .firstOrNull { view ->
+                                view.getTag(R.id.story_user_tag_first) as? Boolean ?: false
+                            }
+                        if (currentUserTagOverlay != null && currentUserTagOverlay != userTagOverlayView) {
+                            userTagOverlayView = currentUserTagOverlay
+                        }
+                    }
+                    
+                    // Check if activeTextOverlay was removed
+                    if (activeTextOverlay != null) {
+                        val stillPresent = (0 until binding.photoEditorView.childCount)
+                            .map { binding.photoEditorView.getChildAt(it) }
+                            .any { it == activeTextOverlay }
+                        if (!stillPresent) {
+                            activeTextOverlay = null
+                        }
                     }
                 }
             }
@@ -970,7 +1066,7 @@ class CreateStoryActivity : BaseActivity() {
                 }
             }
 
-            override fun onStopViewChangeListener(viewType: ViewType?) {
+                            override fun onStopViewChangeListener(viewType: ViewType?) {
                 // Immediately restore positions to prevent flicker
                 // First, try immediate restoration (synchronous if possible)
                 val childCount = binding.photoEditorView.childCount
@@ -994,6 +1090,13 @@ class CreateStoryActivity : BaseActivity() {
                             }
                             
                             removeGravityConstraints(view)
+                            
+                            // Update location position if this is the location overlay
+                            val isLocationOverlay = view.getTag(R.id.story_location_overlay_view) as? Boolean ?: false
+                            if (isLocationOverlay) {
+                                // Update normalized position when location overlay is moved
+                                updateLocationPosition(view)
+                            }
                         }
                     }
                 }
@@ -1025,6 +1128,19 @@ class CreateStoryActivity : BaseActivity() {
                                         kotlin.math.abs(currentY - centerY) > 100) {
                                         viewPositions[view] = Pair(currentX, currentY)
                                     }
+                                }
+                                
+                                // Update location position if this is the location overlay
+                                val isLocationOverlay = view.getTag(R.id.story_location_overlay_view) as? Boolean ?: false
+                                if (isLocationOverlay) {
+                                    // Update normalized position when location overlay is moved
+                                    updateLocationPosition(view)
+                                }
+                                
+                                // Update user tag position if this is the first user tag overlay
+                                val isFirstUserTag = view.getTag(R.id.story_user_tag_first) as? Boolean ?: false
+                                if (isFirstUserTag) {
+                                    updateUserTagPosition(view)
                                 }
                             }
                         }
@@ -1290,6 +1406,16 @@ class CreateStoryActivity : BaseActivity() {
             textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
             textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
             if (isLocationOverlay) {
+                // Match viewing UI: 12sp text size, ellipsize, padding
+                textView.textSize = 12f
+                textView.maxLines = 1
+                textView.ellipsize = android.text.TextUtils.TruncateAt.END
+                textView.setPadding(
+                    (12 * resources.displayMetrics.density).toInt(),
+                    (8 * resources.displayMetrics.density).toInt(),
+                    (12 * resources.displayMetrics.density).toInt(),
+                    (8 * resources.displayMetrics.density).toInt()
+                )
                 applyLocationIcon(textView)
             } else {
                 // Ensure people tags don't get an icon
@@ -1386,6 +1512,16 @@ class CreateStoryActivity : BaseActivity() {
             // Hide all edit icons before saving
             hideAllEditIcons()
             
+            // Remove location overlay from photoEditor before saving
+            // This prevents it from being merged into the bitmap
+            // The location tag will be rendered as a View in the Story Viewer instead
+            removeLocationOverlayFromEditor()
+            
+            // Remove user tag overlays from photoEditor before saving
+            // This prevents them from being merged into the bitmap
+            // User tags will be rendered as Views in the Story Viewer instead
+            removeUserTagOverlaysFromEditor()
+            
             // Give a small delay to ensure UI updates are complete
             binding.photoEditorView.postDelayed({
                 val newDir = File(filesDir, "edited_images").apply {
@@ -1401,20 +1537,36 @@ class CreateStoryActivity : BaseActivity() {
                     photoEditor.saveAsFile(file.absolutePath, object : PhotoEditor.OnSaveListener {
                     override fun onSuccess(imagePath: String) {
                         val imageFile = File(imagePath)
+                        val originalSize = imageFile.length()
+                        Log.d("CreateStoryActivity", "Image saved successfully: ${imageFile.absolutePath}, original size: ${originalSize} bytes")
                         
-                        Log.d("CreateStoryActivity", "Image saved successfully: ${imageFile.absolutePath}, size: ${imageFile.length()} bytes")
-                        Log.d("CreateStoryActivity", "Uploading edited image with text/overlays")
+                        // Compress image to reduce file size and prevent "request entity too large" errors
+                        val compressedFile = compressImageIfNeeded(imageFile)
+                        val compressedSize = compressedFile.length()
+                        val sizeReduction = originalSize - compressedSize
+                        Log.d("CreateStoryActivity", "Compressed image size: $compressedSize bytes (reduced by $sizeReduction bytes)")
+                        
+                        // Check file size and warn if still too large (5MB limit - server may reject larger files)
+                        val maxSizeBytes = 5 * 1024 * 1024L // 5MB
+                        if (compressedSize > maxSizeBytes) {
+                            val sizeMB = compressedSize / (1024.0 * 1024.0)
+                            Log.w("CreateStoryActivity", "Image is still large after compression: ${String.format("%.2f", sizeMB)} MB")
+                            Toast.makeText(this@CreateStoryActivity, "Image is very large (${String.format("%.1f", sizeMB)} MB). Upload may fail.", Toast.LENGTH_LONG).show()
+                        } else {
+                            val sizeMB = compressedSize / (1024.0 * 1024.0)
+                            Log.d("CreateStoryActivity", "Image compressed to ${String.format("%.2f", sizeMB)} MB - ready for upload")
+                        }
 
                         // Get URI using FileProvider (Recommended for Android 7+)
                         val editedImageUri = FileProvider.getUriForFile(
                             this@CreateStoryActivity,
                             "${packageName}.provider",
-                            imageFile
+                            compressedFile
                         )
 
-                        // Only upload the edited image (with text/overlays)
+                        // Only upload the compressed image (with text/overlays)
                         // Do NOT upload the original croppedImageUri
-                        postStory(imageFile, null)
+                        postStory(compressedFile, null)
 
                         // Return URI as result (but don't upload again)
                         val resultIntent = Intent().apply {
@@ -1443,7 +1595,24 @@ class CreateStoryActivity : BaseActivity() {
 
     private fun postStory(imageFile: File?, videoFile: File?) {
         val selectedTagIdList = selectedTagPeopleList.map { it.id }
-        individualViewModal.createStory(imageFile, videoFile, selectedTagIdList)
+        // Pass location position (x/y) to API so it can be stored and used in Story Viewer
+        // Pass first user tag position and info to API
+        Log.d("CreateStoryActivity", "Posting story with location - placeName: $selectedLocationLabel, lat: $selectedLocationLat, lng: $selectedLocationLng, x: $selectedLocationX, y: $selectedLocationY")
+        Log.d("CreateStoryActivity", "Posting story with user tag - userId: $selectedUserTagId, name: $selectedUserTagName, x: $selectedUserTagX, y: $selectedUserTagY")
+        individualViewModal.createStory(
+            imageFile, 
+            videoFile, 
+            selectedTagIdList,
+            selectedLocationLabel,
+            selectedLocationLat,
+            selectedLocationLng,
+            selectedLocationX,  // Normalized x position (0.0-1.0)
+            selectedLocationY,  // Normalized y position (0.0-1.0)
+            selectedUserTagId,  // First tagged user ID
+            selectedUserTagName,  // First tagged user name
+            selectedUserTagX,  // Normalized x position (0.0-1.0)
+            selectedUserTagY   // Normalized y position (0.0-1.0)
+        )
     }
 
     private fun setTagsFlexList(selectedPeopleList: ArrayList<TagPeople>) {
@@ -1525,6 +1694,28 @@ class CreateStoryActivity : BaseActivity() {
                     text = displayName
                     setTextColor(ContextCompat.getColor(activity, R.color.blue))
                     background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                    // Match location tag UI: 12sp text size, ellipsize, padding
+                    textSize = 12f
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    setPadding(
+                        (12 * resources.displayMetrics.density).toInt(),
+                        (8 * resources.displayMetrics.density).toInt(),
+                        (12 * resources.displayMetrics.density).toInt(),
+                        (8 * resources.displayMetrics.density).toInt()
+                    )
+                }
+                
+                // Track first user tag for position and API
+                if (index == 0) {
+                    overlay.setTag(R.id.story_user_tag_first, true)
+                    userTagOverlayView = overlay
+                    selectedUserTagId = tagPerson.id
+                    selectedUserTagName = tagPerson.name
+                    // Update position after layout
+                    binding.photoEditorView.post {
+                        updateUserTagPosition(overlay)
+                    }
                 }
 
                 // Hide edit pencil so user cannot edit the mention text
@@ -1582,6 +1773,9 @@ class CreateStoryActivity : BaseActivity() {
         binding.photoEditorView.postDelayed({
             val overlay = getLatestTextOverlay() ?: return@postDelayed
             overlay.setTag(R.id.story_location_overlay_view, true)
+            
+            // Store reference to location overlay
+            locationOverlayView = overlay
 
             val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText)
             val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
@@ -1590,6 +1784,18 @@ class CreateStoryActivity : BaseActivity() {
                 text = displayText
                 setTextColor(ContextCompat.getColor(activity, R.color.blue))
                 background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                // Match viewing UI: 12sp text size
+                textSize = 12f
+                // Ensure text truncates with ellipsis if too long
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                // Match viewing UI padding: 12dp horizontal, 8dp vertical
+                setPadding(
+                    (12 * resources.displayMetrics.density).toInt(),
+                    (8 * resources.displayMetrics.density).toInt(),
+                    (12 * resources.displayMetrics.density).toInt(),
+                    (8 * resources.displayMetrics.density).toInt()
+                )
                 applyLocationIcon(this)
             }
 
@@ -1602,25 +1808,253 @@ class CreateStoryActivity : BaseActivity() {
             overlay.x = binding.photoEditorView.width * 0.20f
             overlay.y = binding.photoEditorView.height * 0.20f
             viewPositions[overlay] = Pair(overlay.x, overlay.y)
+            
+            // Store normalized position (0.0-1.0) for later use - use post to ensure dimensions are available
+            binding.photoEditorView.post {
+                updateLocationPosition(overlay)
+            }
         }, 80)
     }
 
     private fun applyLocationIcon(textView: TextView) {
         val drawable = ContextCompat.getDrawable(this, R.drawable.ic_location_blue) ?: return
-        // Make the location icon a bit bigger so it matches the label prominence
-        val sizePx = (20 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        // Match viewing UI: 16dp icon with 6dp margin
+        val sizePx = (16 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
 
         val wrapped = DrawableCompat.wrap(drawable.mutate())
         DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.blue))
         wrapped.setBounds(0, 0, sizePx, sizePx)
 
         textView.setCompoundDrawablesRelative(wrapped, null, null, null)
-        textView.compoundDrawablePadding = (8 * resources.displayMetrics.density).toInt()
+        textView.compoundDrawablePadding = (6 * resources.displayMetrics.density).toInt()
     }
 
     private fun clearCompoundDrawables(textView: TextView) {
         textView.setCompoundDrawablesRelative(null, null, null, null)
         textView.compoundDrawablePadding = 0
+    }
+    
+    /**
+     * Update the stored location tag position (normalized 0.0-1.0)
+     */
+    private fun updateLocationPosition(overlay: View) {
+        val viewWidth = binding.photoEditorView.width.toFloat()
+        val viewHeight = binding.photoEditorView.height.toFloat()
+        if (viewWidth > 0 && viewHeight > 0) {
+            selectedLocationX = overlay.x / viewWidth
+            selectedLocationY = overlay.y / viewHeight
+            Log.d("CreateStoryActivity", "Updated location position - x: $selectedLocationX, y: $selectedLocationY (overlay.x: ${overlay.x}, overlay.y: ${overlay.y}, width: $viewWidth, height: $viewHeight)")
+        } else {
+            Log.w("CreateStoryActivity", "Cannot update location position - view dimensions are invalid (width: $viewWidth, height: $viewHeight)")
+        }
+    }
+    
+    /**
+     * Update the stored user tag position (normalized 0.0-1.0) for the first tagged user
+     */
+    private fun updateUserTagPosition(overlay: View) {
+        val viewWidth = binding.photoEditorView.width.toFloat()
+        val viewHeight = binding.photoEditorView.height.toFloat()
+        if (viewWidth > 0 && viewHeight > 0) {
+            selectedUserTagX = overlay.x / viewWidth
+            selectedUserTagY = overlay.y / viewHeight
+            Log.d("CreateStoryActivity", "Updated user tag position - x: $selectedUserTagX, y: $selectedUserTagY (overlay.x: ${overlay.x}, overlay.y: ${overlay.y}, width: $viewWidth, height: $viewHeight)")
+        } else {
+            Log.w("CreateStoryActivity", "Cannot update user tag position - view dimensions are invalid (width: $viewWidth, height: $viewHeight)")
+        }
+    }
+    
+    /**
+     * Compress image to reduce file size while maintaining quality.
+     * Returns the original file if compression fails or is not needed.
+     * Target size: Under 3MB to prevent "Request Entity Too Large" errors.
+     */
+    private fun compressImageIfNeeded(originalFile: File): File {
+        try {
+            val originalSize = originalFile.length()
+            // Target max size: 3MB (more aggressive to prevent server errors)
+            val targetSizeBytes = 3 * 1024 * 1024L // 3MB
+            // Compress if over 2MB (be more proactive)
+            val compressionThreshold = 2 * 1024 * 1024L // 2MB
+            
+            if (originalSize <= compressionThreshold) {
+                Log.d("CreateStoryActivity", "Image size is acceptable (${originalSize} bytes), skipping compression")
+                return originalFile
+            }
+            
+            Log.d("CreateStoryActivity", "Starting compression - original size: ${originalSize / (1024 * 1024)} MB")
+            
+            // Load bitmap from file with options to reduce memory usage
+            val options = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = false
+                inSampleSize = if (originalSize > 5 * 1024 * 1024L) 2 else 1 // Downsample if very large
+            }
+            
+            val bitmap = android.graphics.BitmapFactory.decodeFile(originalFile.absolutePath, options)
+                ?: return originalFile
+            
+            // Calculate scale factor to reduce dimensions if too large (max 1920px on longest side for better compression)
+            val maxDimension = 1920 // Reduced from 2048 for better file size
+            val width = bitmap.width
+            val height = bitmap.height
+            var scaleFactor = 1f
+            
+            if (width > maxDimension || height > maxDimension) {
+                scaleFactor = if (width > height) {
+                    maxDimension.toFloat() / width
+                } else {
+                    maxDimension.toFloat() / height
+                }
+                Log.d("CreateStoryActivity", "Scaling image: ${width}x${height} -> scale factor: $scaleFactor")
+            }
+            
+            // Scale bitmap if needed
+            val scaledBitmap = if (scaleFactor < 1f) {
+                val scaledWidth = (width * scaleFactor).toInt()
+                val scaledHeight = (height * scaleFactor).toInt()
+                android.graphics.Bitmap.createScaledBitmap(bitmap, scaledWidth, scaledHeight, true).also {
+                    if (it != bitmap) {
+                        bitmap.recycle() // Recycle original if we created a scaled version
+                    }
+                }
+            } else {
+                bitmap
+            }
+            
+            // Create compressed file with unique name
+            val compressedFile = File(originalFile.parent, "compressed_${System.currentTimeMillis()}_${originalFile.name}")
+            
+            // Start with moderate quality and decrease aggressively until target size is reached
+            var quality = 80
+            var outputStream: FileOutputStream? = null
+            var compressed = false
+            
+            try {
+                while (quality >= 40 && !compressed) {
+                    outputStream?.close()
+                    outputStream = FileOutputStream(compressedFile)
+                    
+                    scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, outputStream)
+                    outputStream.flush()
+                    outputStream.close()
+                    outputStream = null
+                    
+                    val compressedSize = compressedFile.length()
+                    Log.d("CreateStoryActivity", "Compression attempt - quality: $quality, size: ${compressedSize / 1024} KB")
+                    
+                    if (compressedSize <= targetSizeBytes) {
+                        compressed = true
+                        Log.d("CreateStoryActivity", "Image compressed successfully: ${originalSize / 1024} KB -> ${compressedSize / 1024} KB (quality: $quality)")
+                    } else {
+                        // Reduce quality more aggressively
+                        quality -= if (quality > 60) 10 else 5
+                    }
+                }
+                
+                // If still too large after quality reduction, try reducing dimensions further
+                if (!compressed && scaledBitmap.width > 1280) {
+                    Log.d("CreateStoryActivity", "File still too large, reducing dimensions further")
+                    val furtherScaledBitmap = android.graphics.Bitmap.createScaledBitmap(
+                        scaledBitmap,
+                        (scaledBitmap.width * 0.8f).toInt(),
+                        (scaledBitmap.height * 0.8f).toInt(),
+                        true
+                    )
+                    if (furtherScaledBitmap != scaledBitmap) {
+                        scaledBitmap.recycle()
+                    }
+                    
+                    outputStream = FileOutputStream(compressedFile)
+                    furtherScaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+                    outputStream.flush()
+                    outputStream.close()
+                    outputStream = null
+                    
+                    furtherScaledBitmap.recycle()
+                }
+                
+                // Clean up scaled bitmap
+                if (scaledBitmap != bitmap) {
+                    scaledBitmap.recycle()
+                }
+                
+                val finalSize = compressedFile.length()
+                Log.d("CreateStoryActivity", "Final compressed size: ${finalSize / 1024} KB (${finalSize / (1024 * 1024)} MB)")
+                
+                // Replace original file with compressed version
+                if (originalFile.exists() && originalFile.delete()) {
+                    if (compressedFile.renameTo(originalFile)) {
+                        return originalFile
+                    } else {
+                        Log.w("CreateStoryActivity", "Failed to rename compressed file, using compressed file directly")
+                        return compressedFile
+                    }
+                } else {
+                    Log.w("CreateStoryActivity", "Failed to delete original file, using compressed file directly")
+                    return compressedFile
+                }
+            } catch (e: Exception) {
+                outputStream?.close()
+                Log.e("CreateStoryActivity", "Error during compression: ${e.message}", e)
+                // Clean up
+                if (scaledBitmap != bitmap) {
+                    scaledBitmap.recycle()
+                } else {
+                    bitmap.recycle()
+                }
+                compressedFile.delete()
+                return originalFile
+            }
+        } catch (e: Exception) {
+            Log.e("CreateStoryActivity", "Error compressing image: ${e.message}", e)
+            return originalFile
+        }
+    }
+    
+    /**
+     * Remove location overlay from photoEditor before saving to prevent it from being merged into bitmap
+     */
+    private fun removeLocationOverlayFromEditor() {
+        locationOverlayView?.let { overlay ->
+            try {
+                // Remove the view from photoEditorView to prevent it from being saved in the bitmap
+                val parent = overlay.parent as? ViewGroup
+                parent?.removeView(overlay)
+                locationOverlayView = null
+                Log.d("CreateStoryActivity", "Location overlay removed from photoEditor before saving")
+            } catch (e: Exception) {
+                Log.e("CreateStoryActivity", "Error removing location overlay: ${e.message}", e)
+            }
+        }
+    }
+    
+    /**
+     * Remove user tag overlays from PhotoEditor before saving the image.
+     * This prevents user tags from being burned into the bitmap.
+     */
+    private fun removeUserTagOverlaysFromEditor() {
+        val parent = binding.photoEditorView
+        val viewsToRemove = mutableListOf<View>()
+        for (i in 0 until parent.childCount) {
+            val child = parent.getChildAt(i)
+            val isTagOverlay = child?.getTag(R.id.story_tag_overlay_view) as? Boolean ?: false
+            if (isTagOverlay) {
+                viewsToRemove.add(child)
+            }
+        }
+        viewsToRemove.forEach { view ->
+            try {
+                // Remove the view from photoEditorView to prevent it from being saved in the bitmap
+                val viewParent = view.parent as? ViewGroup
+                viewParent?.removeView(view)
+                if (view == userTagOverlayView) {
+                    userTagOverlayView = null
+                }
+                Log.d("CreateStoryActivity", "User tag overlay removed from photoEditor before saving")
+            } catch (e: Exception) {
+                Log.e("CreateStoryActivity", "Error removing user tag overlay: ${e.message}", e)
+            }
+        }
     }
 
     override fun onPause() {

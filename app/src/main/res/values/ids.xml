@@ -5,5 +5,7 @@
     <item name="story_tag_overlay_view" type="id" />
     <!-- Marker for non-editable story location overlays (e.g. 📍 Hyderabad, Telangana) -->
     <item name="story_location_overlay_view" type="id" />
+    <!-- Marker for the first user tag overlay (for position tracking) -->
+    <item name="story_user_tag_first" type="id" />
 </resources>
 

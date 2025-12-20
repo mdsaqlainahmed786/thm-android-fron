@@ -42,9 +42,64 @@ class StoriesPagingSource(
                 // Get the myStories and stories from the response body
                 val myStories = response.body()?.storiesData?.myStories ?: emptyList()
                 val stories = response.body()?.storiesData?.stories ?: emptyList()
+                
+                // Log raw response body for debugging location field
+                try {
+                    val gson = com.google.gson.Gson()
+                    val jsonResponse = gson.toJson(response.body())
+                    Log.d(tag, "Raw API Response: $jsonResponse")
+                } catch (e: Exception) {
+                    Log.e(tag, "Error logging raw response: ${e.message}")
+                }
+                
+                // Log location data for debugging
+                Log.d(tag, "myStories count: ${myStories.size}")
+                myStories.forEachIndexed { index, storyRef ->
+                    Log.d(tag, "myStories[$index] _id: ${storyRef.Id}, location: ${storyRef.location}, placeName: ${storyRef.location?.placeName}, lat: ${storyRef.location?.lat}, lng: ${storyRef.location?.lng}, locationPositionX: ${storyRef.locationPositionX}, locationPositionY: ${storyRef.locationPositionY}")
+                    // Log all fields of the story to see what's available
+                    Log.d(tag, "myStories[$index] full object: $storyRef")
+                }
+                Log.d(tag, "stories count: ${stories.size}")
+                stories.forEachIndexed { index, story ->
+                    Log.d(tag, "stories[$index] storiesRef count: ${story.storiesRef.size}")
+                    story.storiesRef.forEachIndexed { refIndex, storyRef ->
+                        Log.d(tag, "stories[$index].storiesRef[$refIndex] location: ${storyRef.location}, placeName: ${storyRef.location?.placeName}, lat: ${storyRef.location?.lat}, lng: ${storyRef.location?.lng}")
+                    }
+                }
 
                 // Create an updated list to hold the final stories data
                 val updatedStories = mutableListOf<Stories>()
+
+                // Convert MyStories to StoriesRef to preserve location data and all other fields
+                val myStoriesRef = myStories.map { myStory ->
+                    StoriesRef(
+                        Id = myStory.Id,
+                        mediaID = myStory.mediaID,
+                        createdAt = myStory.createdAt,
+                        likedByMe = null,
+                        mimeType = myStory.mimeType,
+                        sourceUrl = myStory.sourceUrl,
+                        likesRef = myStory.likesRef,
+                        viewsRef = myStory.viewsRef,
+                        likes = myStory.likes,
+                        views = myStory.views,
+                        taggedRef = myStory.taggedRef,
+                        location = myStory.location,  // CRITICAL: Preserve location data from API response
+                        locationPositionX = myStory.locationPositionX,  // Preserve x position
+                        locationPositionY = myStory.locationPositionY,  // Preserve y position
+                        userTaggedName = myStory.userTaggedName,  // Preserve user tag name
+                        userTaggedId = myStory.userTaggedId,  // Preserve user tag ID
+                        userTaggedPositionX = myStory.userTaggedPositionX,  // Preserve x position
+                        userTaggedPositionY = myStory.userTaggedPositionY   // Preserve y position
+                    ).also {
+                        // Log to verify all data is being preserved, especially userTaggedId
+                        Log.d(tag, "Converted MyStories to StoriesRef - location: ${it.location}, placeName: ${it.location?.placeName}, lat: ${it.location?.lat}, lng: ${it.location?.lng}, x: ${it.locationPositionX}, y: ${it.locationPositionY}, userTaggedName: '${it.userTaggedName}', userTaggedId: '${it.userTaggedId}', userTaggedX: ${it.userTaggedPositionX}, userTaggedY: ${it.userTaggedPositionY}")
+                        // Additional debug log specifically for userTaggedId
+                        if (it.userTaggedName != null && it.userTaggedId == null) {
+                            Log.w(tag, "WARNING: Story has userTaggedName '${it.userTaggedName}' but userTaggedId is NULL! This story may need to be re-created after backend update.")
+                        }
+                    }
+                }
 
                 updatedStories.add(
                     Stories(
@@ -53,7 +108,7 @@ class StoriesPagingSource(
                         username = "myStory.username",
                         name = "myStory.name",
                         businessProfileRef = null,  // Set businessProfileRef to null as per requirement
-                        storiesRef = ArrayList(myStories),  // Assuming no storiesRef data in myStories, leave it empty
+                        storiesRef = ArrayList(myStoriesRef),  // Convert MyStories to StoriesRef to preserve location
                     )
                 )
 

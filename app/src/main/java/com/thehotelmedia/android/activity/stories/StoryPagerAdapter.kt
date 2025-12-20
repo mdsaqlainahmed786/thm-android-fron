@@ -281,18 +281,84 @@ class StoryPagerAdapter(
         // Display tagged people if they exist
         if (currentStoryIndex in users.storiesRef.indices) {
             val story = users.storiesRef[currentStoryIndex]
+            
             val taggedPeople = story.taggedRef ?: arrayListOf()
-            if (taggedPeople.isNotEmpty()) {
-                setupTaggedPeopleLinks(binding, taggedPeople)
-            } else {
+            // Hide the old text-based tagged people view (replaced with floating tag button)
                 binding.taggedPeopleTv.visibility = View.GONE
                 binding.taggedPeopleTv.text = ""
                 binding.taggedPeopleTv.setOnClickListener(null)
+            
+            // Hide locationTv (the TextView), but show the floating button
+            binding.locationTv.visibility = View.GONE
+            binding.locationTv.text = ""
+            binding.locationTv.setOnClickListener(null)
+            binding.locationTv.setOnTouchListener(null)
+            
+            // Display location if it exists - use floating button
+            val location = story.location
+            
+            // Show floating location button if we have valid location data
+            if (location != null && location.placeName != null && location.placeName!!.isNotEmpty()) {
+                val lat = location.lat
+                val lng = location.lng
+                // Get position from root level (locationPositionX/locationPositionY), not from location object
+                val locationX = story.locationPositionX  // Normalized x position (0.0-1.0)
+                val locationY = story.locationPositionY  // Normalized y position (0.0-1.0)
+                
+                android.util.Log.d("StoryPagerAdapter", "Location data - placeName: ${location.placeName}, lat: $lat, lng: $lng, x: $locationX, y: $locationY")
+                
+                if (lat != null && lng != null && lat.isFinite() && lng.isFinite()) {
+                    // Show and setup the floating location button with saved position
+                    setupLocationFloatingButton(binding, location.placeName!!, lat, lng, locationX, locationY)
+                } else {
+                    hideLocationViews(binding) // Hide button if coordinates are invalid
+                }
+            } else {
+                hideLocationViews(binding) // Explicitly hide if no location data
+            }
+            
+            // Display user tag if it exists - use floating button
+            // Get first tagged user for the user tag button
+            val firstTaggedUser = taggedPeople.firstOrNull()
+            
+            // Backend returns userTagged (name), but we may need ID from taggedRef
+            val userTaggedName = story.userTaggedName ?: firstTaggedUser?.name
+            val userTaggedX = story.userTaggedPositionX
+            val userTaggedY = story.userTaggedPositionY
+            
+            // Determine the final user ID - prioritize story.userTaggedId, then firstTaggedUser.Id
+            val finalUserId = story.userTaggedId 
+                ?: firstTaggedUser?.Id
+                ?: ""
+            
+            android.util.Log.d("StoryPagerAdapter", "User tag data - userTaggedName: $userTaggedName, story.userTaggedId: '${story.userTaggedId}', firstTaggedUser?.Id: '${firstTaggedUser?.Id}', finalUserId: '$finalUserId', userTaggedX: $userTaggedX, userTaggedY: $userTaggedY, taggedPeople count: ${taggedPeople.size}")
+            
+            // Show the tag if we have a name (ID may be missing for older stories, but we still show the tag)
+            if (!userTaggedName.isNullOrEmpty()) {
+                // Show the tag - click handler will handle missing ID gracefully
+                android.util.Log.d("StoryPagerAdapter", "Showing user tag - name: $userTaggedName, id: '$finalUserId' (${if (finalUserId.isNotEmpty()) "with navigation" else "no ID - click will show toast"})")
+                setupUserTagButton(binding, userTaggedName, finalUserId, userTaggedX, userTaggedY)
+            } else if (taggedPeople.isNotEmpty() && firstTaggedUser != null) {
+                // Fallback: If we have taggedPeople but no userTaggedName, use the first tagged user
+                val name = firstTaggedUser.name
+                val id = firstTaggedUser.Id ?: ""
+                if (!name.isNullOrEmpty()) {
+                    android.util.Log.d("StoryPagerAdapter", "Using first tagged user as fallback - name: $name, id: '$id'")
+                    setupUserTagButton(binding, name, id, userTaggedX, userTaggedY)
+                } else {
+                    hideUserTagViews(binding)
+                }
+            } else {
+                android.util.Log.d("StoryPagerAdapter", "No user tag data found - hiding user tag views")
+                hideUserTagViews(binding)
             }
         } else {
             binding.taggedPeopleTv.visibility = View.GONE
             binding.taggedPeopleTv.text = ""
             binding.taggedPeopleTv.setOnClickListener(null)
+            binding.locationTv.visibility = View.GONE
+            binding.locationTv.text = ""
+            binding.locationTv.setOnClickListener(null)
         }
 
         // Reset progress bars and stop any ongoing animations/media
@@ -328,7 +394,7 @@ class StoryPagerAdapter(
                 pauseStory(binding)
 
                 // Show the BottomSheetFragment
-                val bottomSheet = YesOrNoBottomSheetFragment.newInstance("${getString(R.string.do_you_want_to_block)} $userName?")
+                val bottomSheet = YesOrNoBottomSheetFragment.newInstance("${this@StoryPagerAdapter.context.getString(R.string.do_you_want_to_block)} $userName?")
                 bottomSheet.onYesClicked = {
                     // Handle Yes button click
                     individualViewModal.blockUser(userId.toString())
@@ -397,11 +463,218 @@ class StoryPagerAdapter(
         val end: Int,
         val userId: String
     )
+    
+    private fun hideLocationViews(binding: StoryScreenLayoutBinding) {
+        // Hide the TextView location (locationTv)
+        binding.locationTv.visibility = View.GONE
+        binding.locationTv.text = ""
+        binding.locationTv.setOnClickListener(null)
+        binding.locationTv.setOnTouchListener(null)
+        
+        // Hide the floating location button (locationButtonCard)
+        val locationButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.locationButtonCard)
+        if (locationButtonCard != null) {
+            locationButtonCard.visibility = View.GONE
+            locationButtonCard.setOnClickListener(null)
+            locationButtonCard.setOnTouchListener(null)
+            val locationButtonText = binding.root.findViewById<android.widget.TextView>(R.id.locationButtonText)
+            locationButtonText?.text = ""
+        }
+    }
+    
+    private fun setupLocationFloatingButton(binding: StoryScreenLayoutBinding, placeName: String, lat: Double, lng: Double, locationX: Float? = null, locationY: Float? = null) {
+        val locationButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.locationButtonCard)
+        val locationButtonText = binding.root.findViewById<android.widget.TextView>(R.id.locationButtonText)
+        
+        if (locationButtonCard != null && locationButtonText != null) {
+            // Set visibility and text
+            locationButtonCard.visibility = View.VISIBLE
+            locationButtonText.text = placeName
+            
+            // Make the location tag view clickable and focusable
+            locationButtonCard.isClickable = true
+            locationButtonCard.isFocusable = true
+            locationButtonCard.isFocusableInTouchMode = true
+            
+            // Ensure inner LinearLayout doesn't intercept clicks
+            val locationLayout = locationButtonCard.getChildAt(0) as? android.view.ViewGroup
+            locationLayout?.isClickable = false
+            locationLayout?.isFocusable = false
+            
+            // Position the location tag at saved x/y coordinates, or use default position
+            // Remove constraints to allow free positioning via x/y
+            val layoutParams = locationButtonCard.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            layoutParams?.let {
+                it.leftToLeft = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.leftMargin = 0
+                it.topMargin = 0
+                locationButtonCard.layoutParams = it
+            }
+            
+            binding.root.post {
+                val parentWidth = binding.root.width.toFloat()
+                val parentHeight = binding.root.height.toFloat()
+                
+                android.util.Log.d("StoryPagerAdapter", "Positioning location tag - parentWidth: $parentWidth, parentHeight: $parentHeight, locationX: $locationX, locationY: $locationY")
+                
+                if (parentWidth > 0 && parentHeight > 0) {
+                    if (locationX != null && locationY != null) {
+                        // Use saved position (normalized 0.0-1.0 converted to pixels)
+                        val xPosition = locationX * parentWidth
+                        val yPosition = locationY * parentHeight
+                        locationButtonCard.x = xPosition
+                        locationButtonCard.y = yPosition
+                        android.util.Log.d("StoryPagerAdapter", "Positioned location tag at x: $xPosition, y: $yPosition (normalized: x=$locationX, y=$locationY)")
+                    } else {
+                        // Default position: top-left area (matching Create Story default)
+                        locationButtonCard.x = parentWidth * 0.12f  // 12% from left
+                        locationButtonCard.y = parentHeight * 0.20f  // 20% from top
+                        android.util.Log.d("StoryPagerAdapter", "Using default position - x: ${locationButtonCard.x}, y: ${locationButtonCard.y} (locationX and locationY are null)")
+                    }
+                } else {
+                    android.util.Log.w("StoryPagerAdapter", "Cannot position location tag - invalid parent dimensions (width: $parentWidth, height: $parentHeight)")
+                }
+            }
+            
+            // Bring to front to ensure it's above other views (image/video/navigation buttons)
+            locationButtonCard.bringToFront()
+            
+            // Simple click listener - the location tag view is the ONLY element handling clicks
+            locationButtonCard.setOnClickListener {
+                pauseStory(binding)
+                openLocationInMaps(placeName, lat, lng)
+            }
+            
+            // Clear any previous touch listeners - we don't need them
+            locationButtonCard.setOnTouchListener(null)
+        }
+    }
+    
+    private fun openLocationInMaps(placeName: String, lat: Double, lng: Double) {
+        try {
+            // First, try to open Google Maps app directly
+            val gmmIntentUri = Uri.parse("geo:$lat,$lng?q=$lat,$lng(${Uri.encode(placeName)})")
+            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+            mapIntent.setPackage("com.google.android.apps.maps")
+            
+            // Check if Google Maps is available
+            val resolveInfo = context.packageManager.resolveActivity(mapIntent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+            if (resolveInfo != null) {
+                context.startActivity(mapIntent)
+                return
+            }
+        } catch (e: android.content.ActivityNotFoundException) {
+            // Continue to fallback
+        } catch (e: Exception) {
+            // Continue to fallback
+        }
+        
+        // Fallback 1: Try Google Maps web URL
+        try {
+            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng"))
+            webIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(webIntent)
+            return
+        } catch (e: Exception) {
+            // Continue to fallback
+        }
+        
+        // Fallback 2: Try generic geo intent (opens any map app)
+        try {
+            val geoIntent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:$lat,$lng?q=${Uri.encode(placeName)}"))
+            geoIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(geoIntent)
+            return
+        } catch (e: Exception) {
+            // Show error message
+        }
+        
+        // Last resort: Show error message
+        android.widget.Toast.makeText(context, "Unable to open maps. Please install a map application.", android.widget.Toast.LENGTH_SHORT).show()
+    }
 
-    /**
-     * Build "With Name1, Name2" text where each name is a blue, clickable link
-     * that opens the tagged user's profile.
-     */
+    private fun hideUserTagViews(binding: StoryScreenLayoutBinding) {
+        val userTagButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.userTagButtonCard)
+        userTagButtonCard?.visibility = View.GONE
+        userTagButtonCard?.setOnClickListener(null)
+    }
+    
+    private fun setupUserTagButton(binding: StoryScreenLayoutBinding, userName: String, userId: String, userTaggedX: Float? = null, userTaggedY: Float? = null) {
+        val userTagButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.userTagButtonCard)
+        val userTagButtonText = binding.root.findViewById<android.widget.TextView>(R.id.userTagButtonText)
+        
+        if (userTagButtonCard != null && userTagButtonText != null) {
+            // Set visibility and text (display as @username)
+            userTagButtonCard.visibility = View.VISIBLE
+            val displayName = if (userName.startsWith("@")) userName else "@$userName"
+            userTagButtonText.text = displayName
+            
+            // Make the user tag view clickable and focusable
+            userTagButtonCard.isClickable = true
+            userTagButtonCard.isFocusable = true
+            userTagButtonCard.isFocusableInTouchMode = true
+            
+            // Ensure inner LinearLayout doesn't intercept clicks
+            val userTagLayout = userTagButtonCard.getChildAt(0) as? android.view.ViewGroup
+            userTagLayout?.isClickable = false
+            userTagLayout?.isFocusable = false
+            
+            // Position the user tag at saved x/y coordinates, or use default position
+            // Remove constraints to allow free positioning via x/y
+            val layoutParams = userTagButtonCard.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            layoutParams?.let {
+                it.leftToLeft = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                it.leftMargin = 0
+                it.topMargin = 0
+                userTagButtonCard.layoutParams = it
+            }
+            
+            binding.root.post {
+                val parentWidth = binding.root.width.toFloat()
+                val parentHeight = binding.root.height.toFloat()
+                
+                android.util.Log.d("StoryPagerAdapter", "Positioning user tag - parentWidth: $parentWidth, parentHeight: $parentHeight, userTaggedX: $userTaggedX, userTaggedY: $userTaggedY")
+                
+                if (parentWidth > 0 && parentHeight > 0) {
+                    if (userTaggedX != null && userTaggedY != null) {
+                        // Use saved position (normalized 0.0-1.0 converted to pixels)
+                        val xPosition = userTaggedX * parentWidth
+                        val yPosition = userTaggedY * parentHeight
+                        userTagButtonCard.x = xPosition
+                        userTagButtonCard.y = yPosition
+                        android.util.Log.d("StoryPagerAdapter", "Positioned user tag at x: $xPosition, y: $yPosition (normalized: x=$userTaggedX, y=$userTaggedY)")
+                    } else {
+                        // Default position: top-left area (matching Create Story default)
+                        userTagButtonCard.x = parentWidth * 0.25f  // 25% from left
+                        userTagButtonCard.y = parentHeight * 0.25f  // 25% from top
+                        android.util.Log.d("StoryPagerAdapter", "Using default position for user tag - x: ${userTagButtonCard.x}, y: ${userTagButtonCard.y} (userTaggedX and userTaggedY are null)")
+                    }
+                } else {
+                    android.util.Log.w("StoryPagerAdapter", "Cannot position user tag - invalid parent dimensions (width: $parentWidth, height: $parentHeight)")
+                }
+            }
+            
+            // Bring to front to ensure it's above other views
+            userTagButtonCard.bringToFront()
+            
+            // Set click listener to navigate to user profile
+            userTagButtonCard.setOnClickListener {
+                pauseStory(binding)
+                if (userId.isNotEmpty()) {
+                    moveToProfileDetailsActivity(userId)
+                } else {
+                    android.util.Log.w("StoryPagerAdapter", "Cannot navigate to profile - user ID is missing for user: $userName")
+                    android.widget.Toast.makeText(context, "Unable to open profile. User ID not available.", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            userTagButtonCard.setOnTouchListener(null)
+        }
+    }
+
     private fun setupTaggedPeopleLinks(binding: StoryScreenLayoutBinding, taggedRef: List<TaggedRef>) {
         if (taggedRef.isEmpty()) {
             binding.taggedPeopleTv.visibility = View.GONE
@@ -805,14 +1078,12 @@ class StoryPagerAdapter(
     }
 
     private fun setClickListener(binding: StoryScreenLayoutBinding, users: Stories) {
-
         binding.btnNext.setOnClickListener {
             // Fill the progress bars of previous stories immediately
             if (currentStoryIndex < progressBars.size - 1) {
                 // Stop the current progress bar animation
                 progressBars[currentStoryIndex].progress = 1000
                 currentAnimator?.cancel()
-//                currentStoryIndex++
                 if (currentStoryIndex < users.storiesRef.size - 1) {
                     currentStoryIndex++
                 }
@@ -830,14 +1101,16 @@ class StoryPagerAdapter(
                 if (previousPageIndex + 1 < userList.size) {
                     viewPager.setCurrentItem(previousPageIndex + 1, true)
                 } else {
-                    // Optionally loop back to the first user or stop the sequence
-                    // viewPager.setCurrentItem(0, true)  // Uncomment to loop
-
-//                    Toast.makeText(context, "All users' stories finished", Toast.LENGTH_SHORT).show()
                     moveToMainScreen()
                 }
             }
             notifyItemChanged(previousPageIndex)
+        }
+
+        binding.btnNext.setOnLongClickListener {
+            // Handle long press: pause the story
+            pauseStory(binding)
+            true // Consume the long press event
         }
 
         binding.btnPrevious.setOnClickListener {
@@ -849,7 +1122,7 @@ class StoryPagerAdapter(
             if (currentStoryIndex == 0) {
                 // Move to the previous user
                 if (previousPageIndex - 1 >= 0) {
-                    // Go to the previous user’s first story
+                    // Go to the previous user's first story
                     viewPager.setCurrentItem(previousPageIndex - 1, true)
                 }
             } else {
@@ -863,37 +1136,11 @@ class StoryPagerAdapter(
             }
             notifyItemChanged(previousPageIndex)
         }
-
-        binding.btnNext.setOnLongClickListener {
-            // Handle long press: pause the story
-            pauseStory(binding)
-            true // Consume the long press event to prevent other actions
-        }
-
-        binding.btnNext.setOnTouchListener { v, event ->
-            when (event.action) {
-                MotionEvent.ACTION_UP -> {
-                    // Handle touch release: resume the story when the long press is released
-                    resumeStory(binding)
-                }
-            }
-            false // Don't consume the touch event, allowing other listeners to handle it
-        }
-
+        
         binding.btnPrevious.setOnLongClickListener {
             // Handle long press: pause the story
             pauseStory(binding)
-            true // Consume the long press event to prevent other actions
-        }
-
-        binding.btnPrevious.setOnTouchListener { v, event ->
-            when (event.action) {
-                MotionEvent.ACTION_UP -> {
-                    // Handle touch release: resume the story when the long press is released
-                    resumeStory(binding)
-                }
-            }
-            false // Don't consume the touch event, allowing other listeners to handle it
+            true // Consume the long press event
         }
     }
 
