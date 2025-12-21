@@ -192,6 +192,21 @@ class BottomNavigationIndividualMainActivity : BaseActivity() {
 
         val from = intent.getStringExtra(FROM) ?: ""
 
+        // Check if we need to scroll to a specific post
+        val scrollToPostId = intent.getStringExtra("SCROLL_TO_POST_ID")
+        if (scrollToPostId != null) {
+            // Navigate to home tab first
+            binding.viewPager.setCurrentItem(0, false)
+            binding.bottomNavigationView.selectedItemId = R.id.homeFrag
+            // Pass post ID to fragment via fragment result
+            val bundle = Bundle().apply {
+                putString("SCROLL_TO_POST_ID", scrollToPostId)
+            }
+            // Delay to ensure fragment is created
+            Handler(Looper.getMainLooper()).postDelayed({
+                supportFragmentManager.setFragmentResult("scroll_to_post", bundle)
+            }, 500)
+        }
 
         // Set up ViewPager2 with the adapter
         val adapter = IndividualViewPagerAdapter(this)

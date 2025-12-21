@@ -205,12 +205,13 @@ class ChatAdapter(private val context: Context) : PagingDataAdapter<Messages, Ch
             if (type == "pdf") {
                 openPdfInDevice(mediaUrl)
             } else if (type == IMAGE || type == VIDEO) {
-                // Check if this is a shared post - if postID exists, navigate to post preview
+                // Check if this is a shared post - if postID exists, navigate to feed page
                 val postID = message.postID
                 if (!postID.isNullOrBlank()) {
-                    val intent = Intent(context, PostPreviewActivity::class.java).apply {
-                        putExtra("FROM", "CHAT")
-                        putExtra("POST_ID", postID)
+                    // Navigate to the main feed activity and scroll to the post
+                    val intent = Intent(context, com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity::class.java).apply {
+                        putExtra("SCROLL_TO_POST_ID", postID)
+                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     context.startActivity(intent)
                 } else {

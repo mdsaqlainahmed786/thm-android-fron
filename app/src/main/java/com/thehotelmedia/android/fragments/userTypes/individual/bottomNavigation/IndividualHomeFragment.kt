@@ -218,6 +218,14 @@ class IndividualHomeFragment : Fragment() {
         parentFragmentManager.setFragmentResultListener("home_key", this) { _, bundle ->
             val refresh = bundle.getString("refresh")
             binding.postRecyclerView.scrollToPosition(0)
+        }
+
+        // Fragment Result Listener to scroll to a specific post
+        parentFragmentManager.setFragmentResultListener("scroll_to_post", this) { _, bundle ->
+            val postId = bundle.getString("SCROLL_TO_POST_ID")
+            if (!postId.isNullOrBlank()) {
+                scrollToPost(postId)
+            }
 
 //            Toast.makeText(requireContext(), refresh, Toast.LENGTH_SHORT).show()
 
@@ -466,6 +474,35 @@ class IndividualHomeFragment : Fragment() {
                 binding.noDataFoundLayout.visibility = View.VISIBLE
             } else {
                 binding.noDataFoundLayout.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun scrollToPost(postId: String) {
+        // Wait for adapter to load items, then scroll to the post
+        viewLifecycleOwner.lifecycleScope.launch {
+            var attempts = 0
+            while (attempts < 50) { // Max 5 seconds
+                val itemCount = feedAdapter.itemCount
+                if (itemCount > 1) { // More than just header
+                    val position = feedAdapter.findPostPosition(postId)
+                    if (position >= 0) {
+                        binding.postRecyclerView.post {
+                            binding.postRecyclerView.scrollToPosition(position)
+                            // Update active position after scrolling
+                            binding.postRecyclerView.postDelayed({
+                                val layoutManager = binding.postRecyclerView.layoutManager as? LinearLayoutManager
+                                val firstVisible = layoutManager?.findFirstCompletelyVisibleItemPosition() ?: -1
+                                if (firstVisible >= 0) {
+                                    updateActivePosition(firstVisible)
+                                }
+                            }, 300)
+                        }
+                        return@launch
+                    }
+                }
+                kotlinx.coroutines.delay(100)
+                attempts++
             }
         }
     }

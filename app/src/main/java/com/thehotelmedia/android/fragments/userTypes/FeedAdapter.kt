@@ -1911,6 +1911,23 @@ class FeedAdapter(
     fun setActivePosition(position: Int) {
         activePosition = position
     }
+
+    /**
+     * Find the position of a post by its ID
+     * Returns the adapter position (including header offset)
+     */
+    fun findPostPosition(postId: String): Int {
+        // FeedAdapter has a header at position 0, so we need to account for that
+        for (i in 0 until itemCount) {
+            if (i == 0) continue // Skip header
+            val actualPosition = i - 1 // Account for header
+            val item = getItem(actualPosition)
+            if (item?.Id == postId) {
+                return i // Return adapter position (with header offset)
+            }
+        }
+        return -1
+    }
 }
 
 
