@@ -89,6 +89,165 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         setupRecyclerView()
         loadPosts()
         observeFollowState()
+        
+        // Note: Menu button position is updated via scroll listeners and onCurrentPostChanged callback
+        // ViewTreeObserver is not needed as scroll listeners handle position updates during scrolling
+        
+        // Auto-setup menu button after adapter is ready (like force setup that worked)
+        binding.postsRecyclerView.postDelayed({
+            setupMenuButtonForCurrentPost()
+        }, 1500)
+    }
+    
+    private fun setupMenuButtonForCurrentPost() {
+        android.util.Log.e("MenuButton", "*** AUTO SETUP MENU BUTTON ***")
+        
+        // Setup button for ALL posts - always visible
+        binding.globalMenuBtnContainer.visibility = View.VISIBLE
+        binding.globalMenuBtnContainer.isClickable = true
+        binding.globalMenuBtnContainer.isFocusable = true
+        binding.globalMenuBtnContainer.isEnabled = true
+        binding.globalMenuBtnContainer.bringToFront()
+        
+        // Set up click listener that gets current post dynamically
+        binding.globalMenuBtnContainer.setOnClickListener { view ->
+            android.util.Log.e("MenuButton", "*** CLICK DETECTED ON globalMenuBtnContainer ***")
+            android.util.Log.e("MenuButton", "View: $view, isClickable: ${view.isClickable}, isEnabled: ${view.isEnabled}")
+            handleMenuButtonClick(view)
+        }
+        
+        // Also add touch listener for debugging
+        binding.globalMenuBtnContainer.setOnTouchListener { v, event ->
+            android.util.Log.e("MenuButton", "*** TOUCH EVENT on globalMenuBtnContainer: ${event.action} ***")
+            false // Return false to allow click listener to work
+        }
+        
+        // Update button for initial post
+        binding.postsRecyclerView.postDelayed({
+            val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
+            if (firstVisible != RecyclerView.NO_POSITION) {
+                updateMenuButtonForCurrentPost(firstVisible)
+            }
+        }, 500)
+    }
+    
+    private fun updateMenuButtonForCurrentPost(position: Int) {
+        val post = adapter.getPostAt(position)
+        if (post != null) {
+            android.util.Log.e("MenuButton", "Updating menu button for post: ${post.Id} at position: $position")
+            // Update position for photo posts only
+            if (filterMediaType == "image") {
+                updateMenuButtonPosition()
+            }
+        }
+    }
+    
+    private fun updateMenuButtonPosition() {
+        if (filterMediaType != "image") {
+            return
+        }
+        
+        // Find the currently visible post's ViewHolder
+        val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
+        if (firstVisible == RecyclerView.NO_POSITION) {
+            return
+        }
+        
+        val viewHolder = binding.postsRecyclerView.findViewHolderForAdapterPosition(firstVisible)
+        if (viewHolder !is UserPostsViewerAdapter.PostViewHolder) {
+            return
+        }
+        
+        // Get the black menu button from the post's layout
+        val photoMenuBtn = viewHolder.binding.photoMenuBtn
+        val photoHeaderContainer = viewHolder.binding.photoHeaderContainer
+        
+        // Check if the header container is visible (which means it's a photo post)
+        if (photoMenuBtn == null || photoHeaderContainer.visibility != View.VISIBLE) {
+            android.util.Log.d("MenuButton", "photoMenuBtn is null or header not visible")
+            return
+        }
+        
+        // Use postDelayed to ensure layout is complete
+        binding.postsRecyclerView.post {
+            // Wait for layout to be measured
+            if (photoMenuBtn.width == 0 || photoMenuBtn.height == 0) {
+                photoMenuBtn.post {
+                    updateMenuButtonPosition()
+                }
+                return@post
+            }
+            
+            // Calculate screen coordinates of the black menu button
+            val blackButtonLocation = IntArray(2)
+            photoMenuBtn.getLocationOnScreen(blackButtonLocation)
+            val blackButtonScreenX = blackButtonLocation[0]
+            val blackButtonScreenY = blackButtonLocation[1]
+            
+            // Get the black button's dimensions
+            val blackButtonWidth = photoMenuBtn.width
+            val blackButtonHeight = photoMenuBtn.height
+            
+            // Calculate screen coordinates of the main ConstraintLayout (parent of globalMenuBtnContainer)
+            val mainLocation = IntArray(2)
+            binding.main.getLocationOnScreen(mainLocation)
+            val mainScreenX = mainLocation[0]
+            val mainScreenY = mainLocation[1]
+            
+            // Calculate the position relative to the main ConstraintLayout
+            val relativeX = blackButtonScreenX - mainScreenX
+            val relativeY = blackButtonScreenY - mainScreenY
+            
+            // Get blue button container size
+            val blueButtonSize = (48 * resources.displayMetrics.density).toInt()
+            
+            // Center the blue button on the black button
+            // Calculate offset to center the larger blue button on the smaller black button
+            val offsetX = (blackButtonWidth - blueButtonSize) / 2
+            val offsetY = (blackButtonHeight - blueButtonSize) / 2
+            
+            val finalX = relativeX + offsetX
+            val finalY = relativeY + offsetY
+            
+            // Ensure the button is brought to front and visible
+            binding.globalMenuBtnContainer.bringToFront()
+            binding.globalMenuBtnContainer.visibility = View.VISIBLE
+            
+            // Update position using x and y properties (relative to parent ConstraintLayout)
+            // In ConstraintLayout, x and y override constraints when set programmatically
+            binding.globalMenuBtnContainer.x = finalX.toFloat()
+            binding.globalMenuBtnContainer.y = finalY.toFloat()
+            
+            android.util.Log.d("MenuButton", "Position updated - Blue: ($finalX, $finalY), Black screen: ($blackButtonScreenX, $blackButtonScreenY), Main screen: ($mainScreenX, $mainScreenY), Black size: ($blackButtonWidth, $blackButtonHeight)")
+        }
+    }
+    
+    private fun handleMenuButtonClick(view: View) {
+        // Get current visible post dynamically
+        val position = layoutManager.findFirstCompletelyVisibleItemPosition()
+        if (position != RecyclerView.NO_POSITION) {
+            val post = adapter.getPostAt(position)
+            if (post != null) {
+                val postId = post.Id ?: ""
+                if (postId.isNotEmpty()) {
+                    val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+                    val postUserId = post.userID?.trim().orEmpty()
+                    val postedById = post.postedBy?.Id?.trim().orEmpty()
+                    val isOwner = (postUserId.isNotEmpty() && (postUserId == ownerUserId.trim() || postUserId == currentUserId)) || 
+                                 (postedById.isNotEmpty() && (postedById == ownerUserId.trim() || postedById == currentUserId))
+                    
+                    android.util.Log.e("MenuButton", "Calling showMenuDialog - postId: $postId, isOwner: $isOwner, position: $position")
+                    binding.postsRecyclerView.stopScroll()
+                    adapter.showMenuDialog(view, postId, post, isOwner)
+                } else {
+                    android.util.Log.e("MenuButton", "PostId is empty")
+                }
+            } else {
+                android.util.Log.e("MenuButton", "Post is null at position: $position")
+            }
+        } else {
+            android.util.Log.e("MenuButton", "No visible position found")
+        }
     }
 
     private fun setupRecyclerView() {
@@ -100,7 +259,8 @@ class UserPostsViewerActivity : DarkBaseActivity() {
             ::onPostScrolled,
             ::onLikeUpdated,
             ::onCommentUpdated,
-            filterMediaType // Pass filterMediaType to adapter
+            filterMediaType, // Pass filterMediaType to adapter
+            ::onCurrentPostChanged // Callback for menu button visibility
         )
 
         layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
@@ -126,6 +286,8 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                         val position = layoutManager.getPosition(snapView)
                         if (position != RecyclerView.NO_POSITION) {
                             updateActivePosition(position)
+                            // Update menu button for current post
+                            updateMenuButtonForCurrentPost(position)
                         }
                     }
                 }
@@ -138,6 +300,14 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                     val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
                     if (firstVisible != RecyclerView.NO_POSITION && firstVisible != activePosition) {
                         updateActivePosition(firstVisible)
+                        // Update menu button for current post
+                        updateMenuButtonForCurrentPost(firstVisible)
+                        // Update menu button position for photos
+                        if (filterMediaType == "image") {
+                            recyclerView.postDelayed({
+                                updateMenuButtonPosition()
+                            }, 50)
+                        }
                     }
                 }
             })
@@ -451,6 +621,75 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         // Update comment count in adapter
         adapter.updateCommentCount(postId, commentCount)
     }
+
+    private var currentPostForMenu: Data? = null
+
+    private fun onCurrentPostChanged(post: Data?, isPhoto: Boolean) {
+        android.util.Log.e("MenuButton", "*** onCurrentPostChanged CALLED *** - post: ${post?.Id}, isPhoto: $isPhoto, filterMediaType: $filterMediaType")
+        currentPostForMenu = post
+        
+        if (post == null) {
+            android.util.Log.d("MenuButton", "Post is null, hiding menu button")
+            binding.globalMenuBtnContainer.visibility = View.GONE
+            binding.globalMenuBtnContainer.setOnClickListener(null)
+            return
+        }
+
+        if (isPhoto && filterMediaType == "image") {
+            // Show menu button for photos - using exact same logic as force setup that worked
+            android.util.Log.e("MenuButton", "*** SETTING UP MENU BUTTON *** for photo post: ${post.Id}")
+            
+            // Use the exact same approach as the force setup that worked
+            binding.globalMenuBtnContainer.visibility = View.VISIBLE
+            binding.globalMenuBtnContainer.isClickable = true
+            binding.globalMenuBtnContainer.isFocusable = true
+            binding.globalMenuBtnContainer.isEnabled = true
+            binding.globalMenuBtnContainer.bringToFront()
+            
+            // Remove any existing listeners first
+            binding.globalMenuBtnContainer.setOnClickListener(null)
+            binding.globalMenuBtnContainer.setOnTouchListener(null)
+            
+            // Set up click listener - exact same as force setup
+            binding.globalMenuBtnContainer.setOnClickListener { view ->
+                android.util.Log.e("MenuButton", "*** CLICK DETECTED in onCurrentPostChanged callback ***")
+                android.util.Log.e("MenuButton", "View: $view, post: ${post.Id}")
+                // Use current post from the callback
+                val postId = post.Id ?: ""
+                if (postId.isNotEmpty()) {
+                    // Calculate isOwner
+                    val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+                    val postUserId = post.userID?.trim().orEmpty()
+                    val postedById = post.postedBy?.Id?.trim().orEmpty()
+                    val isOwner = (postUserId.isNotEmpty() && (postUserId == ownerUserId.trim() || postUserId == currentUserId)) || 
+                                 (postedById.isNotEmpty() && (postedById == ownerUserId.trim() || postedById == currentUserId))
+                    
+                    android.util.Log.e("MenuButton", "Calling showMenuDialog - postId: $postId, isOwner: $isOwner")
+                    
+                    // Disable RecyclerView scrolling while menu is open
+                    binding.postsRecyclerView.stopScroll()
+                    
+                    // Show menu dialog
+                    adapter.showMenuDialog(view, postId, post, isOwner)
+                } else {
+                    android.util.Log.e("MenuButton", "PostId is empty, cannot show menu")
+                }
+            }
+            
+            // Update position after a short delay to ensure layout is complete
+            binding.postsRecyclerView.postDelayed({
+                updateMenuButtonPosition()
+            }, 100)
+            
+            android.util.Log.e("MenuButton", "Menu button setup complete - visible: ${binding.globalMenuBtnContainer.visibility == View.VISIBLE}, clickable: ${binding.globalMenuBtnContainer.isClickable}, enabled: ${binding.globalMenuBtnContainer.isEnabled}")
+        } else {
+            // Hide menu button for videos or non-photo posts
+            android.util.Log.e("MenuButton", "Hiding menu button - isPhoto: $isPhoto, filterMediaType: $filterMediaType")
+            binding.globalMenuBtnContainer.visibility = View.GONE
+            binding.globalMenuBtnContainer.setOnClickListener(null)
+        }
+    }
+    
 
     private fun updateActivePosition(position: Int) {
         if (position == activePosition || position < 0) return

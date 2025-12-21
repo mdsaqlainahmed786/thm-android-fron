@@ -34,6 +34,8 @@
             android:layout_height="200dp"
             android:background="@drawable/gradient_reels_top"
             android:visibility="gone"
+            android:clickable="false"
+            android:focusable="false"
             app:layout_constraintTop_toTopOf="parent" />
 
         <View
@@ -42,6 +44,8 @@
             android:layout_height="260dp"
             android:background="@drawable/gradient_reels_bottom"
             android:visibility="gone"
+            android:clickable="false"
+            android:focusable="false"
             app:layout_constraintBottom_toBottomOf="parent" />
 
         <LinearLayout
@@ -309,7 +313,7 @@
             android:paddingBottom="12dp"
             android:clickable="false"
             android:focusable="false"
-            android:descendantFocusability="blocksDescendants"
+            android:focusableInTouchMode="false"
             android:elevation="15dp"
             app:layout_constraintBottom_toTopOf="@id/mediaViewPager"
             app:layout_constraintTop_toTopOf="parent">
@@ -350,27 +354,16 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <FrameLayout
-                android:id="@+id/photoMenuBtnContainer"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:elevation="25dp"
-                android:background="?attr/selectableItemBackgroundBorderless">
-                
-                <ImageView
-                    android:id="@+id/photoMenuBtn"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_three_dot_blue"
-                    android:contentDescription="Menu"
-                    android:clickable="false"
-                    android:focusable="false"
-                    android:visibility="gone" />
-            </FrameLayout>
+            <ImageView
+                android:id="@+id/photoMenuBtn"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/ic_post_menu"
+                android:contentDescription="Menu"
+                android:clickable="false"
+                android:focusable="false"
+                android:focusableInTouchMode="false" />
 
         </LinearLayout>
 
