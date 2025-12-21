@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.SocketModals.fetchConversation.Messages
+import com.thehotelmedia.android.activity.PostPreviewActivity
 import com.thehotelmedia.android.activity.VideoImageViewer
 import com.thehotelmedia.android.customClasses.Constants.IMAGE
 import com.thehotelmedia.android.customClasses.Constants.URL_PATTERN
@@ -204,15 +205,23 @@ class ChatAdapter(private val context: Context) : PagingDataAdapter<Messages, Ch
             if (type == "pdf") {
                 openPdfInDevice(mediaUrl)
             } else if (type == IMAGE || type == VIDEO) {
-//                context.moveToViewer(type, mediaUrl)
-
-                val intent = Intent(context, VideoImageViewer::class.java).apply {
-                    putExtra("MEDIA_URL", mediaUrl)
-                    putExtra("MEDIA_TYPE", type)
-                    putExtra("FROM", "CHAT")
+                // Check if this is a shared post - if postID exists, navigate to post preview
+                val postID = message.postID
+                if (!postID.isNullOrBlank()) {
+                    val intent = Intent(context, PostPreviewActivity::class.java).apply {
+                        putExtra("FROM", "CHAT")
+                        putExtra("POST_ID", postID)
+                    }
+                    context.startActivity(intent)
+                } else {
+                    // Regular media message - open in video/image viewer
+                    val intent = Intent(context, VideoImageViewer::class.java).apply {
+                        putExtra("MEDIA_URL", mediaUrl)
+                        putExtra("MEDIA_TYPE", type)
+                        putExtra("FROM", "CHAT")
+                    }
+                    context.startActivity(intent)
                 }
-                context.startActivity(intent)
-
             }
         }
     }

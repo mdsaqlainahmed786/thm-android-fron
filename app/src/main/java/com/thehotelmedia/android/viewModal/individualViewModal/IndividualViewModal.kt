@@ -1823,6 +1823,32 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         }
     }
 
+    //Share Post Message
+    private val _sharePostMessageResult = MutableLiveData<SendMediaModal>()
+    val sharePostMessageResult: LiveData<SendMediaModal> = _sharePostMessageResult
+    fun sharePostMessage(username: String, messageType: String, message: String?, postID: String, mediaUrl: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.sharePostMessage(username, messageType, message, postID, mediaUrl)
+                if (response.isSuccessful) {
+                    _sharePostMessageResult.postValue(response.body())
+                    Log.wtf(tag, response.body().toString())
+                    _loading.postValue(false)
+                } else {
+                    Log.wtf(tag + "ELSE", response.toString())
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
 
 
     //Report User

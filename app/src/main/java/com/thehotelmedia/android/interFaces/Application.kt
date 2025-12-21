@@ -640,6 +640,17 @@ interface Application {
         @Part mediaType: MultipartBody.Part
     ): Call<SendMediaModal>
 
+    @Multipart
+    @POST("user/messaging/share-post-message")
+    fun sharePostMessage(
+        @Header("x-access-token") token: RequestBody,
+        @Part("username") username: RequestBody,
+        @Part("messageType") messageType: RequestBody,
+        @Part("message") message: RequestBody?,
+        @Part("postID") postID: RequestBody,
+        @Part mediaType: MultipartBody.Part
+    ): Call<SendMediaModal>
+
     @POST("user/report" + "/{id}")
     @FormUrlEncoded
     fun reportUser(

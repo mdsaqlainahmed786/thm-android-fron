@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentManager
@@ -21,7 +22,6 @@ import com.thehotelmedia.android.adapters.MediaItems
 import com.thehotelmedia.android.adapters.MediaType
 import com.thehotelmedia.android.adapters.VideoImageViewerAdapter
 import com.thehotelmedia.android.bottomSheets.CommentsBottomSheetFragment
-import com.thehotelmedia.android.bottomSheets.PostMenuBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.SharePostBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment
@@ -48,8 +48,7 @@ class UserPostsViewerAdapter(
     private val onPostScrolled: (Int, ExoPlayer?) -> Unit,
     private val onLikeUpdated: (String, Boolean, Int) -> Unit,
     private val onCommentUpdated: (String, Int) -> Unit,
-    private val filterMediaType: String? = null, // "image" for feed-style, "video" or null for reel-style
-    private val onCurrentPostChanged: ((Data?, Boolean) -> Unit)? // Callback: (post, isPhoto)
+    private val filterMediaType: String? = null // "image" for feed-style, "video" or null for reel-style
 ) : PagingDataAdapter<Data, RecyclerView.ViewHolder>(POST_DIFF_CALLBACK) {
 
     private val exoPlayers = mutableMapOf<String, ExoPlayer>()
@@ -90,7 +89,6 @@ class UserPostsViewerAdapter(
             postId = post.Id ?: ""
             currentPost = post
             isHolderActive = isActive
-            android.util.Log.d("MenuButton", "bind called for postId: $postId, isActive: $isActive")
 
             val mediaList = post.mediaRef
             val postOwnerId = extractOwnerId(post)
@@ -150,25 +148,7 @@ class UserPostsViewerAdapter(
             setupShareButton(post.userID ?: "")
             setupSaveButton(state)
             setupFollowButton(post, state)
-            
-            // Notify Activity about current post for menu button visibility
-            // Call immediately for photos, or when holder becomes active
-            android.util.Log.e("MenuButton", "bind() - post: ${post.Id}, currentMediaIsVideo: $currentMediaIsVideo, filterMediaType: $filterMediaType, isActive: $isActive, isHolderActive: $isHolderActive")
-            when {
-                !currentMediaIsVideo && filterMediaType == "image" -> {
-                    // For photos, notify immediately
-                    android.util.Log.e("MenuButton", "*** CALLING CALLBACK (photo) *** - post: ${post.Id}")
-                    onCurrentPostChanged?.invoke(post, true)
-                }
-                isActive && isHolderActive -> {
-                    // For videos, only notify when active
-                    android.util.Log.e("MenuButton", "*** CALLING CALLBACK (video) *** - post: ${post.Id}")
-                    onCurrentPostChanged?.invoke(post, !currentMediaIsVideo)
-                }
-                else -> {
-                    android.util.Log.e("MenuButton", "*** NOT CALLING CALLBACK *** - conditions not met")
-                }
-            }
+            setupMenuButton(post, state)
 
             binding.reelViewCommentsTv.setOnClickListener {
                 binding.reelCommentBtn.performClick()
@@ -184,16 +164,7 @@ class UserPostsViewerAdapter(
             mediaList: List<com.thehotelmedia.android.modals.feeds.feed.MediaRef>,
             state: PostState
         ) {
-            // Filter media by type if filterMediaType is specified
-            val filteredMediaList = if (filterMediaType != null) {
-                mediaList.filter { media ->
-                    media.mediaType?.lowercase() == filterMediaType?.lowercase()
-                }
-            } else {
-                mediaList
-            }
-            
-            if (filteredMediaList.isEmpty()) return
+            if (mediaList.isEmpty()) return
 
             val exoPlayer = exoPlayers.getOrPut(postId) {
                 ExoPlayer.Builder(context).build()
@@ -205,7 +176,7 @@ class UserPostsViewerAdapter(
                 exoPlayer.removeListener(it)
             }
 
-            val mediaItems = filteredMediaList.map { mediaRef ->
+            val mediaItems = mediaList.map { mediaRef ->
                 val mediaType = when (mediaRef.mediaType?.lowercase()) {
                     "image" -> MediaType.IMAGE
                     "video" -> MediaType.VIDEO
@@ -218,7 +189,7 @@ class UserPostsViewerAdapter(
                 context,
                 mediaItems,
                 exoPlayer,
-                filteredMediaList.firstOrNull()?.Id ?: "",
+                mediaList.firstOrNull()?.Id ?: "",
                 postId,
                 individualViewModal,
                 { _ -> },
@@ -232,20 +203,7 @@ class UserPostsViewerAdapter(
                             bindProfileSection(it, state, timestamp)
                             bindInfoSection(state.commentCount, it.shared ?: 0, it, timestamp)
                             setupFollowButton(it, state)
-                            // Notify Activity about current post for menu button visibility
-                            when {
-                                !currentMediaIsVideo && filterMediaType == "image" -> {
-                                    android.util.Log.d("MenuButton", "Notifying Activity from media change (photo) - post: ${it.Id}")
-                                    onCurrentPostChanged?.invoke(it, true)
-                                }
-                                isHolderActive -> {
-                                    android.util.Log.d("MenuButton", "Notifying Activity from media change (video) - post: ${it.Id}")
-                                    onCurrentPostChanged?.invoke(it, !currentMediaIsVideo)
-                                }
-                                else -> {
-                                    // No action needed
-                                }
-                            }
+                            setupMenuButton(it, state)
                         }
                         updateActiveState(isHolderActive)
                     }
@@ -258,21 +216,6 @@ class UserPostsViewerAdapter(
 
             binding.mediaViewPager.adapter = mediaAdapter
             binding.mediaViewPager.isUserInputEnabled = false
-            
-            // Notify Activity about current post for menu button visibility
-            when {
-                !currentMediaIsVideo && filterMediaType == "image" -> {
-                    android.util.Log.d("MenuButton", "Notifying Activity from setupMedia (photo) - post: ${currentPost?.Id}")
-                    onCurrentPostChanged?.invoke(currentPost, true)
-                }
-                isHolderActive -> {
-                    android.util.Log.d("MenuButton", "Notifying Activity from setupMedia (video) - post: ${currentPost?.Id}")
-                    onCurrentPostChanged?.invoke(currentPost, !currentMediaIsVideo)
-                }
-                else -> {
-                    // No action needed
-                }
-            }
         }
 
         private fun startPlayback() {
@@ -540,7 +483,149 @@ class UserPostsViewerAdapter(
             }
         }
 
-        // Menu button setup removed - now handled by Activity overlay
+        private fun setupMenuButton(post: Data, state: PostState) {
+            // Get current logged-in user ID directly from preferences to ensure accuracy
+            val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+            
+            // Check if user is the owner of the post
+            // Check both userID and postedBy.Id to handle different post structures
+            val postUserId = post.userID?.trim().orEmpty()
+            val postedById = post.postedBy?.Id?.trim().orEmpty()
+            
+            // Compare with both the passed ownerUserId and the current user ID from preferences
+            val isOwner = (postUserId.isNotEmpty() && (postUserId == ownerUserId.trim() || postUserId == currentUserId)) || 
+                         (postedById.isNotEmpty() && (postedById == ownerUserId.trim() || postedById == currentUserId))
+            
+            if (currentMediaIsVideo) {
+                // For videos: show menu button below save icon
+                binding.reelMenuBtn.visibility = View.VISIBLE
+                binding.reelMenuBtn.setOnClickListener { view ->
+                    showMenuDialog(view, postId, post, isOwner)
+                }
+                // Hide photo menu button for videos
+                binding.photoMenuBtn.visibility = View.GONE
+                binding.photoMenuBtn.setOnClickListener(null)
+            } else {
+                // For photos: show menu button in header for all posts
+                binding.photoMenuBtn.visibility = View.VISIBLE
+                binding.photoMenuBtn.setOnClickListener { view ->
+                    showMenuDialog(view, postId, post, isOwner)
+                }
+                // Hide reel menu button for photos
+                binding.reelMenuBtn.visibility = View.GONE
+                binding.reelMenuBtn.setOnClickListener(null)
+            }
+        }
+
+        private fun showMenuDialog(view: View?, postId: String, post: Data?, isOwner: Boolean) {
+            val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+            val dropdownView = inflater.inflate(R.layout.delete_edit_post_menu_dropdown_item, null)
+
+            // Create the PopupWindow
+            val popupWindow = PopupWindow(
+                dropdownView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+
+            // Re-verify ownership to ensure accuracy (in case post data changed)
+            val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+            val postUserId = post?.userID?.trim().orEmpty()
+            val postedById = post?.postedBy?.Id?.trim().orEmpty()
+            val verifiedIsOwner = (postUserId.isNotEmpty() && (postUserId == ownerUserId.trim() || postUserId == currentUserId)) || 
+                                 (postedById.isNotEmpty() && (postedById == ownerUserId.trim() || postedById == currentUserId))
+
+            // Find TextViews and set click listeners
+            val editBtn: TextView? = dropdownView.findViewById(R.id.editBtn)
+            val deleteBtn: TextView? = dropdownView.findViewById(R.id.deleteBtn)
+            val reportBtn: TextView? = dropdownView.findViewById(R.id.reportBtn)
+            val addToStoryBtn: TextView? = dropdownView.findViewById(R.id.addToStoryBtn)
+
+            // Show/hide buttons based on ownership (use verified ownership)
+            if (verifiedIsOwner) {
+                // Owner sees Edit and Delete options
+                editBtn?.visibility = View.VISIBLE
+                deleteBtn?.visibility = View.VISIBLE
+                reportBtn?.visibility = View.GONE
+                addToStoryBtn?.visibility = View.GONE
+            } else {
+                // Others see only Report option
+                editBtn?.visibility = View.GONE
+                deleteBtn?.visibility = View.GONE
+                reportBtn?.visibility = View.VISIBLE
+                addToStoryBtn?.visibility = View.GONE
+            }
+
+            // Edit button click listener
+            editBtn?.setOnClickListener {
+                val currentContent = post?.content.orEmpty()
+                val currentFeeling = post?.feelings
+                val currentMedia = post?.mediaRef ?: emptyList()
+                val location = post?.location
+                val placeName = location?.placeName
+                val lat = location?.lat
+                val lng = location?.lng
+                
+                if (postId.isNotEmpty()) {
+                    com.thehotelmedia.android.activity.userTypes.forms.EditPostActivity.start(
+                        context,
+                        postId,
+                        currentContent,
+                        currentFeeling,
+                        currentMedia,
+                        placeName,
+                        lat,
+                        lng
+                    )
+                }
+                popupWindow.dismiss()
+            }
+
+            // Delete button click listener
+            deleteBtn?.setOnClickListener {
+                val bottomSheet = YesOrNoBottomSheetFragment.newInstance(MessageStore.sureWantToDeletePost(context))
+                bottomSheet.onYesClicked = {
+                    individualViewModal.deletePost(postId)
+                    popupWindow.dismiss()
+                }
+                bottomSheet.onNoClicked = {
+                    // User cancelled, do nothing
+                }
+                bottomSheet.show(fragmentManager, "YesOrNoBottomSheet")
+                popupWindow.dismiss()
+            }
+
+            // Report button click listener
+            reportBtn?.setOnClickListener {
+                reportPost(postId)
+                popupWindow.dismiss()
+            }
+
+            // Set the background drawable to make the popup visually appealing
+            popupWindow.setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.popup_background))
+
+            // Show the popup window
+            popupWindow.showAsDropDown(view)
+
+            // Optionally, dismiss the popup when clicking outside of it
+            popupWindow.setOnDismissListener {
+                // Handle any actions you want to perform when the popup is dismissed
+            }
+        }
+
+        private fun reportPost(postId: String) {
+            val bottomSheetFragment = ReportBottomSheetFragment().apply {
+                arguments = Bundle().apply {
+                    putString("ID", postId)
+                    putString("TYPE", "post")
+                }
+                onReasonSelected = { selectedReason ->
+                    individualViewModal.reportPosts(postId, selectedReason)
+                }
+            }
+            bottomSheetFragment.show(fragmentManager, bottomSheetFragment.tag)
+        }
 
         private fun updateFollowButton(isFollowing: Boolean, isRequested: Boolean) {
             val button = binding.reelFollowButton
@@ -591,7 +676,6 @@ class UserPostsViewerAdapter(
         }
 
         private fun updateLayoutForMediaType(isVideo: Boolean) {
-            android.util.Log.d("MenuButton", "updateLayoutForMediaType called - isVideo: $isVideo")
             currentMediaIsVideo = isVideo
             val reelVisibility = if (isVideo) View.VISIBLE else View.GONE
             val photoVisibility = if (isVideo) View.GONE else View.VISIBLE
@@ -607,8 +691,6 @@ class UserPostsViewerAdapter(
 
             binding.photoHeaderContainer.visibility = photoVisibility
             binding.photoFooterContainer.visibility = photoVisibility
-            
-            android.util.Log.d("MenuButton", "photoHeaderContainer visibility set to: $photoVisibility")
         }
 
         private fun formatTimestamp(createdAt: String?): String {
@@ -643,117 +725,6 @@ class UserPostsViewerAdapter(
         fun refreshFollowState(post: Data, state: PostState) {
             setupFollowButton(post, state)
         }
-    }
-
-    // Menu dialog functions moved to adapter level for Activity access
-    fun showMenuDialog(view: View?, postId: String, post: Data?, isOwner: Boolean) {
-        android.util.Log.e("MenuButton", "=== showMenuDialog called ===")
-        android.util.Log.e("MenuButton", "view: $view, postId: $postId, isOwner: $isOwner")
-        android.util.Log.e("MenuButton", "fragmentManager: $fragmentManager")
-        
-        try {
-            // Re-verify ownership to ensure accuracy (in case post data changed)
-            val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
-            val postUserId = post?.userID?.trim().orEmpty()
-            val postedById = post?.postedBy?.Id?.trim().orEmpty()
-            val verifiedIsOwner = (postUserId.isNotEmpty() && (postUserId == ownerUserId.trim() || postUserId == currentUserId)) || 
-                                 (postedById.isNotEmpty() && (postedById == ownerUserId.trim() || postedById == currentUserId))
-
-            android.util.Log.e("MenuButton", "verifiedIsOwner: $verifiedIsOwner")
-
-            // Create and show the menu bottom sheet
-            val menuBottomSheet = PostMenuBottomSheetFragment.newInstance(postId, verifiedIsOwner)
-            android.util.Log.e("MenuButton", "Created menuBottomSheet: $menuBottomSheet")
-            
-            // Set up Edit action
-            menuBottomSheet.onEditClicked = {
-                android.util.Log.e("MenuButton", "Edit clicked")
-                val currentContent = post?.content.orEmpty()
-                val currentFeeling = post?.feelings
-                val currentMedia = post?.mediaRef ?: emptyList()
-                val location = post?.location
-                val placeName = location?.placeName
-                val lat = location?.lat
-                val lng = location?.lng
-                
-                if (postId.isNotEmpty()) {
-                    com.thehotelmedia.android.activity.userTypes.forms.EditPostActivity.start(
-                        context,
-                        postId,
-                        currentContent,
-                        currentFeeling,
-                        currentMedia,
-                        placeName,
-                        lat,
-                        lng
-                    )
-                }
-            }
-            
-            // Set up Delete action
-            menuBottomSheet.onDeleteClicked = {
-                android.util.Log.e("MenuButton", "Delete clicked")
-                val bottomSheet = YesOrNoBottomSheetFragment.newInstance(MessageStore.sureWantToDeletePost(context))
-                bottomSheet.onYesClicked = {
-                    individualViewModal.deletePost(postId)
-                }
-                bottomSheet.onNoClicked = {
-                    // User cancelled, do nothing
-                }
-                bottomSheet.show(fragmentManager, "YesOrNoBottomSheet")
-            }
-            
-            // Set up Report action
-            menuBottomSheet.onReportClicked = {
-                android.util.Log.e("MenuButton", "Report clicked")
-                reportPost(postId)
-            }
-            
-            // Show the menu bottom sheet
-            android.util.Log.e("MenuButton", "About to show bottom sheet with fragmentManager: $fragmentManager")
-            if (fragmentManager != null) {
-                try {
-                    // Ensure we're on the UI thread
-                    if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
-                        android.util.Log.e("MenuButton", "On UI thread, showing bottom sheet")
-                        menuBottomSheet.show(fragmentManager, "PostMenuBottomSheet")
-                        android.util.Log.e("MenuButton", "Bottom sheet show() called successfully")
-                    } else {
-                        android.util.Log.e("MenuButton", "Not on UI thread, posting to main thread")
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            menuBottomSheet.show(fragmentManager, "PostMenuBottomSheet")
-                            android.util.Log.e("MenuButton", "Bottom sheet show() called on main thread")
-                        }
-                    }
-                } catch (e: IllegalStateException) {
-                    android.util.Log.e("MenuButton", "IllegalStateException: ${e.message}", e)
-                    // Try using activity's fragmentManager if available
-                    val activity = context as? androidx.fragment.app.FragmentActivity
-                    if (activity != null) {
-                        android.util.Log.e("MenuButton", "Trying with activity's supportFragmentManager")
-                        menuBottomSheet.show(activity.supportFragmentManager, "PostMenuBottomSheet")
-                    }
-                }
-            } else {
-                android.util.Log.e("MenuButton", "ERROR: fragmentManager is NULL!")
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("MenuButton", "ERROR in showMenuDialog: ${e.message}", e)
-            e.printStackTrace()
-        }
-    }
-
-        private fun reportPost(postId: String) {
-            val bottomSheetFragment = ReportBottomSheetFragment().apply {
-                arguments = Bundle().apply {
-                    putString("ID", postId)
-                    putString("TYPE", "post")
-                }
-                onReasonSelected = { selectedReason ->
-                    individualViewModal.reportPosts(postId, selectedReason)
-                }
-            }
-            bottomSheetFragment.show(fragmentManager, bottomSheetFragment.tag)
     }
 
     private fun pauseOtherPlayers(exceptPostId: String) {
@@ -896,15 +867,8 @@ class UserPostsViewerAdapter(
         }
 
         private fun setupPostData(post: Data, state: PostState) {
-            var mediaList = post.mediaRef ?: emptyList()
+            val mediaList = post.mediaRef ?: emptyList()
             val postOwnerId = extractOwnerId(post)
-
-            // Filter media by type if filterMediaType is specified
-            if (filterMediaType != null) {
-                mediaList = mediaList.filter { media ->
-                    media.mediaType?.lowercase() == filterMediaType?.lowercase()
-                }
-            }
 
             // Setup media
             if (mediaList.isNotEmpty()) {
@@ -980,15 +944,7 @@ class UserPostsViewerAdapter(
             binding.nameTv.text = name
 
             val createdAt = post.createdAt ?: ""
-            val formattedCreatedAt = if (createdAt.isNotEmpty()) {
-                try {
-                    calculateDaysAgo(createdAt, context)
-                } catch (e: Exception) {
-                    context.getString(R.string.just_now)
-                }
-            } else {
-                context.getString(R.string.just_now)
-            }
+            val formattedCreatedAt = calculateDaysAgo(createdAt, context)
             binding.locationTv.text = formattedCreatedAt
 
             // Setup content

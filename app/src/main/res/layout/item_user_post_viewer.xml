@@ -9,13 +9,8 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
+        android:layout_height="match_parent"
         android:background="@color/background_color">
-
-
-
 
         <androidx.viewpager2.widget.ViewPager2
             android:id="@+id/mediaViewPager"
@@ -34,8 +29,6 @@
             android:layout_height="200dp"
             android:background="@drawable/gradient_reels_top"
             android:visibility="gone"
-            android:clickable="false"
-            android:focusable="false"
             app:layout_constraintTop_toTopOf="parent" />
 
         <View
@@ -44,8 +37,6 @@
             android:layout_height="260dp"
             android:background="@drawable/gradient_reels_bottom"
             android:visibility="gone"
-            android:clickable="false"
-            android:focusable="false"
             app:layout_constraintBottom_toBottomOf="parent" />
 
         <LinearLayout
@@ -159,8 +150,6 @@
                 android:layout_marginTop="8dp"
                 android:src="@drawable/ic_three_dot_blue"
                 android:contentDescription="Menu"
-                android:clickable="true"
-                android:focusable="true"
                 android:visibility="gone" />
 
         </LinearLayout>
@@ -311,10 +300,6 @@
             android:paddingTop="16dp"
             android:paddingEnd="16dp"
             android:paddingBottom="12dp"
-            android:clickable="false"
-            android:focusable="false"
-            android:focusableInTouchMode="false"
-            android:elevation="15dp"
             app:layout_constraintBottom_toTopOf="@id/mediaViewPager"
             app:layout_constraintTop_toTopOf="parent">
 
@@ -358,12 +343,10 @@
                 android:id="@+id/photoMenuBtn"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:layout_gravity="center_vertical"
-                android:src="@drawable/ic_post_menu"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_three_dot_blue"
                 android:contentDescription="Menu"
-                android:clickable="false"
-                android:focusable="false"
-                android:focusableInTouchMode="false" />
+                android:visibility="gone" />
 
         </LinearLayout>
 

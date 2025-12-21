@@ -49,6 +49,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
     private var sharedThumbnailUrl: String? = null
     private var sharedMediaId: String? = null
     private var userName: String = ""
+    private var currentRecipientUsername: String? = null
     private val handler = Handler(Looper.getMainLooper())
     private var searchRunnable: Runnable? = null
 
@@ -75,6 +76,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         setupListeners()
         observeChatData()
         observeStoryPublishResult()
+        observeSharePostMessageResult()
         connectAndFetchChats()
     }
 
@@ -166,6 +168,41 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         return !normalizedType.isNullOrBlank()
     }
 
+    private fun observeSharePostMessageResult() {
+        individualViewModal.sharePostMessageResult.observe(viewLifecycleOwner) { result ->
+            val recipientUsername = currentRecipientUsername ?: return@observe
+            currentRecipientUsername = null // Reset after use
+            
+            if (result?.status == true && result.data != null) {
+                val messageData = result.data?.message
+                if (messageData != null) {
+                    // Send the message via socket using the response from the API
+                    socketViewModel.sendPrivateMessage(
+                        messageData.type ?: "",
+                        messageData.message ?: "",
+                        recipientUsername,
+                        messageData.mediaUrl ?: "",
+                        messageData.thumbnailUrl ?: "",
+                        messageData.mediaID ?: "",
+                        messageData.postID,
+                        messageData.postOwnerUsername
+                    )
+                    val displayName = recipientUsername
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.share_message_sent, displayName),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    dismissAllowingStateLoss()
+                } else {
+                    Toast.makeText(requireContext(), R.string.share_message_failed, Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(requireContext(), R.string.share_message_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun observeStoryPublishResult() {
         individualViewModal.publishStoryResult.observe(viewLifecycleOwner) { result ->
             if (result?.status == true) {
@@ -230,25 +267,44 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         val hasMediaAttachment = !sharedMediaUrl.isNullOrBlank() && !normalizedType.isNullOrBlank()
 
         try {
-            if (hasMediaAttachment) {
+            if (hasMediaAttachment && postId.isNotBlank()) {
+                // Use the new HTTP endpoint to share post with media
+                currentRecipientUsername = recipientUsername // Store for observer
+                individualViewModal.sharePostMessage(
+                    recipientUsername,
+                    normalizedType!!,
+                    "", // Optional message text
+                    postId,
+                    sharedMediaUrl.orEmpty()
+                )
+            } else if (hasMediaAttachment) {
+                // Fallback: direct socket send if no postId (shouldn't happen for post sharing)
                 socketViewModel.sendPrivateMessage(
                     normalizedType!!,
                     "",
                     recipientUsername,
                     sharedMediaUrl.orEmpty(),
                     sharedThumbnailUrl.orEmpty(),
-                    sharedMediaId.orEmpty()
+                    sharedMediaId.orEmpty(),
+                    null
                 )
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.share_message_sent, displayName),
+                    Toast.LENGTH_SHORT
+                ).show()
+                dismissAllowingStateLoss()
             } else {
+                // Text-only share (with deep link)
                 val message = getString(R.string.post_share_message_template, shareLink)
-                socketViewModel.sendPrivateMessage("text", message, recipientUsername, "", "", "")
+                socketViewModel.sendPrivateMessage("text", message, recipientUsername, "", "", "", postId.takeIf { it.isNotBlank() })
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.share_message_sent, displayName),
+                    Toast.LENGTH_SHORT
+                ).show()
+                dismissAllowingStateLoss()
             }
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.share_message_sent, displayName),
-                Toast.LENGTH_SHORT
-            ).show()
-            dismissAllowingStateLoss()
         } catch (e: Exception) {
             Toast.makeText(requireContext(), R.string.share_message_failed, Toast.LENGTH_SHORT).show()
         }

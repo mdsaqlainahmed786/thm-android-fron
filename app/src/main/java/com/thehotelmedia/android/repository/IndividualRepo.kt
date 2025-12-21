@@ -1154,6 +1154,113 @@ class IndividualRepo (private val context: Context){
         }
     }
 
+    /**
+     * Helper function to download media file from URL to a temporary file
+     */
+    private suspend fun downloadMediaFile(mediaUrl: String, messageType: String): File {
+        return withContext(Dispatchers.IO) {
+            val url = java.net.URL(mediaUrl)
+            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection.connect()
+
+            val mimeType = connection.contentType ?: when (messageType) {
+                "image" -> "image/jpeg"
+                "video" -> "video/mp4"
+                else -> "application/octet-stream"
+            }
+            
+            val extension = when {
+                messageType == "image" -> {
+                    if (mimeType.contains("png")) "png" else "jpg"
+                }
+                messageType == "video" -> {
+                    if (mediaUrl.contains(".m3u8")) {
+                        // Handle HLS streams - this is complex, for now return a temp file
+                        // In production, you might want to handle this differently
+                        throw IllegalStateException("HLS streams need special handling")
+                    } else "mp4"
+                }
+                else -> "bin"
+            }
+
+            val cacheDir = context.cacheDir
+            val fileName = "share_post_media_${System.currentTimeMillis()}.$extension"
+            val file = File(cacheDir, fileName)
+
+            connection.inputStream.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            file
+        }
+    }
+
+    suspend fun sharePostMessage(
+        username: String,
+        messageType: String,
+        message: String?,
+        postID: String,
+        mediaUrl: String
+    ): Response<SendMediaModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+
+        return withContext(Dispatchers.IO) {
+            // Download the media file from URL
+            val mediaFile = downloadMediaFile(mediaUrl, messageType)
+
+            try {
+                // Convert strings to RequestBody
+                val accessTokenBody = accessToken.toRequestBody("text/plain".toMediaTypeOrNull())
+                val userNameBody = username.toRequestBody("text/plain".toMediaTypeOrNull())
+                val messageTypeBody = messageType.toRequestBody("text/plain".toMediaTypeOrNull())
+                val messageBody = (message ?: "").toRequestBody("text/plain".toMediaTypeOrNull())
+                val postIDBody = postID.toRequestBody("text/plain".toMediaTypeOrNull())
+
+                // Create media part
+                val mediaPart: MultipartBody.Part = when (messageType) {
+                    "image" -> {
+                        val mimeType = "image/jpeg"
+                        val requestFile = mediaFile.asRequestBody(mimeType.toMediaTypeOrNull())
+                        MultipartBody.Part.createFormData("media", mediaFile.name, requestFile)
+                    }
+                    "video" -> {
+                        val mimeType = "video/mp4"
+                        val requestFile = mediaFile.asRequestBody(mimeType.toMediaTypeOrNull())
+                        MultipartBody.Part.createFormData("media", mediaFile.name, requestFile)
+                    }
+                    else -> throw IllegalArgumentException("Unsupported message type: $messageType")
+                }
+
+                // Make the API call
+                val call = Retrofit.apiService(context).create(Application::class.java)
+                val response = call.sharePostMessage(
+                    accessTokenBody,
+                    userNameBody,
+                    messageTypeBody,
+                    messageBody,
+                    postIDBody,
+                    mediaPart
+                ).execute()
+
+                // Delete temporary file after upload
+                mediaFile.delete()
+
+                response
+            } catch (e: Exception) {
+                // Ensure file is deleted even on error
+                if (mediaFile.exists()) {
+                    mediaFile.delete()
+                }
+                throw e
+            }
+        }
+    }
+
 
     suspend fun reportUser(userId: String,reason: String): Response<ReportUserModal> {
         val accessToken = getAccessToken()

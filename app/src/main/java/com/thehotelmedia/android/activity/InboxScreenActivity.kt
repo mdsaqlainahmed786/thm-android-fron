@@ -183,6 +183,8 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             val mediaUrl = message.message?.mediaUrl.orEmpty()
             val thumbnailUrl = message.message?.thumbnailUrl.orEmpty()
             val mediaId = message.message?.mediaID.orEmpty()
+            val postId = message.message?.postID
+            val postOwnerUsername = message.message?.postOwnerUsername
             val type = message.message?.type.orEmpty()
             val from = message.from.orEmpty()
             val time = message.time.orEmpty()
@@ -201,6 +203,8 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                     mediaUrl = mediaUrl,
                     thumbnailUrl = thumbnailUrl,
                     mediaID = mediaId,
+                    postID = postId,
+                    postOwnerUsername = postOwnerUsername,
                     createdAt = time,
                     _v = 0,
                     sentByMe = false
