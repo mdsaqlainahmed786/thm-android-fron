@@ -412,8 +412,10 @@ class EditPostActivity : BaseActivity() {
         val destinationUri = Uri.fromFile(File(cacheDir, "cropped_image_${System.currentTimeMillis()}.jpg"))
         
         val options = UCrop.Options().apply {
+            // Set toolbar and status bar colors - use black background for contrast
             setToolbarColor(ContextCompat.getColor(this@EditPostActivity, R.color.black))
             setStatusBarColor(ContextCompat.getColor(this@EditPostActivity, R.color.black))
+            // Set toolbar widget colors - use white for high visibility
             setToolbarWidgetColor(ContextCompat.getColor(this@EditPostActivity, R.color.white))
             setToolbarTitle("Edit Image")
             

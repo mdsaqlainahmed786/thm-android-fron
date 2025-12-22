@@ -865,11 +865,11 @@ class CreateStoryActivity : BaseActivity() {
         val destinationUri = Uri.fromFile(File(cacheDir, "cropped_image_${System.currentTimeMillis()}.jpg"))
 
         val options = UCrop.Options().apply {
-            // Set toolbar and status bar colors
+            // Set toolbar and status bar colors - use black background for contrast
             setToolbarColor(ContextCompat.getColor(activity, R.color.black))
             setStatusBarColor(ContextCompat.getColor(activity, R.color.black))
 
-            // Set toolbar title and widget colors
+            // Set toolbar title and widget colors - use white for high visibility
             setToolbarWidgetColor(ContextCompat.getColor(activity, R.color.white))
             setToolbarTitle("Edit Image")
 
