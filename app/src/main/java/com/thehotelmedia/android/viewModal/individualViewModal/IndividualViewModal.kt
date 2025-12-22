@@ -2718,11 +2718,11 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     private val _deleteMenuResult = MutableLiveData<MenuResponse>()
     val deleteMenuResult: LiveData<MenuResponse> = _deleteMenuResult
 
-    fun deleteMenu(businessProfileId: String, menuId: String) {
+    fun deleteMenu(menuId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
-                val response = individualRepo.deleteMenu(businessProfileId, menuId)
+                val response = individualRepo.deleteMenu(menuId)
                 if (response.isSuccessful) {
                     val res = response.body()
                     toastMessageLiveData.postValue(res?.message ?: N_A)

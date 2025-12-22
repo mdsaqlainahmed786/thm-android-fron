@@ -39,6 +39,7 @@ class UploadMenuActivity : BaseActivity() {
     private var businessProfileId: String = ""
     private val selectedFiles = mutableListOf<Uri>()
     private val filePaths = mutableListOf<String>()
+    private lateinit var editMenuAdapter: com.thehotelmedia.android.adapters.userTypes.individual.profile.EditMenuAdapter
 
     private val filePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -109,6 +110,9 @@ class UploadMenuActivity : BaseActivity() {
                 if (businessProfileId.isEmpty()) {
                     CustomSnackBar.showSnackBar(binding.root, "Business profile not found")
                     finish()
+                } else {
+                    // Fetch existing menu items
+                    loadExistingMenuItems()
                 }
             } else {
                 CustomSnackBar.showSnackBar(binding.root, result?.message ?: "Failed to load profile")
@@ -118,9 +122,41 @@ class UploadMenuActivity : BaseActivity() {
         individualViewModal.uploadMenuResult.observe(this) { result ->
             if (result?.status == true) {
                 Toast.makeText(this, getString(R.string.menu_uploaded_successfully), Toast.LENGTH_SHORT).show()
-                finish()
+                // Reload existing menu items after upload
+                loadExistingMenuItems()
+                // Clear selected files
+                selectedFiles.clear()
+                filePaths.clear()
+                updateSelectedFilesUI()
             } else {
                 CustomSnackBar.showSnackBar(binding.root, result?.message ?: "Upload failed")
+            }
+        }
+
+        individualViewModal.deleteMenuResult.observe(this) { result ->
+            if (result?.status == true) {
+                Toast.makeText(this, "Menu item deleted successfully", Toast.LENGTH_SHORT).show()
+                // Reload existing menu items after delete
+                loadExistingMenuItems()
+            } else {
+                CustomSnackBar.showSnackBar(binding.root, result?.message ?: "Delete failed")
+            }
+        }
+
+        individualViewModal.getMenuResult.observe(this) { result ->
+            if (result?.status == true) {
+                val menuItems = result.data ?: emptyList()
+                if (menuItems.isNotEmpty()) {
+                    editMenuAdapter.submitList(menuItems)
+                    binding.existingMenuTv.visibility = View.VISIBLE
+                    binding.existingMenuRv.visibility = View.VISIBLE
+                } else {
+                    binding.existingMenuTv.visibility = View.GONE
+                    binding.existingMenuRv.visibility = View.GONE
+                }
+            } else {
+                binding.existingMenuTv.visibility = View.GONE
+                binding.existingMenuRv.visibility = View.GONE
             }
         }
 
@@ -134,6 +170,25 @@ class UploadMenuActivity : BaseActivity() {
 
         individualViewModal.toast.observe(this) {
             CustomSnackBar.showSnackBar(binding.root, it)
+        }
+
+        // Setup RecyclerView for existing menu items
+        editMenuAdapter = com.thehotelmedia.android.adapters.userTypes.individual.profile.EditMenuAdapter(this) { menuItem ->
+            // Delete menu item
+            val menuId = menuItem.Id
+            if (menuId != null) {
+                individualViewModal.deleteMenu(menuId)
+            } else {
+                CustomSnackBar.showSnackBar(binding.root, "Cannot delete: missing menu ID")
+            }
+        }
+        binding.existingMenuRv.layoutManager = androidx.recyclerview.widget.GridLayoutManager(this, 2)
+        binding.existingMenuRv.adapter = editMenuAdapter
+    }
+
+    private fun loadExistingMenuItems() {
+        if (businessProfileId.isNotEmpty()) {
+            individualViewModal.getMenu(businessProfileId)
         }
     }
 

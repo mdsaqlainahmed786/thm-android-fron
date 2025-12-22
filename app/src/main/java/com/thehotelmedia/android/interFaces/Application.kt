@@ -890,10 +890,9 @@ interface Application {
     ): Call<com.thehotelmedia.android.modals.menu.MenuResponse>
 
     // Delete a specific menu item for a restaurant
-    @DELETE("business/restaurant/{businessProfileId}/menu/{menuId}")
+    @DELETE("business/restaurant/menu/{menuId}")
     fun deleteMenu(
         @Header("x-access-token") token: String,
-        @Path(value = "businessProfileId", encoded = true) businessProfileId: String,
         @Path(value = "menuId", encoded = true) menuId: String,
     ): Call<com.thehotelmedia.android.modals.menu.MenuResponse>
 

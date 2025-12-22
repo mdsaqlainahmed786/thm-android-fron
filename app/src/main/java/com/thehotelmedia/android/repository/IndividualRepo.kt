@@ -1600,14 +1600,14 @@ class IndividualRepo (private val context: Context){
         }
     }
 
-    suspend fun deleteMenu(businessProfileId: String, menuId: String): Response<MenuResponse> {
+    suspend fun deleteMenu(menuId: String): Response<MenuResponse> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
             throw IllegalStateException("Access token is null or empty")
         }
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
-            return@withContext call.deleteMenu(accessToken, businessProfileId, menuId).execute()
+            return@withContext call.deleteMenu(accessToken, menuId).execute()
         }
     }
 

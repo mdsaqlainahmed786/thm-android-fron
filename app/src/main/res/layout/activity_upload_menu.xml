@@ -57,6 +57,26 @@
                     android:fontFamily="@font/comic_regular"
                     android:layout_marginBottom="16dp"/>
 
+                <!-- Existing menu items section -->
+                <TextView
+                    android:id="@+id/existingMenuTv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Existing Menu Items"
+                    android:textColor="@color/text_color"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/comic_bold"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone"/>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/existingMenuRv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone"/>
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/selectFilesBtn"
                     android:layout_width="match_parent"

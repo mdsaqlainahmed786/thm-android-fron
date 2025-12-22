@@ -211,32 +211,13 @@ class IndividualProfileFragment : Fragment() {
 //    }
 
     private fun replaceFragment(position: Int) {
-        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
-        val totalTabs = if (accountType == business_type_individual) 4 else if (isRestaurant) 5 else 4
-        
-        val fragment = when {
-            accountType == business_type_individual -> when (position) {
-                0 -> ProfilePhotosFragment()
-                1 -> ProfileVideosFragment()
-                2 -> ProfilePostsFragment()
-                3 -> ProfileReviewsFragment()
-                else -> throw IllegalArgumentException("Invalid tab position")
-            }
-            isRestaurant -> when (position) {
-                0 -> ProfilePhotosFragment()
-                1 -> ProfileVideosFragment()
-                2 -> ProfilePostsFragment()
-                3 -> ProfileReviewsFragment()
-                4 -> ProfileMenuFragment()
-                else -> throw IllegalArgumentException("Invalid tab position")
-            }
-            else -> when (position) {
-                0 -> ProfilePhotosFragment()
-                1 -> ProfileVideosFragment()
-                2 -> ProfilePostsFragment()
-                3 -> ProfileReviewsFragment()
-                else -> throw IllegalArgumentException("Invalid tab position")
-            }
+        // Menu tab removed - using View Menu button instead
+        val fragment = when (position) {
+            0 -> ProfilePhotosFragment()
+            1 -> ProfileVideosFragment()
+            2 -> ProfilePostsFragment()
+            3 -> ProfileReviewsFragment()
+            else -> throw IllegalArgumentException("Invalid tab position")
         }
 
         // Create a Bundle to pass the userId and businessProfileId
@@ -244,9 +225,6 @@ class IndividualProfileFragment : Fragment() {
         bundle.putString("USER_ID", userId)
         bundle.putString("FROM", "Profile")
         bundle.putBoolean("IS_CONNECTED", true)
-        if (fragment is ProfileMenuFragment) {
-            bundle.putString("BUSINESS_PROFILE_ID", businessProfileId)
-        }
         fragment.arguments = bundle
         // Clear the back stack
         childFragmentManager.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
@@ -305,12 +283,13 @@ class IndividualProfileFragment : Fragment() {
                 businessName.lowercase().trim().contains("restaurant")
         
         // Show menu CTA only for restaurants (not hotels)
-        // Since this is the user's own profile, always show "View your menu"
+        // Since this is the user's own profile, always show "View your menu" and "Edit your menu"
         if (isRestaurant) {
             binding.menuCtaLayout.visibility = View.VISIBLE
             binding.viewMenuBtn.text = getString(R.string.view_your_menu)
+            binding.editMenuBtn.text = getString(R.string.edit_your_menu)
             
-            // Setup click listener
+            // Setup View Menu click listener
             binding.viewMenuBtn.setOnClickListener {
                 if (businessProfileId.isNotEmpty()) {
                     val intent = Intent(requireContext(), MenuViewerActivity::class.java).apply {
@@ -320,6 +299,18 @@ class IndividualProfileFragment : Fragment() {
                     startActivity(intent)
                 } else {
                     CustomSnackBar.showSnackBar(binding.root, getString(R.string.no_menu_available))
+                }
+            }
+            
+            // Setup Edit Menu click listener
+            binding.editMenuBtn.setOnClickListener {
+                if (userId.isNotEmpty()) {
+                    val intent = Intent(requireContext(), com.thehotelmedia.android.activity.userTypes.individual.UploadMenuActivity::class.java).apply {
+                        putExtra("USER_ID", userId)
+                    }
+                    startActivity(intent)
+                } else {
+                    CustomSnackBar.showSnackBar(binding.root, "User ID not available")
                 }
             }
         } else {
@@ -641,39 +632,15 @@ class IndividualProfileFragment : Fragment() {
         val videos = getString(R.string.videos)
         val posts = getString(R.string.posts)
         val reviews = getString(R.string.reviews)
-        val menu = getString(R.string.menu)
 
-        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
-
-        if (accountType == business_type_individual) {
-            tabTitles = arrayOf(photos, videos, posts, reviews)
-            tabIcons = arrayOf(
-                R.drawable.ic_photos,
-                R.drawable.ic_videos,
-                R.drawable.ic_posts,
-                R.drawable.ic_reviews
-            )
-        } else {
-            // Add menu tab only for restaurants
-            if (isRestaurant) {
-                tabTitles = arrayOf(photos, videos, posts, reviews, menu)
-                tabIcons = arrayOf(
-                    R.drawable.ic_photos,
-                    R.drawable.ic_videos,
-                    R.drawable.ic_posts,
-                    R.drawable.ic_reviews,
-                    R.drawable.ic_photos  // Menu icon (using photos icon as placeholder)
-                )
-            } else {
-                tabTitles = arrayOf(photos, videos, posts, reviews)
-                tabIcons = arrayOf(
-                    R.drawable.ic_photos,
-                    R.drawable.ic_videos,
-                    R.drawable.ic_posts,
-                    R.drawable.ic_reviews
-                )
-            }
-        }
+        // Menu tab removed - using View Menu button instead
+        tabTitles = arrayOf(photos, videos, posts, reviews)
+        tabIcons = arrayOf(
+            R.drawable.ic_photos,
+            R.drawable.ic_videos,
+            R.drawable.ic_posts,
+            R.drawable.ic_reviews
+        )
 
         val comicRegular = ResourcesCompat.getFont(requireContext(), R.font.comic_regular)
         val comicMedium = ResourcesCompat.getFont(requireContext(), R.font.comic_regular)
