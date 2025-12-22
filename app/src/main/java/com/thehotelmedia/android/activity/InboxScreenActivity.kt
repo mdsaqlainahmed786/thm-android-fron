@@ -752,6 +752,12 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             try {
                 android.util.Log.d("StoryClick", "Starting story navigation - storyId: $storyId, storyOwnerId: $storyOwnerId")
                 
+                // Get current user ID to check if this is the user's own story
+                val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").toString()
+                val isMyStory = storyOwnerId == currentUserId
+                
+                android.util.Log.d("StoryClick", "Is my story: $isMyStory, currentUserId: $currentUserId, storyOwnerId: $storyOwnerId")
+                
                 // Call repository directly to get stories
                 val individualRepo = IndividualRepo(this@InboxScreenActivity)
                 val response = individualRepo.getStories(1, 20)
@@ -762,26 +768,17 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 }
                 
                 val storiesModal = response.body()!!
-                val allStories = storiesModal.storiesData?.stories ?: emptyList()
-                android.util.Log.d("StoryClick", "Total stories loaded: ${allStories.size}")
-                
-                // Filter stories by storyOwnerId
-                val userStories = allStories.filter { story: Stories -> story.id == storyOwnerId }
-                android.util.Log.d("StoryClick", "Filtered stories for owner $storyOwnerId: ${userStories.size}")
-                
-                if (userStories.isEmpty()) {
-                    android.util.Log.d("StoryClick", "No stories found for user $storyOwnerId")
-                    return@launch
-                }
-
-                // Check if the specific story exists and is not expired
-                var storyFound = false
                 var validStory: Stories? = null
                 
-                for (userStory in userStories) {
-                    val storyRef = userStory.storiesRef.find { storyRef -> storyRef.Id == storyId }
+                if (isMyStory) {
+                    // Handle user's own stories from myStories
+                    val myStories = storiesModal.storiesData?.myStories ?: emptyList()
+                    android.util.Log.d("StoryClick", "Checking myStories: ${myStories.size} stories")
+                    
+                    // Find the specific story in myStories
+                    val storyRef = myStories.find { it.Id == storyId }
                     if (storyRef != null) {
-                        android.util.Log.d("StoryClick", "Found story with ID: $storyId")
+                        android.util.Log.d("StoryClick", "Found story in myStories with ID: $storyId")
                         val storyCreatedAtTime = storyRef.createdAt ?: ""
                         if (storyCreatedAtTime.isNotEmpty()) {
                             val isStoryExpired = !isRecentPost(storyCreatedAtTime)
@@ -790,15 +787,94 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                                 return@launch
                             }
                         }
-                        storyFound = true
-                        validStory = userStory
-                        break
+                        
+                        // Convert MyStories to StoriesRef
+                        val storiesRefList = myStories.map { myStory ->
+                            com.thehotelmedia.android.modals.Stories.StoriesRef(
+                                Id = myStory.Id,
+                                mediaID = myStory.mediaID,
+                                createdAt = myStory.createdAt,
+                                likedByMe = null,
+                                mimeType = myStory.mimeType,
+                                sourceUrl = myStory.sourceUrl,
+                                likesRef = myStory.likesRef,
+                                viewsRef = myStory.viewsRef,
+                                likes = myStory.likes,
+                                views = myStory.views,
+                                taggedRef = myStory.taggedRef,
+                                location = myStory.location,
+                                locationPositionX = myStory.locationPositionX,
+                                locationPositionY = myStory.locationPositionY,
+                                userTaggedName = myStory.userTaggedName,
+                                userTaggedId = myStory.userTaggedId,
+                                userTaggedPositionX = myStory.userTaggedPositionX,
+                                userTaggedPositionY = myStory.userTaggedPositionY
+                            )
+                        }
+                        
+                        // Create Stories object with user's profile info
+                        val userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").toString()
+                        val fullName = preferenceManager.getString(PreferenceManager.Keys.USER_FULL_NAME, "").toString()
+                        val smallProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_SMALL_PROFILE_PIC, "").toString()
+                        val mediumProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_MEDIUM_PROFILE_PIC, "").toString()
+                        val largeProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_LARGE_PROFILE_PIC, "").toString()
+                        
+                        val profilePic = com.thehotelmedia.android.modals.Stories.ProfilePic(
+                            small = smallProfilePic,
+                            medium = mediumProfilePic,
+                            large = largeProfilePic
+                        )
+                        
+                        validStory = Stories(
+                            id = currentUserId,
+                            accountType = "individual",
+                            username = userName,
+                            name = fullName,
+                            profilePic = profilePic,
+                            businessProfileRef = null,
+                            storiesRef = ArrayList(storiesRefList),
+                            seenByMe = null
+                        )
+                    } else {
+                        android.util.Log.d("StoryClick", "Story not found in myStories")
+                        return@launch
                     }
-                }
+                } else {
+                    // Handle other users' stories
+                    val allStories = storiesModal.storiesData?.stories ?: emptyList()
+                    android.util.Log.d("StoryClick", "Total stories loaded: ${allStories.size}")
+                    
+                    // Filter stories by storyOwnerId
+                    val userStories = allStories.filter { story: Stories -> story.id == storyOwnerId }
+                    android.util.Log.d("StoryClick", "Filtered stories for owner $storyOwnerId: ${userStories.size}")
+                    
+                    if (userStories.isEmpty()) {
+                        android.util.Log.d("StoryClick", "No stories found for user $storyOwnerId")
+                        return@launch
+                    }
 
-                if (!storyFound || validStory == null) {
-                    android.util.Log.d("StoryClick", "Story not found - storyId: $storyId, found: $storyFound")
-                    return@launch
+                    // Check if the specific story exists and is not expired
+                    for (userStory in userStories) {
+                        val storyRef = userStory.storiesRef.find { storyRef -> storyRef.Id == storyId }
+                        if (storyRef != null) {
+                            android.util.Log.d("StoryClick", "Found story with ID: $storyId")
+                            val storyCreatedAtTime = storyRef.createdAt ?: ""
+                            if (storyCreatedAtTime.isNotEmpty()) {
+                                val isStoryExpired = !isRecentPost(storyCreatedAtTime)
+                                if (isStoryExpired) {
+                                    android.util.Log.d("StoryClick", "Story expired: $storyCreatedAtTime")
+                                    return@launch
+                                }
+                            }
+                            validStory = userStory
+                            break
+                        }
+                    }
+
+                    if (validStory == null) {
+                        android.util.Log.d("StoryClick", "Story not found - storyId: $storyId")
+                        return@launch
+                    }
                 }
 
                 // Navigate to ViewStoriesActivity with the user's stories
