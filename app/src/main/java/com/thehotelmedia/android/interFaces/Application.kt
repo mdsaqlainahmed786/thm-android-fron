@@ -64,6 +64,7 @@ import com.thehotelmedia.android.modals.visitWebSite.WebsiteRedirectModal
 import com.thehotelmedia.android.modals.collaboration.CollaborationActionModal
 import com.thehotelmedia.android.modals.collaboration.CollaborationPostsModal
 import com.thehotelmedia.android.modals.collaboration.CollaboratorsListModal
+import com.thehotelmedia.android.modals.menu.MenuResponse
 import com.thehotelmedia.android.modals.weatherOrAqi.aqi.AqiModal
 import com.thehotelmedia.android.modals.weatherOrAqi.weather.WeatherModal
 import okhttp3.MultipartBody
@@ -640,6 +641,17 @@ interface Application {
         @Part mediaType: MultipartBody.Part
     ): Call<SendMediaModal>
 
+    @Multipart
+    @POST("user/messaging/share-post-message")
+    fun sharePostMessage(
+        @Header("x-access-token") token: RequestBody,
+        @Part("username") username: RequestBody,
+        @Part("messageType") messageType: RequestBody,
+        @Part("message") message: RequestBody?,
+        @Part("postID") postID: RequestBody,
+        @Part mediaType: MultipartBody.Part
+    ): Call<SendMediaModal>
+
     @POST("user/report" + "/{id}")
     @FormUrlEncoded
     fun reportUser(
@@ -860,5 +872,28 @@ interface Application {
         @Header("x-access-token") token: String,
         @Path(value = "postID", encoded = true) postID: String,
     ): Call<CollaboratorsListModal>
+
+    // Menu endpoints - Restaurant specific
+    // Fetch menu for a given restaurant business profile
+    @GET("business/restaurant/{businessProfileId}/menu")
+    fun getMenu(
+        @Header("x-access-token") token: String,
+        @Path(value = "businessProfileId", encoded = true) businessProfileId: String,
+    ): Call<com.thehotelmedia.android.modals.menu.MenuResponse>
+
+    // Upload menu for the logged‑in restaurant owner
+    @Multipart
+    @POST("business/restaurant/menu")
+    fun uploadMenu(
+        @Header("x-access-token") token: String,
+        @Part menu: List<MultipartBody.Part>,
+    ): Call<com.thehotelmedia.android.modals.menu.MenuResponse>
+
+    // Delete a specific menu item for a restaurant
+    @DELETE("business/restaurant/menu/{menuId}")
+    fun deleteMenu(
+        @Header("x-access-token") token: String,
+        @Path(value = "menuId", encoded = true) menuId: String,
+    ): Call<com.thehotelmedia.android.modals.menu.MenuResponse>
 
 }

@@ -76,6 +76,7 @@ import com.thehotelmedia.android.modals.visitWebSite.WebsiteRedirectModal
 import com.thehotelmedia.android.modals.collaboration.CollaborationActionModal
 import com.thehotelmedia.android.modals.collaboration.CollaborationPostsModal
 import com.thehotelmedia.android.modals.collaboration.CollaboratorsListModal
+import com.thehotelmedia.android.modals.menu.MenuResponse
 import com.thehotelmedia.android.modals.weatherOrAqi.aqi.AqiModal
 import com.thehotelmedia.android.modals.weatherOrAqi.weather.WeatherModal
 import com.thehotelmedia.android.pagination.blockUsers.BlockedUserPagingSource
@@ -1823,6 +1824,32 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         }
     }
 
+    //Share Post Message
+    private val _sharePostMessageResult = MutableLiveData<SendMediaModal>()
+    val sharePostMessageResult: LiveData<SendMediaModal> = _sharePostMessageResult
+    fun sharePostMessage(username: String, messageType: String, message: String?, postID: String, mediaUrl: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.sharePostMessage(username, messageType, message, postID, mediaUrl)
+                if (response.isSuccessful) {
+                    _sharePostMessageResult.postValue(response.body())
+                    Log.wtf(tag, response.body().toString())
+                    _loading.postValue(false)
+                } else {
+                    Log.wtf(tag + "ELSE", response.toString())
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
 
 
     //Report User
@@ -2641,5 +2668,75 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         }
     }
 
+    // Menu methods
+    private val _getMenuResult = MutableLiveData<MenuResponse>()
+    val getMenuResult: LiveData<MenuResponse> = _getMenuResult
+
+    fun getMenu(businessProfileId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.getMenu(businessProfileId)
+                if (response.isSuccessful) {
+                    _getMenuResult.postValue(response.body())
+                    _loading.postValue(false)
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
+
+    private val _uploadMenuResult = MutableLiveData<MenuResponse>()
+    val uploadMenuResult: LiveData<MenuResponse> = _uploadMenuResult
+
+    fun uploadMenu(businessProfileId: String, files: List<okhttp3.MultipartBody.Part>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.uploadMenu(businessProfileId, files)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _uploadMenuResult.postValue(res)
+                    _loading.postValue(false)
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
+
+    private val _deleteMenuResult = MutableLiveData<MenuResponse>()
+    val deleteMenuResult: LiveData<MenuResponse> = _deleteMenuResult
+
+    fun deleteMenu(menuId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.deleteMenu(menuId)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _deleteMenuResult.postValue(res)
+                    _loading.postValue(false)
+                } else {
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+            }
+        }
+    }
 
 }

@@ -338,7 +338,7 @@ class SocketViewModel : ViewModel() {
 
 
 
-    fun sendPrivateMessage(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, thumbnailUrl: String, mediaID: String) {
+    fun sendPrivateMessage(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, thumbnailUrl: String, mediaID: String, postID: String? = null, postOwnerUsername: String? = null) {
         // Create the JSON object for the "private message" event
         val jsonData = JSONObject()
 
@@ -350,6 +350,12 @@ class SocketViewModel : ViewModel() {
         messageObject.put("mediaUrl", recipientMediaUrl)
         messageObject.put("thumbnailUrl", thumbnailUrl)
         messageObject.put("mediaID", mediaID)
+        if (postID != null) {
+            messageObject.put("postID", postID)
+        }
+        if (postOwnerUsername != null) {
+            messageObject.put("postOwnerUsername", postOwnerUsername)
+        }
         jsonData.put("to", recipientUsername)
         jsonData.put("message", messageObject)
 

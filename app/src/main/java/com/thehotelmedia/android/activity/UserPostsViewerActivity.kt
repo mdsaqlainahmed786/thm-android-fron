@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.paging.LoadState
 import androidx.paging.filter
+import androidx.paging.map
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -22,9 +23,20 @@ import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.ActivityUserPostsViewerBinding
 import com.thehotelmedia.android.extensions.formatCount
 import com.thehotelmedia.android.extensions.sharePostWithDeepLink
+import com.thehotelmedia.android.modals.feeds.feed.Address
+import com.thehotelmedia.android.modals.feeds.feed.BusinessProfileRef
+import com.thehotelmedia.android.modals.feeds.feed.BusinessTypeRef
+import com.thehotelmedia.android.modals.feeds.feed.Data
+import com.thehotelmedia.android.modals.feeds.feed.MediaRef
+import com.thehotelmedia.android.modals.feeds.feed.PostedBy
+import com.thehotelmedia.android.modals.feeds.feed.ProfilePic
+import com.thehotelmedia.android.modals.profileData.image.ImageData
+import com.thehotelmedia.android.modals.profileData.profile.BusinessSubtypeRef
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.launch
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class UserPostsViewerActivity : DarkBaseActivity() {
@@ -44,6 +56,7 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     private var activePosition: Int = RecyclerView.NO_POSITION
     private lateinit var layoutManager: LinearLayoutManager
     private lateinit var snapHelper: PagerSnapHelper
+    private var imagesLoaded = false // Flag to prevent loading images multiple times
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -132,27 +145,34 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
         adapter.addLoadStateListener { loadStates ->
             val refreshState = loadStates.refresh
-            // When data is loaded, try to scroll to the target media/index
-            if (refreshState is LoadState.NotLoading && adapter.itemCount > 0) {
-                if (activePosition == RecyclerView.NO_POSITION) {
-                    // Trigger scroll if we have media/index to scroll to
-                    if (initialPostId != null || initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
-                        lifecycleScope.launch {
-                            when {
-                                initialPostId != null -> {
-                                    scrollToPost(initialPostId!!)
-                                }
-                                initialMediaId != null || initialMediaUrl != null || initialIndex != null -> {
-                                    scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
+            // When data is loaded, check if we need to load images instead
+            if (refreshState is LoadState.NotLoading) {
+                if (adapter.itemCount == 0 && filterMediaType == "image" && userId.isNotEmpty() && !imagesLoaded) {
+                    // No posts found, try loading images directly
+                    imagesLoaded = true
+                    loadImagesAsPosts()
+                } else if (adapter.itemCount > 0) {
+                    // We have posts, try to scroll to the target media/index
+                    if (activePosition == RecyclerView.NO_POSITION) {
+                        // Trigger scroll if we have media/index to scroll to
+                        if (initialPostId != null || initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
+                            lifecycleScope.launch {
+                                when {
+                                    initialPostId != null -> {
+                                        scrollToPost(initialPostId!!)
+                                    }
+                                    initialMediaId != null || initialMediaUrl != null || initialIndex != null -> {
+                                        scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
+                                    }
                                 }
                             }
-                        }
-                    } else {
-                        // No specific target, just show first item
-                        binding.postsRecyclerView.post {
-                            val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
-                            val target = if (firstVisible != RecyclerView.NO_POSITION) firstVisible else 0
-                            updateActivePosition(target)
+                        } else {
+                            // No specific target, just show first item
+                            binding.postsRecyclerView.post {
+                                val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
+                                val target = if (firstVisible != RecyclerView.NO_POSITION) firstVisible else 0
+                                updateActivePosition(target)
+                            }
                         }
                     }
                 }
@@ -167,11 +187,11 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                     // Filter posts by media type if specified
                     val filteredPagingData = if (filterMediaType != null) {
                         pagingData.filter { post ->
-                            // Only include posts where ALL media match the filter type
-                            // This ensures photos-only or videos-only scrolling
+                            // Include posts that have at least one media matching the filter type
+                            // This allows posts with mixed media to show up when filtering
                             val mediaRef = post.mediaRef
                             if (mediaRef.isNotEmpty()) {
-                                mediaRef.all { media ->
+                                mediaRef.any { media ->
                                     media.mediaType?.lowercase() == filterMediaType?.lowercase()
                                 }
                             } else {
@@ -185,10 +205,127 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                     adapter.submitData(filteredPagingData)
                     
                     // Don't scroll here - let the LoadStateListener handle it after data is loaded
-                    // This ensures we wait for the filtered data to be ready
+                    // The LoadStateListener will check if posts are empty and load images if needed
                 }
             }
         }
+    }
+    
+    private fun loadImagesAsPosts() {
+        if (userId.isNotEmpty()) {
+            individualViewModal.getImages(userId).observe(this) { imagePagingData ->
+                lifecycleScope.launch {
+                    // Convert ImageData to Data (post format) using map
+                    val postsPagingData = imagePagingData.map { imageData ->
+                        convertImageToPost(imageData)
+                    }
+                    
+                    adapter.submitData(postsPagingData)
+                    
+                    // Scroll to the initial image if specified
+                    if (initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
+                        kotlinx.coroutines.delay(300)
+                        scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
+                    }
+                }
+            }
+        }
+    }
+    
+    private fun convertImageToPost(imageData: ImageData): Data {
+        // Convert ImageData to MediaRef
+        val mediaRef = MediaRef(
+            Id = imageData.Id,
+            mediaType = imageData.mediaType ?: "image",
+            mimeType = imageData.mimeType,
+            sourceUrl = imageData.sourceUrl,
+            thumbnailUrl = null,
+            duration = null
+        )
+        
+        // Get user profile info for PostedBy (use cached value from observeFollowState)
+        val userProfile = individualViewModal.userProfileByIdResult.value?.data
+        val userBusinessProfileRef = userProfile?.businessProfileRef
+        
+        // Convert userProfile.ProfilePic to feeds.feed.ProfilePic
+        val feedProfilePic = userProfile?.profilePic?.let {
+            ProfilePic(
+                small = it.small,
+                medium = it.medium,
+                large = it.large
+            )
+        }
+        
+        // Convert userProfile.BusinessProfileRef to feeds.feed.BusinessProfileRef
+        val feedBusinessProfileRef = userBusinessProfileRef?.let {
+            BusinessProfileRef(
+                Id = it.Id,
+                profilePic = it.profilePic?.let { pic ->
+                    ProfilePic(
+                        small = pic.small,
+                        medium = pic.medium,
+                        large = pic.large
+                    )
+                },
+                name = it.name,
+                businessRating = it.rating,
+                address = it.address?.let { addr ->
+                    Address(
+                        street = addr.street,
+                        city = addr.city,
+                        state = addr.state,
+                        zipCode = addr.zipCode,
+                        country = addr.country,
+                        lat = addr.lat,
+                        lng = addr.lng
+                    )
+                },
+                businessTypeRef = it.businessTypeRef?.let { typeRef ->
+                    BusinessTypeRef(
+                        Id = typeRef.Id,
+                        icon = typeRef.icon,
+                        name = typeRef.name
+                    )
+                },
+                businessSubtypeRef = it.businessSubtypeRef?.let { subtypeRef ->
+                    BusinessSubtypeRef(
+                        Id = subtypeRef.Id,
+                        name = subtypeRef.name
+                    )
+                },
+                isFollowedByMe = userProfile?.isConnected
+            )
+        }
+        
+        val postedBy = PostedBy(
+            Id = userId,
+            accountType = userProfile?.accountType,
+            businessProfileID = userProfile?.businessProfileID,
+            name = userProfile?.name,
+            profilePic = feedProfilePic,
+            businessProfileRef = feedBusinessProfileRef,
+            isFollowedByMe = userProfile?.isConnected
+        )
+        
+        // Create a Data (post) object from the image
+        // Use a unique ID to avoid conflicts
+        // Provide a valid createdAt date (use current time) to avoid parsing errors
+        val currentDateTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
+        
+        return Data(
+            Id = "img_${imageData.Id}",
+            mediaRef = arrayListOf(mediaRef),
+            postedBy = postedBy,
+            createdAt = currentDateTime,
+            likes = 0,
+            comments = 0,
+            views = 0,
+            shared = 0,
+            likedByMe = false,
+            savedByMe = false,
+            content = null,
+            userID = userId
+        )
     }
 
     private fun scrollToPost(postId: String) {

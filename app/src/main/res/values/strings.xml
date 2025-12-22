@@ -152,6 +152,14 @@
     <string name="home_stays">Home Stays</string>
     <string name="marriage_banquets">Marriage Banquets</string>
     <string name="restaurant">Restaurant</string>
+    <string name="menu">Menu</string>
+    <string name="view_menu">View Menu</string>
+    <string name="view_your_menu">View your menu</string>
+    <string name="edit_your_menu">Edit your menu</string>
+    <string name="upload_menu">Upload Menu</string>
+    <string name="menu_images_pdf">Menu (Images/PDF)</string>
+    <string name="no_menu_available">No menu available</string>
+    <string name="menu_uploaded_successfully">Menu uploaded successfully</string>
     <string name="address">Address</string>
     <string name="contact_information">Contact information</string>
     <string name="website_link">Website Link</string>
@@ -309,6 +317,7 @@
     <string name="no_one_send_a_message_to_you_yet">No one send a message to you yet.</string>
     <string name="share_post">Share Post</string>
     <string name="share_outside_app">Share outside the app</string>
+    <string name="share_to_story">Share this post to your story</string>
     <string name="send_via_dm">Send via direct message</string>
     <string name="search_chats_hint">Search conversations</string>
     <string name="share_no_conversations">No conversations found</string>

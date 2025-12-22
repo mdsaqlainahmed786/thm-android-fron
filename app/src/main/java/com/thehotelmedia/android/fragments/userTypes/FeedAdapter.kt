@@ -142,6 +142,9 @@ class FeedAdapter(
     private val selectedIds = mutableListOf<String>()
     private val handlerMap = mutableMapOf<String, Job>()
     
+    // Reference to story adapter for refreshing stories
+    private var storyAdapter: StoryAdapter? = null
+    
     // Cache for collaborators to avoid redundant API calls
     private val collaboratorsCache = mutableMapOf<String, List<com.thehotelmedia.android.modals.collaboration.CollaborationUser>>()
     // Store original names to restore them if no collaborators
@@ -215,19 +218,19 @@ class FeedAdapter(
 
             // Add a new ViewHolder for the header using binding
     inner class HeaderViewHolder(private val binding: FeedHeaderLayoutBinding) : RecyclerView.ViewHolder(binding.root) {
-        private var storyAdapter: StoryAdapter? = null
         private var isStoryObserverSet = false
         
         fun bind() {
-            if (storyAdapter == null) {
-                storyAdapter = StoryAdapter(context, headerUserProfilePic)
-                binding.recyclerView.adapter = storyAdapter!!.withLoadStateFooter(footer = LoaderAdapter())
+            if (this@FeedAdapter.storyAdapter == null) {
+                val adapter = StoryAdapter(context, headerUserProfilePic)
+                this@FeedAdapter.storyAdapter = adapter
+                binding.recyclerView.adapter = adapter.withLoadStateFooter(footer = LoaderAdapter())
                 
                 // Observe stories only once when adapter is first created
                 // This prevents re-submitting data that might filter out viewed stories
                 individualViewModal.getStories().observe(viewLifecycleOwner) { data ->
                     viewLifecycleOwner.lifecycleScope.launch {
-                        storyAdapter?.submitData(data)
+                        adapter.submitData(data)
                     }
                 }
                 isStoryObserverSet = true
@@ -235,7 +238,7 @@ class FeedAdapter(
             
             // Instead of notifyDataSetChanged(), notify specific items to rebind
             // This updates the ring visibility without replacing the data
-            storyAdapter?.let { adapter ->
+            this@FeedAdapter.storyAdapter?.let { adapter ->
                 val itemCount = adapter.itemCount
                 if (itemCount > 0) {
                     // Notify all items to rebind (this triggers onBindViewHolder for existing items)
@@ -248,7 +251,7 @@ class FeedAdapter(
         
         fun refreshStoryRings() {
             // Method to manually refresh story rings without re-submitting data
-            storyAdapter?.let { adapter ->
+            this@FeedAdapter.storyAdapter?.let { adapter ->
                 val itemCount = adapter.itemCount
                 if (itemCount > 0) {
                     for (i in 0 until itemCount) {
@@ -257,6 +260,12 @@ class FeedAdapter(
                 }
             }
         }
+    }
+    
+    // Public method to refresh stories from outside the adapter
+    fun refreshStories() {
+        // Refresh the story adapter to reload data from server
+        storyAdapter?.refresh()
     }
 
 
@@ -816,6 +825,8 @@ class FeedAdapter(
         }
 
 
+        binding.menuBtn.isClickable = true
+        binding.menuBtn.isFocusable = true
         binding.menuBtn.setOnClickListener { view ->
             showMenuDialog(view, postId, post, canShareToStory = false)
         }
@@ -985,6 +996,8 @@ class FeedAdapter(
             }
         }
 
+        binding.menuBtn.isClickable = true
+        binding.menuBtn.isFocusable = true
         binding.menuBtn.setOnClickListener { view ->
             showMenuDialog(view, postId, review)
         }
@@ -1897,6 +1910,23 @@ class FeedAdapter(
 
     fun setActivePosition(position: Int) {
         activePosition = position
+    }
+
+    /**
+     * Find the position of a post by its ID
+     * Returns the adapter position (including header offset)
+     */
+    fun findPostPosition(postId: String): Int {
+        // FeedAdapter has a header at position 0, so we need to account for that
+        for (i in 0 until itemCount) {
+            if (i == 0) continue // Skip header
+            val actualPosition = i - 1 // Account for header
+            val item = getItem(actualPosition)
+            if (item?.Id == postId) {
+                return i // Return adapter position (with header offset)
+            }
+        }
+        return -1
     }
 }
 

@@ -24,9 +24,11 @@ import com.bumptech.glide.Glide
 import com.google.android.material.tabs.TabLayout
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
+import com.thehotelmedia.android.activity.MenuViewerActivity
 import com.thehotelmedia.android.activity.userTypes.individual.IndividualEditProfileActivity
 import com.thehotelmedia.android.activity.userTypes.individual.IndividualSettingsActivity
 import com.thehotelmedia.android.activity.userTypes.profile.FollowerFollowingActivity
+import com.thehotelmedia.android.customClasses.CustomSnackBar
 import com.thehotelmedia.android.adapters.userTypes.individual.profile.AmenitiesAdapter
 import com.thehotelmedia.android.adapters.userTypes.individual.profile.QuestionLinesAdapter
 import com.thehotelmedia.android.customClasses.ColorFilterTransformation
@@ -38,6 +40,7 @@ import com.thehotelmedia.android.extensions.capitalizeFirstLetter
 import com.thehotelmedia.android.extensions.setRatingWithStarWithoutBracket
 import com.thehotelmedia.android.extensions.shareProfileWithDeepLink
 import com.thehotelmedia.android.extensions.toAQI
+import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfileMenuFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfilePhotosFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfilePostsFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfileReviewsFragment
@@ -70,6 +73,8 @@ class IndividualProfileFragment : Fragment() {
     private var userId = ""
     private var username = ""
     private var ownerUserId = ""
+    private var businessProfileId = ""
+    private var businessName = ""
     private lateinit var individualViewModal: IndividualViewModal
     private lateinit var editProfileLauncher: ActivityResultLauncher<Intent>
 
@@ -206,6 +211,7 @@ class IndividualProfileFragment : Fragment() {
 //    }
 
     private fun replaceFragment(position: Int) {
+        // Menu tab removed - using View Menu button instead
         val fragment = when (position) {
             0 -> ProfilePhotosFragment()
             1 -> ProfileVideosFragment()
@@ -214,7 +220,7 @@ class IndividualProfileFragment : Fragment() {
             else -> throw IllegalArgumentException("Invalid tab position")
         }
 
-        // Create a Bundle to pass the userId
+        // Create a Bundle to pass the userId and businessProfileId
         val bundle = Bundle()
         bundle.putString("USER_ID", userId)
         bundle.putString("FROM", "Profile")
@@ -249,7 +255,7 @@ class IndividualProfileFragment : Fragment() {
 
     private fun handelProfileData(result: GetProfileModal) {
         userId = result.data?.Id ?: ""
-        setupTabBar()
+        businessProfileId = result.data?.businessProfileRef?.Id ?: ""
         val postCount = result.data?.posts
         val followerCount = result.data?.follower
         val followingCount = result.data?.following
@@ -268,8 +274,51 @@ class IndividualProfileFragment : Fragment() {
         binding.ratingTv.setRatingWithStarWithoutBracket(rating, R.drawable.ic_rating_star)
 
         val businessTypeRef = result.data?.businessProfileRef?.businessTypeRef
-        val businessName = businessTypeRef?.name
+        businessName = businessTypeRef?.name ?: ""
         val businessIcon = businessTypeRef?.icon
+        
+        // Check if restaurant and show menu button
+        val isHotel = businessName.equals(getString(R.string.hotel), ignoreCase = true)
+        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true) ||
+                businessName.lowercase().trim().contains("restaurant")
+        
+        // Show menu CTA only for restaurants (not hotels)
+        // Since this is the user's own profile, always show "View your menu" and "Edit your menu"
+        if (isRestaurant) {
+            binding.menuCtaLayout.visibility = View.VISIBLE
+            binding.viewMenuBtn.text = getString(R.string.view_your_menu)
+            binding.editMenuBtn.text = getString(R.string.edit_your_menu)
+            
+            // Setup View Menu click listener
+            binding.viewMenuBtn.setOnClickListener {
+                if (businessProfileId.isNotEmpty()) {
+                    val intent = Intent(requireContext(), MenuViewerActivity::class.java).apply {
+                        putExtra("BUSINESS_PROFILE_ID", businessProfileId)
+                        putExtra("INITIAL_INDEX", 0)
+                    }
+                    startActivity(intent)
+                } else {
+                    CustomSnackBar.showSnackBar(binding.root, getString(R.string.no_menu_available))
+                }
+            }
+            
+            // Setup Edit Menu click listener
+            binding.editMenuBtn.setOnClickListener {
+                if (userId.isNotEmpty()) {
+                    val intent = Intent(requireContext(), com.thehotelmedia.android.activity.userTypes.individual.UploadMenuActivity::class.java).apply {
+                        putExtra("USER_ID", userId)
+                    }
+                    startActivity(intent)
+                } else {
+                    CustomSnackBar.showSnackBar(binding.root, "User ID not available")
+                }
+            }
+        } else {
+            binding.menuCtaLayout.visibility = View.GONE
+        }
+        
+        // Setup tab bar after businessName is set (needed for restaurant check)
+        setupTabBar()
 
 
         binding.businessNameTv.text = businessName
@@ -584,6 +633,7 @@ class IndividualProfileFragment : Fragment() {
         val posts = getString(R.string.posts)
         val reviews = getString(R.string.reviews)
 
+        // Menu tab removed - using View Menu button instead
         tabTitles = arrayOf(photos, videos, posts, reviews)
         tabIcons = arrayOf(
             R.drawable.ic_photos,

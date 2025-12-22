@@ -73,6 +73,43 @@
                     android:tint="@color/text_color_60" />
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/shareToStoryBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/_16sdp"
+                android:background="@drawable/background_share_option"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/_14sdp"
+                android:paddingTop="@dimen/_12sdp"
+                android:paddingEnd="@dimen/_14sdp"
+                android:paddingBottom="@dimen/_12sdp"
+                android:visibility="gone">
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:layout_width="@dimen/_20sdp"
+                    android:layout_height="@dimen/_20sdp"
+                    android:src="@drawable/ic_share_icon_white"
+                    android:tint="@color/blue" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/_12sdp"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/comic_regular"
+                    android:text="@string/share_to_story"
+                    android:textColor="@color/text_color"
+                    android:textSize="14sp" />
+
+                <androidx.appcompat.widget.AppCompatImageView
+                    android:layout_width="@dimen/_16sdp"
+                    android:layout_height="@dimen/_16sdp"
+                    android:src="@drawable/ic_outline_next_arrow"
+                    android:tint="@color/text_color_60" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/sendDmLabel"
                 android:layout_width="match_parent"

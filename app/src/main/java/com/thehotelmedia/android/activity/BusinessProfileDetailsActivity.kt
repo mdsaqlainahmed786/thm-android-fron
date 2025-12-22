@@ -54,6 +54,7 @@ import com.thehotelmedia.android.extensions.openGoogleMaps
 import com.thehotelmedia.android.extensions.setRatingWithStarWithoutBracket
 import com.thehotelmedia.android.extensions.shareProfileWithDeepLink
 import com.thehotelmedia.android.extensions.toAQI
+import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfileMenuFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfilePhotosFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfilePostsFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfileReviewsFragment
@@ -234,6 +235,8 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
             imageDialog.showImage(userLargeProfilePic)
         }
 
+        binding.menuBtn.isClickable = true
+        binding.menuBtn.isFocusable = true
         binding.menuBtn.setOnClickListener { view ->
             showMenuDialog(view)
         }
@@ -449,6 +452,22 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         val businessTypeRef = result?.data?.businessProfileRef?.businessTypeRef
         businessName = businessTypeRef?.name ?: ""
         val isHotel = businessName.equals(getString(R.string.hotel), ignoreCase = true)
+        // More robust check: check if name contains "restaurant" or matches exactly
+        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true) ||
+                businessName.lowercase().trim().contains("restaurant")
+
+        // Show menu CTA only for restaurants (not hotels)
+        // Check if viewing own profile: use the same check as elsewhere in this activity (line 760)
+        val isOwnProfile = ownerUserId == outerUserId && ownerUserId.isNotEmpty() && outerUserId.isNotEmpty()
+        
+        // Show menu button only for restaurants
+        if (isRestaurant) {
+            binding.menuCtaLayout.visibility = View.VISIBLE
+            // Set button text based on whether viewing own profile or others
+            binding.viewMenuBtn.text = if (isOwnProfile) getString(R.string.view_your_menu) else getString(R.string.view_menu)
+        } else {
+            binding.menuCtaLayout.visibility = View.GONE
+        }
 
         when (bookingType) {
             "booking" -> {
@@ -529,7 +548,21 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         fullAddress = "$street, $city, $state, $country, $zipCode"
 
         if (country.isNotEmpty()){
-            binding.fullAddressTv.text = fullAddress
+        binding.fullAddressTv.text = fullAddress
+
+        // Setup View Menu button click (restaurant only)
+        binding.viewMenuBtn.setOnClickListener {
+            if (!isRestaurant) return@setOnClickListener
+            if (businessProfileId.isNotEmpty()) {
+                val intent = Intent(this, MenuViewerActivity::class.java).apply {
+                    putExtra("BUSINESS_PROFILE_ID", businessProfileId)
+                    putExtra("INITIAL_INDEX", 0)
+                }
+                startActivity(intent)
+            } else {
+                CustomSnackBar.showSnackBar(binding.root, getString(R.string.no_menu_available))
+            }
+        }
             binding.fullAddressTv.visibility = View.VISIBLE
         }else{
             binding.fullAddressTv.visibility = View.GONE
@@ -784,6 +817,9 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         val videos = getString(R.string.videos)
         val posts = getString(R.string.posts)
         val reviews = getString(R.string.reviews)
+        val menu = getString(R.string.menu)
+
+        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
 
         if (accountType == business_type_individual) {
             binding.amenitiesTv.visibility = View.GONE
@@ -811,13 +847,25 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
             binding.hotelTypeLayout.visibility = View.VISIBLE
             binding.websiteBtn.visibility = View.VISIBLE
 
-            tabTitles = arrayOf(photos, videos, posts, reviews)
-            tabIcons = arrayOf(
-                R.drawable.ic_photos,  // Replace with your actual icon resource
-                R.drawable.ic_videos,  // Replace with your actual icon resource
-                R.drawable.ic_posts,   // Replace with your actual icon resource
-                R.drawable.ic_reviews  // Replace with your actual icon resource
-            )
+            // Add menu tab only for restaurants
+            if (isRestaurant) {
+                tabTitles = arrayOf(photos, videos, posts, reviews, menu)
+                tabIcons = arrayOf(
+                    R.drawable.ic_photos,
+                    R.drawable.ic_videos,
+                    R.drawable.ic_posts,
+                    R.drawable.ic_reviews,
+                    R.drawable.ic_photos  // Menu icon (using photos icon as placeholder)
+                )
+            } else {
+                tabTitles = arrayOf(photos, videos, posts, reviews)
+                tabIcons = arrayOf(
+                    R.drawable.ic_photos,  // Replace with your actual icon resource
+                    R.drawable.ic_videos,  // Replace with your actual icon resource
+                    R.drawable.ic_posts,   // Replace with your actual icon resource
+                    R.drawable.ic_reviews  // Replace with your actual icon resource
+                )
+            }
         }
         val comicRegular = ResourcesCompat.getFont(this, R.font.comic_regular)
         val comicMedium = ResourcesCompat.getFont(this, R.font.comic_regular)
@@ -877,18 +925,41 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
 
 
     private fun replaceFragment(position: Int) {
-        val fragment = when (position) {
-            0 -> ProfilePhotosFragment()
-            1 -> ProfileVideosFragment()
-            2 -> ProfilePostsFragment()
-            3 -> ProfileReviewsFragment()
-            else -> throw IllegalArgumentException("Invalid tab position")
+        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
+        val totalTabs = if (accountType == business_type_individual) 4 else if (isRestaurant) 5 else 4
+        
+        val fragment = when {
+            accountType == business_type_individual -> when (position) {
+                0 -> ProfilePhotosFragment()
+                1 -> ProfileVideosFragment()
+                2 -> ProfilePostsFragment()
+                3 -> ProfileReviewsFragment()
+                else -> throw IllegalArgumentException("Invalid tab position")
+            }
+            isRestaurant -> when (position) {
+                0 -> ProfilePhotosFragment()
+                1 -> ProfileVideosFragment()
+                2 -> ProfilePostsFragment()
+                3 -> ProfileReviewsFragment()
+                4 -> ProfileMenuFragment()
+                else -> throw IllegalArgumentException("Invalid tab position")
+            }
+            else -> when (position) {
+                0 -> ProfilePhotosFragment()
+                1 -> ProfileVideosFragment()
+                2 -> ProfilePostsFragment()
+                3 -> ProfileReviewsFragment()
+                else -> throw IllegalArgumentException("Invalid tab position")
+            }
         }
 
-        // Create a Bundle to pass the userId
+        // Create a Bundle to pass the userId and businessProfileId
         val bundle = Bundle()
         bundle.putString("USER_ID", userId)
         bundle.putBoolean("IS_CONNECTED", isConnected)
+        if (fragment is ProfileMenuFragment) {
+            bundle.putString("BUSINESS_PROFILE_ID", businessProfileId)
+        }
         fragment.arguments = bundle
 
         // Clear the back stack

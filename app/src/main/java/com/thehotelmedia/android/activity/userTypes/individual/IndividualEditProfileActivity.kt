@@ -126,11 +126,16 @@ class IndividualEditProfileActivity : BaseActivity() {
             binding.amenitiesLayout.visibility = View.GONE
             binding.userTypeLayout.visibility = View.INVISIBLE
             binding.billingAddressLayout.visibility = View.VISIBLE
+            binding.menuLayout.visibility = View.GONE
         }else{
             binding.categoryLayout.visibility = View.VISIBLE
             binding.amenitiesLayout.visibility = View.VISIBLE
             binding.userTypeLayout.visibility = View.VISIBLE
             binding.billingAddressLayout.visibility = View.GONE
+            // Show menu option only for restaurants
+            val businessName = preferenceManager.getString(PreferenceManager.Keys.USER_BUSINESS_NAME, "").toString()
+            val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
+            binding.menuLayout.visibility = if (isRestaurant) View.VISIBLE else View.GONE
         }
         getAndSetData()
 
@@ -149,6 +154,15 @@ class IndividualEditProfileActivity : BaseActivity() {
             val intent = Intent(this, EditAmenitiesActivity::class.java)
             startActivity(intent)
             finish()
+        }
+        binding.menuBtn.setOnClickListener {
+            // Get business profile ID from user profile
+            val userId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").toString()
+            if (userId.isNotEmpty()) {
+                val intent = Intent(this, UploadMenuActivity::class.java)
+                intent.putExtra("USER_ID", userId)
+                startActivity(intent)
+            }
         }
         binding.individualBillingAddressBtn.setOnClickListener {
             val intent = Intent(this, IndividualBillingAddressActivity::class.java)

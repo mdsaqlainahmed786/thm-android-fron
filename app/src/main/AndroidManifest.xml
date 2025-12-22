@@ -94,6 +94,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".activity.MenuViewerActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activity.UserPostsViewerActivity"
             android:configChanges="uiMode"
             android:exported="false"
@@ -235,6 +240,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".activity.userTypes.forms.createStory.LocationSelectionActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activity.camera.CustomCameraActivity"
             android:configChanges="uiMode"
             android:exported="false"
@@ -362,6 +372,11 @@
             android:screenOrientation="portrait" />
         <activity
             android:name=".activity.userTypes.individual.IndividualEditProfileActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".activity.userTypes.individual.UploadMenuActivity"
             android:configChanges="uiMode"
             android:exported="false"
             android:screenOrientation="portrait" />

@@ -5,4 +5,8 @@
     <dimen name="follow_button_outline_width">1dp</dimen>
     <dimen name="follow_button_padding_horizontal">12dp</dimen>
     <dimen name="follow_button_padding_vertical">4dp</dimen>
+
+    <!-- Menu upload previews -->
+    <dimen name="menu_preview_image_height">180dp</dimen>
+    <dimen name="spacing_small">8dp</dimen>
 </resources>
