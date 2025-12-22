@@ -152,6 +152,11 @@
     <string name="home_stays">Home Stays</string>
     <string name="marriage_banquets">Marriage Banquets</string>
     <string name="restaurant">Restaurant</string>
+    <string name="menu">Menu</string>
+    <string name="upload_menu">Upload Menu</string>
+    <string name="menu_images_pdf">Menu (Images/PDF)</string>
+    <string name="no_menu_available">No menu available</string>
+    <string name="menu_uploaded_successfully">Menu uploaded successfully</string>
     <string name="address">Address</string>
     <string name="contact_information">Contact information</string>
     <string name="website_link">Website Link</string>

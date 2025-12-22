@@ -38,6 +38,7 @@ import com.thehotelmedia.android.extensions.capitalizeFirstLetter
 import com.thehotelmedia.android.extensions.setRatingWithStarWithoutBracket
 import com.thehotelmedia.android.extensions.shareProfileWithDeepLink
 import com.thehotelmedia.android.extensions.toAQI
+import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfileMenuFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfilePhotosFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfilePostsFragment
 import com.thehotelmedia.android.fragments.userTypes.individual.profile.ProfileReviewsFragment
@@ -70,6 +71,8 @@ class IndividualProfileFragment : Fragment() {
     private var userId = ""
     private var username = ""
     private var ownerUserId = ""
+    private var businessProfileId = ""
+    private var businessName = ""
     private lateinit var individualViewModal: IndividualViewModal
     private lateinit var editProfileLauncher: ActivityResultLauncher<Intent>
 
@@ -206,19 +209,42 @@ class IndividualProfileFragment : Fragment() {
 //    }
 
     private fun replaceFragment(position: Int) {
-        val fragment = when (position) {
-            0 -> ProfilePhotosFragment()
-            1 -> ProfileVideosFragment()
-            2 -> ProfilePostsFragment()
-            3 -> ProfileReviewsFragment()
-            else -> throw IllegalArgumentException("Invalid tab position")
+        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
+        val totalTabs = if (accountType == business_type_individual) 4 else if (isRestaurant) 5 else 4
+        
+        val fragment = when {
+            accountType == business_type_individual -> when (position) {
+                0 -> ProfilePhotosFragment()
+                1 -> ProfileVideosFragment()
+                2 -> ProfilePostsFragment()
+                3 -> ProfileReviewsFragment()
+                else -> throw IllegalArgumentException("Invalid tab position")
+            }
+            isRestaurant -> when (position) {
+                0 -> ProfilePhotosFragment()
+                1 -> ProfileVideosFragment()
+                2 -> ProfilePostsFragment()
+                3 -> ProfileReviewsFragment()
+                4 -> ProfileMenuFragment()
+                else -> throw IllegalArgumentException("Invalid tab position")
+            }
+            else -> when (position) {
+                0 -> ProfilePhotosFragment()
+                1 -> ProfileVideosFragment()
+                2 -> ProfilePostsFragment()
+                3 -> ProfileReviewsFragment()
+                else -> throw IllegalArgumentException("Invalid tab position")
+            }
         }
 
-        // Create a Bundle to pass the userId
+        // Create a Bundle to pass the userId and businessProfileId
         val bundle = Bundle()
         bundle.putString("USER_ID", userId)
         bundle.putString("FROM", "Profile")
         bundle.putBoolean("IS_CONNECTED", true)
+        if (fragment is ProfileMenuFragment) {
+            bundle.putString("BUSINESS_PROFILE_ID", businessProfileId)
+        }
         fragment.arguments = bundle
         // Clear the back stack
         childFragmentManager.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
@@ -249,7 +275,7 @@ class IndividualProfileFragment : Fragment() {
 
     private fun handelProfileData(result: GetProfileModal) {
         userId = result.data?.Id ?: ""
-        setupTabBar()
+        businessProfileId = result.data?.businessProfileRef?.Id ?: ""
         val postCount = result.data?.posts
         val followerCount = result.data?.follower
         val followingCount = result.data?.following
@@ -268,8 +294,11 @@ class IndividualProfileFragment : Fragment() {
         binding.ratingTv.setRatingWithStarWithoutBracket(rating, R.drawable.ic_rating_star)
 
         val businessTypeRef = result.data?.businessProfileRef?.businessTypeRef
-        val businessName = businessTypeRef?.name
+        businessName = businessTypeRef?.name ?: ""
         val businessIcon = businessTypeRef?.icon
+        
+        // Setup tab bar after businessName is set (needed for restaurant check)
+        setupTabBar()
 
 
         binding.businessNameTv.text = businessName
@@ -583,14 +612,39 @@ class IndividualProfileFragment : Fragment() {
         val videos = getString(R.string.videos)
         val posts = getString(R.string.posts)
         val reviews = getString(R.string.reviews)
+        val menu = getString(R.string.menu)
 
-        tabTitles = arrayOf(photos, videos, posts, reviews)
-        tabIcons = arrayOf(
-            R.drawable.ic_photos,
-            R.drawable.ic_videos,
-            R.drawable.ic_posts,
-            R.drawable.ic_reviews
-        )
+        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
+
+        if (accountType == business_type_individual) {
+            tabTitles = arrayOf(photos, videos, posts, reviews)
+            tabIcons = arrayOf(
+                R.drawable.ic_photos,
+                R.drawable.ic_videos,
+                R.drawable.ic_posts,
+                R.drawable.ic_reviews
+            )
+        } else {
+            // Add menu tab only for restaurants
+            if (isRestaurant) {
+                tabTitles = arrayOf(photos, videos, posts, reviews, menu)
+                tabIcons = arrayOf(
+                    R.drawable.ic_photos,
+                    R.drawable.ic_videos,
+                    R.drawable.ic_posts,
+                    R.drawable.ic_reviews,
+                    R.drawable.ic_photos  // Menu icon (using photos icon as placeholder)
+                )
+            } else {
+                tabTitles = arrayOf(photos, videos, posts, reviews)
+                tabIcons = arrayOf(
+                    R.drawable.ic_photos,
+                    R.drawable.ic_videos,
+                    R.drawable.ic_posts,
+                    R.drawable.ic_reviews
+                )
+            }
+        }
 
         val comicRegular = ResourcesCompat.getFont(requireContext(), R.font.comic_regular)
         val comicMedium = ResourcesCompat.getFont(requireContext(), R.font.comic_regular)

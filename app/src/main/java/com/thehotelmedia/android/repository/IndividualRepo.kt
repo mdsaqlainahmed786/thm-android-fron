@@ -73,6 +73,7 @@ import com.thehotelmedia.android.modals.visitWebSite.WebsiteRedirectModal
 import com.thehotelmedia.android.modals.collaboration.CollaborationActionModal
 import com.thehotelmedia.android.modals.collaboration.CollaborationPostsModal
 import com.thehotelmedia.android.modals.collaboration.CollaboratorsListModal
+import com.thehotelmedia.android.modals.menu.MenuResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -1573,6 +1574,40 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.getPostCollaborators(accessToken, postID).execute()
+        }
+    }
+
+    suspend fun getMenu(businessProfileId: String): Response<MenuResponse> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.getMenu(accessToken, businessProfileId).execute()
+        }
+    }
+
+    suspend fun uploadMenu(businessProfileId: String, files: List<MultipartBody.Part>): Response<MenuResponse> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            // Backend expects the multipart field name to be "menu"
+            return@withContext call.uploadMenu(accessToken, files).execute()
+        }
+    }
+
+    suspend fun deleteMenu(businessProfileId: String, menuId: String): Response<MenuResponse> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.deleteMenu(accessToken, businessProfileId, menuId).execute()
         }
     }
 
