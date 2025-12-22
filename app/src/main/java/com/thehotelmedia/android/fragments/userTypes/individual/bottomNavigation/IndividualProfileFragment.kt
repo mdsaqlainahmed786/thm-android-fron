@@ -24,9 +24,11 @@ import com.bumptech.glide.Glide
 import com.google.android.material.tabs.TabLayout
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
+import com.thehotelmedia.android.activity.MenuViewerActivity
 import com.thehotelmedia.android.activity.userTypes.individual.IndividualEditProfileActivity
 import com.thehotelmedia.android.activity.userTypes.individual.IndividualSettingsActivity
 import com.thehotelmedia.android.activity.userTypes.profile.FollowerFollowingActivity
+import com.thehotelmedia.android.customClasses.CustomSnackBar
 import com.thehotelmedia.android.adapters.userTypes.individual.profile.AmenitiesAdapter
 import com.thehotelmedia.android.adapters.userTypes.individual.profile.QuestionLinesAdapter
 import com.thehotelmedia.android.customClasses.ColorFilterTransformation
@@ -296,6 +298,33 @@ class IndividualProfileFragment : Fragment() {
         val businessTypeRef = result.data?.businessProfileRef?.businessTypeRef
         businessName = businessTypeRef?.name ?: ""
         val businessIcon = businessTypeRef?.icon
+        
+        // Check if restaurant and show menu button
+        val isHotel = businessName.equals(getString(R.string.hotel), ignoreCase = true)
+        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true) ||
+                businessName.lowercase().trim().contains("restaurant")
+        
+        // Show menu CTA only for restaurants (not hotels)
+        // Since this is the user's own profile, always show "View your menu"
+        if (isRestaurant) {
+            binding.menuCtaLayout.visibility = View.VISIBLE
+            binding.viewMenuBtn.text = getString(R.string.view_your_menu)
+            
+            // Setup click listener
+            binding.viewMenuBtn.setOnClickListener {
+                if (businessProfileId.isNotEmpty()) {
+                    val intent = Intent(requireContext(), MenuViewerActivity::class.java).apply {
+                        putExtra("BUSINESS_PROFILE_ID", businessProfileId)
+                        putExtra("INITIAL_INDEX", 0)
+                    }
+                    startActivity(intent)
+                } else {
+                    CustomSnackBar.showSnackBar(binding.root, getString(R.string.no_menu_available))
+                }
+            }
+        } else {
+            binding.menuCtaLayout.visibility = View.GONE
+        }
         
         // Setup tab bar after businessName is set (needed for restaurant check)
         setupTabBar()

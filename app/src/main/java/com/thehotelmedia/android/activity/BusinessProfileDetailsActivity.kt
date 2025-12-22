@@ -457,14 +457,16 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
                 businessName.lowercase().trim().contains("restaurant")
 
         // Show menu CTA only for restaurants (not hotels)
-        // Check if viewing own profile: compare logged-in user ID with profile owner's ID
-        val profileOwnerId = result?.data?.Id ?: outerUserId
-        val isOwnProfile = ownerUserId == profileOwnerId || ownerUserId == outerUserId
-        binding.menuCtaLayout.visibility = if (isRestaurant) View.VISIBLE else View.GONE
+        // Check if viewing own profile: use the same check as elsewhere in this activity (line 760)
+        val isOwnProfile = ownerUserId == outerUserId && ownerUserId.isNotEmpty() && outerUserId.isNotEmpty()
         
-        // Set button text based on whether viewing own profile or others
+        // Show menu button only for restaurants
         if (isRestaurant) {
+            binding.menuCtaLayout.visibility = View.VISIBLE
+            // Set button text based on whether viewing own profile or others
             binding.viewMenuBtn.text = if (isOwnProfile) getString(R.string.view_your_menu) else getString(R.string.view_menu)
+        } else {
+            binding.menuCtaLayout.visibility = View.GONE
         }
 
         when (bookingType) {
