@@ -7,5 +7,10 @@
     <item name="story_location_overlay_view" type="id" />
     <!-- Marker for the first user tag overlay (for position tracking) -->
     <item name="story_user_tag_first" type="id" />
+    
+    <!-- UCrop toolbar button IDs -->
+    <item name="ucrop_fab_cancel" type="id" />
+    <item name="ucrop_fab_done" type="id" />
+    <item name="toolbar_title" type="id" />
 </resources>
 

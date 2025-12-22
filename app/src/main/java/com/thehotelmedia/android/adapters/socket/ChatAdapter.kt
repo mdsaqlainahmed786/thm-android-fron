@@ -35,7 +35,10 @@ import com.thehotelmedia.android.extensions.loadAbusiveWordsFromJson
 import com.thehotelmedia.android.extensions.toFormattedDate
 
 // ChatAdapter.kt
-class ChatAdapter(private val context: Context) : PagingDataAdapter<Messages, ChatAdapter.ViewHolder>(ChatMessagesComparator) {
+class ChatAdapter(
+    private val context: Context,
+    private val onStoryClick: ((storyId: String, sentByMe: Boolean, storyCreatedAt: String?) -> Unit)? = null
+) : PagingDataAdapter<Messages, ChatAdapter.ViewHolder>(ChatMessagesComparator) {
 
     inner class ViewHolder(val binding: ChatItemLayoutBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -149,6 +152,11 @@ class ChatAdapter(private val context: Context) : PagingDataAdapter<Messages, Ch
 
                 val isStoryAvailable = message.isStoryAvailable ?: false
                 val sentByMe = message.sentByMe ?: false
+                val storyId = message.storyID ?: ""
+                val storyCreatedAt = message.createdAt // Use message createdAt as fallback, but ideally should be story's createdAt
+                
+                android.util.Log.d("ChatAdapter", "Setting up story-comment - storyId: $storyId, isStoryAvailable: $isStoryAvailable, onStoryClick null: ${onStoryClick == null}")
+                
                 if (sentByMe){
                     binding.replyTv.text = "You replied to story"
                 }else{
@@ -157,6 +165,7 @@ class ChatAdapter(private val context: Context) : PagingDataAdapter<Messages, Ch
                 if (isStoryAvailable){
 
                     binding.storyAvailableTv.visibility = View.GONE
+                    binding.storyIv.visibility = View.VISIBLE
                     if (mediaUrl.endsWith(".m3u8")) {
                         // Generate thumbnail from video URL
                         val thumbnail = getVideoThumbnail(mediaUrl)
@@ -168,10 +177,27 @@ class ChatAdapter(private val context: Context) : PagingDataAdapter<Messages, Ch
                         // Load image normally if it's not a video
                         Glide.with(context).load(mediaUrl).placeholder(R.drawable.ic_post_placeholder).into(binding.storyIv)
                     }
+                    
+                    // Make story layout clickable - clear any previous listener first
+                    binding.storyLayout.setOnClickListener(null)
+                    binding.storyLayout.setOnClickListener {
+                        android.util.Log.d("ChatAdapter", "Story layout clicked - storyId: $storyId, sentByMe: $sentByMe")
+                        // Pass storyId, sentByMe flag, and createdAt to the callback
+                        // userId will be determined in InboxScreenActivity based on sentByMe
+                        if (onStoryClick != null) {
+                            onStoryClick.invoke(storyId, sentByMe, storyCreatedAt)
+                        } else {
+                            android.util.Log.e("ChatAdapter", "onStoryClick callback is null!")
+                        }
+                    }
+                    binding.storyLayout.isClickable = true
+                    binding.storyLayout.isFocusable = true
                 }else{
                     binding.storyIv.visibility = View.GONE
                     binding.storyAvailableTv.visibility = View.VISIBLE
                     binding.storyAvailableTv.text = mediaUrl
+                    // Clear click listener if story is not available
+                    binding.storyLayout.setOnClickListener(null)
                 }
 
             }
@@ -202,6 +228,10 @@ class ChatAdapter(private val context: Context) : PagingDataAdapter<Messages, Ch
         }
 
         binding.root.setOnClickListener {
+            // Don't handle story-comment clicks here - let storyLayout handle them
+            if (type == "story-comment") {
+                return@setOnClickListener
+            }
             if (type == "pdf") {
                 openPdfInDevice(mediaUrl)
             } else if (type == IMAGE || type == VIDEO) {
