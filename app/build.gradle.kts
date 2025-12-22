@@ -249,6 +249,8 @@ dependencies {
 
     implementation("com.android.billingclient:billing:7.1.1")
 
+    // PDF viewing is handled via WebView (built-in, no external dependency needed)
+
 
     implementation ("androidx.work:work-runtime-ktx:2.9.0")
     implementation ("androidx.work:work-runtime:2.9.0")

@@ -153,6 +153,8 @@
     <string name="marriage_banquets">Marriage Banquets</string>
     <string name="restaurant">Restaurant</string>
     <string name="menu">Menu</string>
+    <string name="view_menu">View Menu</string>
+    <string name="view_your_menu">View your menu</string>
     <string name="upload_menu">Upload Menu</string>
     <string name="menu_images_pdf">Menu (Images/PDF)</string>
     <string name="no_menu_available">No menu available</string>

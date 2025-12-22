@@ -452,6 +452,20 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         val businessTypeRef = result?.data?.businessProfileRef?.businessTypeRef
         businessName = businessTypeRef?.name ?: ""
         val isHotel = businessName.equals(getString(R.string.hotel), ignoreCase = true)
+        // More robust check: check if name contains "restaurant" or matches exactly
+        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true) ||
+                businessName.lowercase().trim().contains("restaurant")
+
+        // Show menu CTA only for restaurants (not hotels)
+        // Check if viewing own profile: compare logged-in user ID with profile owner's ID
+        val profileOwnerId = result?.data?.Id ?: outerUserId
+        val isOwnProfile = ownerUserId == profileOwnerId || ownerUserId == outerUserId
+        binding.menuCtaLayout.visibility = if (isRestaurant) View.VISIBLE else View.GONE
+        
+        // Set button text based on whether viewing own profile or others
+        if (isRestaurant) {
+            binding.viewMenuBtn.text = if (isOwnProfile) getString(R.string.view_your_menu) else getString(R.string.view_menu)
+        }
 
         when (bookingType) {
             "booking" -> {
@@ -532,7 +546,21 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         fullAddress = "$street, $city, $state, $country, $zipCode"
 
         if (country.isNotEmpty()){
-            binding.fullAddressTv.text = fullAddress
+        binding.fullAddressTv.text = fullAddress
+
+        // Setup View Menu button click (restaurant only)
+        binding.viewMenuBtn.setOnClickListener {
+            if (!isRestaurant) return@setOnClickListener
+            if (businessProfileId.isNotEmpty()) {
+                val intent = Intent(this, MenuViewerActivity::class.java).apply {
+                    putExtra("BUSINESS_PROFILE_ID", businessProfileId)
+                    putExtra("INITIAL_INDEX", 0)
+                }
+                startActivity(intent)
+            } else {
+                CustomSnackBar.showSnackBar(binding.root, getString(R.string.no_menu_available))
+            }
+        }
             binding.fullAddressTv.visibility = View.VISIBLE
         }else{
             binding.fullAddressTv.visibility = View.GONE

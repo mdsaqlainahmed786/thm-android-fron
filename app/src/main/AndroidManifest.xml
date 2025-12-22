@@ -94,6 +94,11 @@
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".activity.MenuViewerActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".activity.UserPostsViewerActivity"
             android:configChanges="uiMode"
             android:exported="false"

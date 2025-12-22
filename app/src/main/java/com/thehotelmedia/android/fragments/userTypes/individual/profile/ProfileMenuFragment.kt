@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
+import com.thehotelmedia.android.activity.MenuViewerActivity
 import com.thehotelmedia.android.activity.VideoImageViewer
 import com.thehotelmedia.android.adapters.userTypes.individual.profile.ProfileMenuAdapter
 import com.thehotelmedia.android.customClasses.CustomProgressBar
@@ -61,42 +62,14 @@ class ProfileMenuFragment : Fragment() {
 
     private fun getMenuData() {
         menuAdapter = ProfileMenuAdapter(requireContext()) { menuItem ->
-            // Handle menu item click - get the media object (it's a single object, not an array)
-            val mediaItem = menuItem.media
-            if (mediaItem == null) return@ProfileMenuAdapter
-
-            val mimeType = mediaItem.mimeType?.lowercase().orEmpty()
-            val mediaType = mediaItem.mediaType?.lowercase().orEmpty()
-            val sourceUrl = mediaItem.sourceUrl
-
-            when {
-                mimeType.contains("pdf") || mediaType.contains("pdf") -> {
-                    // Open PDF using Intent
-                    if (!sourceUrl.isNullOrEmpty()) {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse(sourceUrl)
-                            setDataAndType(Uri.parse(sourceUrl), "application/pdf")
-                            flags = Intent.FLAG_ACTIVITY_NO_HISTORY
-                        }
-                        try {
-                            startActivity(intent)
-                        } catch (e: Exception) {
-                            // Handle case where no PDF viewer is available
-                            android.widget.Toast.makeText(requireContext(), "No PDF viewer found", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    }
+            // Delegate to MenuViewerActivity, opening at the clicked index
+            val position = menuAdapter.currentList.indexOf(menuItem)
+            if (businessProfileId.isNotEmpty() && position >= 0) {
+                val intent = Intent(requireContext(), MenuViewerActivity::class.java).apply {
+                    putExtra("BUSINESS_PROFILE_ID", businessProfileId)
+                    putExtra("INITIAL_INDEX", position)
                 }
-                mimeType.startsWith("image") || mediaType == "im" -> {
-                    // Open image in viewer
-                    if (!sourceUrl.isNullOrEmpty()) {
-                        val intent = Intent(requireContext(), VideoImageViewer::class.java).apply {
-                            putExtra("MEDIA_URL", sourceUrl)
-                            putExtra("MEDIA_TYPE", "image")
-                            putExtra("FROM", "MENU")
-                        }
-                        startActivity(intent)
-                    }
-                }
+                startActivity(intent)
             }
         }
 
