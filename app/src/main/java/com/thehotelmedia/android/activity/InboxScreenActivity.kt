@@ -23,6 +23,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import androidx.paging.PagingDataAdapter
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -43,8 +45,12 @@ import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.ActivityInboxScreenBinding
 import com.thehotelmedia.android.downloadManager.FileDownloadManager
 import com.thehotelmedia.android.extensions.toISO8601UTC
+import com.thehotelmedia.android.extensions.isRecentPost
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
+import com.thehotelmedia.android.activity.stories.ViewStoriesActivity
+import com.thehotelmedia.android.modals.Stories.Stories
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
@@ -236,7 +242,9 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         pdfSizeLimit = preferenceManager.getInt(PreferenceManager.Keys.PDF_SIZE_INT, DEFAULT_PDF_MB)
 
 
-        chatAdapter = ChatAdapter(this)
+        chatAdapter = ChatAdapter(this) { storyId, sentByMe, storyCreatedAt ->
+            handleStoryClick(storyId, sentByMe, storyCreatedAt)
+        }
 
 //        socketViewModel.connectSocket(myUserName)
 //        fetchConversationData()
@@ -713,5 +721,98 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
 
     }
 
+    /**
+     * Handle story click - fetch user stories, check expiration, and navigate
+     */
+    private fun handleStoryClick(storyId: String, sentByMe: Boolean, storyCreatedAt: String?) {
+        // Determine the story owner's userId
+        // If sentByMe is true, "You replied to story" - story belongs to the other user (userId)
+        // If sentByMe is false, "Replied to your story" - story belongs to current user
+        val storyOwnerId = if (sentByMe) {
+            userId // Story belongs to the person you're chatting with
+        } else {
+            preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").toString() // Story belongs to current user
+        }
+        
+        //if (storyOwnerId.isEmpty()) {
+        //    Toast.makeText(this, "Unable to open story", Toast.LENGTH_SHORT).show()
+        //    return
+       // }
+
+        // Check if story is expired (24 hours) using message createdAt as fallback
+        if (storyCreatedAt != null && storyCreatedAt.isNotEmpty()) {
+            val isExpired = !isRecentPost(storyCreatedAt)
+            if (isExpired) {
+                return
+            }
+        }
+
+        // Fetch stories directly from repository
+        lifecycleScope.launch {
+            try {
+                android.util.Log.d("StoryClick", "Starting story navigation - storyId: $storyId, storyOwnerId: $storyOwnerId")
+                
+                // Call repository directly to get stories
+                val individualRepo = IndividualRepo(this@InboxScreenActivity)
+                val response = individualRepo.getStories(1, 20)
+                
+                if (!response.isSuccessful || response.body() == null) {
+                    android.util.Log.e("StoryClick", "Failed to fetch stories: ${response.code()}")
+                    return@launch
+                }
+                
+                val storiesModal = response.body()!!
+                val allStories = storiesModal.storiesData?.stories ?: emptyList()
+                android.util.Log.d("StoryClick", "Total stories loaded: ${allStories.size}")
+                
+                // Filter stories by storyOwnerId
+                val userStories = allStories.filter { story: Stories -> story.id == storyOwnerId }
+                android.util.Log.d("StoryClick", "Filtered stories for owner $storyOwnerId: ${userStories.size}")
+                
+                if (userStories.isEmpty()) {
+                    android.util.Log.d("StoryClick", "No stories found for user $storyOwnerId")
+                    return@launch
+                }
+
+                // Check if the specific story exists and is not expired
+                var storyFound = false
+                var validStory: Stories? = null
+                
+                for (userStory in userStories) {
+                    val storyRef = userStory.storiesRef.find { storyRef -> storyRef.Id == storyId }
+                    if (storyRef != null) {
+                        android.util.Log.d("StoryClick", "Found story with ID: $storyId")
+                        val storyCreatedAtTime = storyRef.createdAt ?: ""
+                        if (storyCreatedAtTime.isNotEmpty()) {
+                            val isStoryExpired = !isRecentPost(storyCreatedAtTime)
+                            if (isStoryExpired) {
+                                android.util.Log.d("StoryClick", "Story expired: $storyCreatedAtTime")
+                                return@launch
+                            }
+                        }
+                        storyFound = true
+                        validStory = userStory
+                        break
+                    }
+                }
+
+                if (!storyFound || validStory == null) {
+                    android.util.Log.d("StoryClick", "Story not found - storyId: $storyId, found: $storyFound")
+                    return@launch
+                }
+
+                // Navigate to ViewStoriesActivity with the user's stories
+                android.util.Log.d("StoryClick", "Navigating to ViewStoriesActivity")
+                val jsonString = Gson().toJson(listOf(validStory))
+                val intent = Intent(this@InboxScreenActivity, ViewStoriesActivity::class.java).apply {
+                    putExtra("StoriesJson", jsonString)
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                android.util.Log.e("StoryClick", "Error navigating to story", e)
+                e.printStackTrace()
+            }
+        }
+    }
 
 }
