@@ -19,10 +19,12 @@ import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.databinding.DialogSendOtpBinding
 import com.thehotelmedia.android.databinding.DialogVerifyOtpBinding
 import com.thehotelmedia.android.extensions.showToast
+import android.util.Log
 import java.util.concurrent.TimeUnit
 
 class OtpDialogManager(private val context: Context) {
 
+    private val tag = "OTP_DIALOG_MANAGER"
     private var sendOtpDialog: AlertDialog? = null
     private var verifyOtpDialog: AlertDialog? = null
     private var selectedCountryCode: String = "+91"
@@ -196,6 +198,7 @@ class OtpDialogManager(private val context: Context) {
             ?: throw IllegalArgumentException("Context must be an Activity to start phone number verification")
 
         val phoneNumber = formatPhoneNumber(currentDialCode, currentPhoneNumber)
+        Log.d(tag, "Starting phone verification for: $phoneNumber (resend: $isResend)")
         progressBar.show()
 
         val optionsBuilder = PhoneAuthOptions.newBuilder(firebaseAuth)
@@ -208,7 +211,13 @@ class OtpDialogManager(private val context: Context) {
             resendToken?.let { optionsBuilder.setForceResendingToken(it) }
         }
 
-        PhoneAuthProvider.verifyPhoneNumber(optionsBuilder.build())
+        try {
+            PhoneAuthProvider.verifyPhoneNumber(optionsBuilder.build())
+        } catch (e: Exception) {
+            Log.e(tag, "Error starting phone verification", e)
+            progressBar.hide()
+            context.showToast("Failed to start OTP verification. Please try again.")
+        }
     }
 
     private val phoneAuthCallbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
@@ -221,10 +230,32 @@ class OtpDialogManager(private val context: Context) {
 
         override fun onVerificationFailed(exception: FirebaseException) {
             progressBar.hide()
-            val errorMessage = when (exception) {
-                is FirebaseAuthInvalidCredentialsException -> "Invalid phone number. Please check and try again."
-                is FirebaseTooManyRequestsException -> "Too many requests. Please try again later."
-                else -> exception.localizedMessage ?: "Failed to send OTP."
+            Log.e(tag, "Phone verification failed", exception)
+            Log.e(
+                tag,
+                "Error type: ${exception.javaClass.simpleName}, Message: ${exception.message}, Localized: ${exception.localizedMessage}"
+            )
+            
+            val errorMessage = when {
+                exception is FirebaseAuthInvalidCredentialsException -> {
+                    "Invalid phone number. Please check and try again."
+                }
+                exception is FirebaseTooManyRequestsException -> {
+                    "Too many requests. Please try again later."
+                }
+                exception.message?.contains("not authorized", ignoreCase = true) == true -> {
+                    Log.e(tag, "AUTHORIZATION ERROR: App not authorized. SHA-256 fingerprint may not be registered in Firebase Console.")
+                    "This app is not authorized. Please contact support or try again later."
+                }
+                exception.message?.contains("unauthorized", ignoreCase = true) == true -> {
+                    Log.e(tag, "AUTHORIZATION ERROR: Unauthorized access detected.")
+                    "This app is not authorized. Please contact support or try again later."
+                }
+                else -> {
+                    val rawMessage = exception.localizedMessage ?: exception.message ?: "Failed to send OTP."
+                    Log.w(tag, "Unhandled error type: ${exception.javaClass.simpleName}, Message: $rawMessage")
+                    rawMessage
+                }
             }
             context.showToast(errorMessage)
         }
@@ -234,6 +265,7 @@ class OtpDialogManager(private val context: Context) {
             token: PhoneAuthProvider.ForceResendingToken
         ) {
             progressBar.hide()
+            Log.d(tag, "OTP code sent successfully. Verification ID received.")
             this@OtpDialogManager.verificationId = verificationId
             resendToken = token
             context.showToast("OTP sent successfully.")
@@ -255,10 +287,12 @@ class OtpDialogManager(private val context: Context) {
 
     private fun signInWithPhoneAuthCredential(credential: PhoneAuthCredential) {
         progressBar.show()
+        Log.d(tag, "Signing in with phone auth credential")
         firebaseAuth.signInWithCredential(credential)
             .addOnCompleteListener { task ->
                 progressBar.hide()
                 if (task.isSuccessful) {
+                    Log.d(tag, "OTP verification successful")
                     context.showToast("OTP verified successfully.")
                     if (dismissDialogOnSuccess) {
                         verifyOtpDialog?.dismiss()
@@ -272,20 +306,49 @@ class OtpDialogManager(private val context: Context) {
                     firebaseAuth.signOut()
                 } else {
                     val exception = task.exception
-                    val message = if (exception is FirebaseAuthInvalidCredentialsException) {
-                        "Invalid OTP. Please try again."
-                    } else {
-                        exception?.localizedMessage ?: "OTP verification failed."
+                    Log.e(tag, "OTP verification failed", exception)
+                    Log.e(
+                        tag,
+                        "Error type: ${(exception as? FirebaseException)?.javaClass?.simpleName}, Message: ${exception?.message}"
+                    )
+                    
+                    val message = when {
+                        exception is FirebaseAuthInvalidCredentialsException -> {
+                            "Invalid OTP. Please try again."
+                        }
+                        exception?.message?.contains("not authorized", ignoreCase = true) == true -> {
+                            Log.e(tag, "AUTHORIZATION ERROR during sign-in: App not authorized.")
+                            "This app is not authorized. Please contact support or try again later."
+                        }
+                        exception?.message?.contains("unauthorized", ignoreCase = true) == true -> {
+                            Log.e(tag, "AUTHORIZATION ERROR during sign-in: Unauthorized access.")
+                            "This app is not authorized. Please contact support or try again later."
+                        }
+                        else -> {
+                            exception?.localizedMessage ?: exception?.message ?: "OTP verification failed."
+                        }
                     }
                     context.showToast(message)
                 }
             }
             .addOnFailureListener { exception ->
                 progressBar.hide()
-                val message = if (exception is FirebaseAuthInvalidCredentialsException) {
-                    "Invalid OTP. Please try again."
-                } else {
-                    exception.localizedMessage ?: "OTP verification failed."
+                Log.e(tag, "OTP verification failure listener triggered", exception)
+                val message = when {
+                    exception is FirebaseAuthInvalidCredentialsException -> {
+                        "Invalid OTP. Please try again."
+                    }
+                    exception.message?.contains("not authorized", ignoreCase = true) == true -> {
+                        Log.e(tag, "AUTHORIZATION ERROR in failure listener: App not authorized.")
+                        "This app is not authorized. Please contact support or try again later."
+                    }
+                    exception.message?.contains("unauthorized", ignoreCase = true) == true -> {
+                        Log.e(tag, "AUTHORIZATION ERROR in failure listener: Unauthorized access.")
+                        "This app is not authorized. Please contact support or try again later."
+                    }
+                    else -> {
+                        exception.localizedMessage ?: exception.message ?: "OTP verification failed."
+                    }
                 }
                 context.showToast(message)
             }
