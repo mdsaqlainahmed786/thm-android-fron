@@ -817,9 +817,6 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
         val videos = getString(R.string.videos)
         val posts = getString(R.string.posts)
         val reviews = getString(R.string.reviews)
-        val menu = getString(R.string.menu)
-
-        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
 
         if (accountType == business_type_individual) {
             binding.amenitiesTv.visibility = View.GONE
@@ -847,25 +844,14 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
             binding.hotelTypeLayout.visibility = View.VISIBLE
             binding.websiteBtn.visibility = View.VISIBLE
 
-            // Add menu tab only for restaurants
-            if (isRestaurant) {
-                tabTitles = arrayOf(photos, videos, posts, reviews, menu)
-                tabIcons = arrayOf(
-                    R.drawable.ic_photos,
-                    R.drawable.ic_videos,
-                    R.drawable.ic_posts,
-                    R.drawable.ic_reviews,
-                    R.drawable.ic_photos  // Menu icon (using photos icon as placeholder)
-                )
-            } else {
-                tabTitles = arrayOf(photos, videos, posts, reviews)
-                tabIcons = arrayOf(
-                    R.drawable.ic_photos,  // Replace with your actual icon resource
-                    R.drawable.ic_videos,  // Replace with your actual icon resource
-                    R.drawable.ic_posts,   // Replace with your actual icon resource
-                    R.drawable.ic_reviews  // Replace with your actual icon resource
-                )
-            }
+            // Menu tab removed - using View Menu button instead
+            tabTitles = arrayOf(photos, videos, posts, reviews)
+            tabIcons = arrayOf(
+                R.drawable.ic_photos,  // Replace with your actual icon resource
+                R.drawable.ic_videos,  // Replace with your actual icon resource
+                R.drawable.ic_posts,   // Replace with your actual icon resource
+                R.drawable.ic_reviews  // Replace with your actual icon resource
+            )
         }
         val comicRegular = ResourcesCompat.getFont(this, R.font.comic_regular)
         val comicMedium = ResourcesCompat.getFont(this, R.font.comic_regular)
@@ -925,41 +911,19 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
 
 
     private fun replaceFragment(position: Int) {
-        val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true)
-        val totalTabs = if (accountType == business_type_individual) 4 else if (isRestaurant) 5 else 4
-        
-        val fragment = when {
-            accountType == business_type_individual -> when (position) {
-                0 -> ProfilePhotosFragment()
-                1 -> ProfileVideosFragment()
-                2 -> ProfilePostsFragment()
-                3 -> ProfileReviewsFragment()
-                else -> throw IllegalArgumentException("Invalid tab position")
-            }
-            isRestaurant -> when (position) {
-                0 -> ProfilePhotosFragment()
-                1 -> ProfileVideosFragment()
-                2 -> ProfilePostsFragment()
-                3 -> ProfileReviewsFragment()
-                4 -> ProfileMenuFragment()
-                else -> throw IllegalArgumentException("Invalid tab position")
-            }
-            else -> when (position) {
-                0 -> ProfilePhotosFragment()
-                1 -> ProfileVideosFragment()
-                2 -> ProfilePostsFragment()
-                3 -> ProfileReviewsFragment()
-                else -> throw IllegalArgumentException("Invalid tab position")
-            }
+        // Menu tab removed - using View Menu button instead
+        val fragment = when (position) {
+            0 -> ProfilePhotosFragment()
+            1 -> ProfileVideosFragment()
+            2 -> ProfilePostsFragment()
+            3 -> ProfileReviewsFragment()
+            else -> throw IllegalArgumentException("Invalid tab position")
         }
 
         // Create a Bundle to pass the userId and businessProfileId
         val bundle = Bundle()
         bundle.putString("USER_ID", userId)
         bundle.putBoolean("IS_CONNECTED", isConnected)
-        if (fragment is ProfileMenuFragment) {
-            bundle.putString("BUSINESS_PROFILE_ID", businessProfileId)
-        }
         fragment.arguments = bundle
 
         // Clear the back stack

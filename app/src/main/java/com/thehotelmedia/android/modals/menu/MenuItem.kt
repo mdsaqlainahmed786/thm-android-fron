@@ -18,3 +18,4 @@ data class MenuMedia(
     @SerializedName("mimeType") var mimeType: String? = null // "image/jpeg", "application/pdf", etc.
 )
 
+
