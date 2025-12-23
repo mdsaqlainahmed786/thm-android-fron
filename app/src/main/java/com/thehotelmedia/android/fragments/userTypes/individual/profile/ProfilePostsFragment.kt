@@ -19,6 +19,7 @@ import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.customClasses.CustomSnackBar
 import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.FragmentProfilePostsBinding
+import com.thehotelmedia.android.fragments.VideoPlayerManager
 import com.thehotelmedia.android.fragments.userTypes.SavedFeedAdapter
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
@@ -48,6 +49,20 @@ class ProfilePostsFragment : Fragment() {
             from = it.getString("FROM") ?: ""
             viewerFollowsOwner = it.getBoolean("IS_CONNECTED", false)
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Ensure any inline video playback on this screen stops immediately
+        // when the user navigates away (e.g., presses the back button).
+        VideoPlayerManager.pausePlayer()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Release the shared ExoPlayer instance when this fragment's view is
+        // destroyed so audio/video cannot continue playing in the background.
+        VideoPlayerManager.releasePlayer()
     }
 
     override fun onCreateView(
