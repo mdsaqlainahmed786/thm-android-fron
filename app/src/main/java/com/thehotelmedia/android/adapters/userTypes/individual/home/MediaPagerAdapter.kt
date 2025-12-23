@@ -65,6 +65,12 @@ class MediaPagerAdapter(
             android.util.Log.d("MediaPagerAdapter", "ViewHolder state updated: currentIsPostLiked=$currentIsPostLiked, currentLikeCount=$currentLikeCount")
         }
 
+        private fun isVideo(mediaItem: MediaRef): Boolean {
+            val type = mediaItem.mediaType?.lowercase()
+            val mime = mediaItem.mimeType?.lowercase()
+            return type == VIDEO.lowercase() || (mime?.startsWith("video") == true)
+        }
+
         fun bind(mediaItem: MediaRef, position: Int) {
             // Update local state from adapter state
             // This ensures state is synced when ViewHolder is rebound
@@ -81,14 +87,9 @@ class MediaPagerAdapter(
                 binding.playerView.player = null
                 currentPlayingPosition = -1
 
-                if (mediaItem.mediaType == VIDEO) {
-                    binding.videoLayout.visibility = View.GONE
-                    binding.imageView.visibility = View.VISIBLE
-                    Glide.with(context)
-                        .load(mediaItem.thumbnailUrl)
-                        .placeholder(R.drawable.ic_post_placeholder)
-                        .error(R.drawable.ic_post_placeholder)
-                        .into(binding.imageView)
+                if (isVideo(mediaItem)) {
+                    // Show video thumbnail and allow tapping to open full‑screen viewer
+                    setupVideoThumbnail(mediaItem, postId)
                 } else {
                     setupImageView(mediaItem, postId)
                 }
@@ -101,7 +102,7 @@ class MediaPagerAdapter(
                 currentPlayingPosition = position
             }
 
-            if (mediaItem.mediaType == VIDEO) {
+            if (isVideo(mediaItem)) {
                 val player = VideoPlayerManager.initializePlayer(context, mediaItem.sourceUrl)
                 setupVideoPlayer(mediaItem, player, postId)
             } else {
@@ -379,6 +380,57 @@ class MediaPagerAdapter(
                     android.util.Log.d("MediaPagerAdapter", "Touch event received on imageView: action=${event.action}")
                 }
                 handled
+            }
+        }
+
+        /**
+         * Shows a static thumbnail for video when the post is not the active one,
+         * but still allows tapping to open the full‑screen video viewer.
+         */
+        private fun setupVideoThumbnail(mediaItem: MediaRef, postId: String) {
+            val sourceUrl = mediaItem.sourceUrl
+            val id = mediaItem.Id
+
+            binding.videoLayout.visibility = View.GONE
+            binding.imageView.visibility = View.VISIBLE
+            binding.muteIcon.visibility = View.GONE
+
+            Glide.with(context)
+                .load(mediaItem.thumbnailUrl ?: sourceUrl)
+                .placeholder(R.drawable.ic_post_placeholder)
+                .error(R.drawable.ic_post_placeholder)
+                .into(binding.imageView)
+
+            binding.imageView.isClickable = true
+            binding.imageView.isFocusable = true
+
+            val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDown(e: MotionEvent): Boolean = true
+
+                override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                    // Open full‑screen VIDEO viewer from thumbnail
+                    val intent = Intent(context, VideoImageViewer::class.java).apply {
+                        putExtra("MEDIA_URL", sourceUrl)
+                        putExtra("MEDIA_TYPE", VIDEO)
+                        putExtra("MEDIA_ID", id)
+                        putExtra("POST_ID", postId)
+                        putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl ?: sourceUrl)
+                        putExtra("LIKED_BY_ME", currentIsPostLiked)
+                        putExtra("LIKE_COUNT", currentLikeCount)
+                        putExtra("COMMENT_COUNT", commentCount)
+                    }
+
+                    MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                        onLikeClicked(updatedIsLikedByMe, updatedLikeCount, updatedCommentCount)
+                    }
+
+                    context.startActivity(intent)
+                    return true
+                }
+            })
+
+            binding.imageView.setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event)
             }
         }
 

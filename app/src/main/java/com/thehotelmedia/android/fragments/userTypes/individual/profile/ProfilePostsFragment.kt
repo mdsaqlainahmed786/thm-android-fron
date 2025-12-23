@@ -193,33 +193,21 @@ class ProfilePostsFragment : Fragment() {
         }
 
 
-        // Scroll listener to track active item - optimized to reduce updates
-        binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            private var lastUpdateTime = 0L
-            private val UPDATE_THROTTLE_MS = 200L // Throttle updates to every 200ms
-            
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastUpdateTime < UPDATE_THROTTLE_MS) {
-                    return // Throttle updates
-                }
-                lastUpdateTime = currentTime
-
-                val candidatePosition = findMostVisibleItemPosition(recyclerView)
-                if (candidatePosition != RecyclerView.NO_POSITION && candidatePosition != activePosition) {
-                    // IMPORTANT: We must not call notifyItemChanged (via updateActivePosition)
-                    // directly inside a scroll/layout callback. Post the update so it runs
-                    // on the next frame, after RecyclerView's layout pass completes.
-                    recyclerView.post {
-                        if (candidatePosition != activePosition) {
-                            updateActivePosition(candidatePosition)
-                        }
+        // Listener to track active item based on global scroll. Because this RecyclerView
+        // is inside a larger scrolling container, its own onScrolled callback may not fire
+        // when the parent scrolls. Instead, listen for global scroll changes and compute
+        // which post is most visible on screen.
+        binding.postRecyclerView.viewTreeObserver.addOnScrollChangedListener {
+            val recyclerView = binding.postRecyclerView
+            val candidatePosition = findMostVisibleItemPosition(recyclerView)
+            if (candidatePosition != RecyclerView.NO_POSITION && candidatePosition != activePosition) {
+                recyclerView.post {
+                    if (candidatePosition != activePosition) {
+                        updateActivePosition(candidatePosition)
                     }
                 }
             }
-        })
+        }
 
         // Ensure the initially visible item is marked active
         val initialPosition = findMostVisibleItemPosition(binding.postRecyclerView)
@@ -228,11 +216,12 @@ class ProfilePostsFragment : Fragment() {
         }
     }
 
-    /**
-     * Returns the adapter position of the item that is mostly/fully visible.
-     * Uses a visibility threshold so videos only auto‑play when their post is
-     * largely on screen.
-     */
+        /**
+         * Returns the adapter position of the item that is mostly/fully visible
+         * on screen (not just within the RecyclerView). Uses global coordinates
+         * so it works even when the RecyclerView itself is inside a parent
+         * scrolling container.
+         */
     private fun findMostVisibleItemPosition(recyclerView: RecyclerView): Int {
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return RecyclerView.NO_POSITION
 
@@ -242,23 +231,33 @@ class ProfilePostsFragment : Fragment() {
             return RecyclerView.NO_POSITION
         }
 
-        val visibilityThreshold = 0.7f
+        // Threshold of visible height required to consider an item "active".
+        // If at least ~60% of a post is visible on screen, its media is
+        // considered the primary focus and its video may auto‑play.
+        val visibilityThreshold = 0.6f
         var bestPosition = RecyclerView.NO_POSITION
         var maxVisibleRatio = 0f
 
-        val childVisibleRect = Rect()
+        val parentGlobalRect = Rect()
+        recyclerView.getGlobalVisibleRect(parentGlobalRect)
+
+        val childGlobalRect = Rect()
 
         for (position in firstVisible..lastVisible) {
             val child = layoutManager.findViewByPosition(position) ?: continue
 
             if (child.height <= 0) continue
 
-            // Compute how much of this child is currently visible within its own
-            // scrolling container (works even when RecyclerView is inside a NestedScrollView).
-            val hasVisibleRect = child.getLocalVisibleRect(childVisibleRect)
+            // Compute how much of this child is currently visible on screen by
+            // intersecting its global rect with the RecyclerView's global rect.
+            val hasVisibleRect = child.getGlobalVisibleRect(childGlobalRect)
             if (!hasVisibleRect) continue
 
-            val visibleHeight = childVisibleRect.height().coerceAtLeast(0)
+            val visibleRect = Rect(childGlobalRect)
+            val intersected = visibleRect.intersect(parentGlobalRect)
+            if (!intersected) continue
+
+            val visibleHeight = visibleRect.height().coerceAtLeast(0)
             if (visibleHeight <= 0) continue
 
             val ratio = visibleHeight.toFloat() / child.height.toFloat()

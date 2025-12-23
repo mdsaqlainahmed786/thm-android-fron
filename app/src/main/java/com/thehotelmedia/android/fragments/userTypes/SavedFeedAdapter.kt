@@ -61,6 +61,7 @@ import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.modals.feeds.feed.TaggedRef
 import com.thehotelmedia.android.modals.collaboration.CollaborationUser
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
+import com.thehotelmedia.android.fragments.VideoPlayerManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -99,6 +100,11 @@ class SavedFeedAdapter(
      */
     fun setActivePosition(newPosition: Int) {
         if (newPosition == activePosition) return
+
+        // Stop any currently playing video before switching the active item.
+        // This ensures that when you scroll away from a post, its inline video
+        // stops instead of continuing to play off‑screen.
+        VideoPlayerManager.releasePlayer()
 
         val previous = activePosition
         activePosition = newPosition
