@@ -55,6 +55,7 @@ import com.thehotelmedia.android.extensions.getEmojiForRating
 import com.thehotelmedia.android.extensions.isFutureDateOrTime
 import com.thehotelmedia.android.extensions.isRecentPost
 import com.thehotelmedia.android.extensions.moveToPostPreviewScreen
+import com.thehotelmedia.android.extensions.moveToUserPostsViewer
 import com.thehotelmedia.android.extensions.openGoogleMaps
 import com.thehotelmedia.android.extensions.setRatingWithStar
 import com.thehotelmedia.android.extensions.setRatingWithStars
@@ -448,18 +449,32 @@ class FeedAdapter(
                 setDotIndicatorColor(ContextCompat.getColor(context, R.color.blue))
                 setStrokeDotsIndicatorColor(ContextCompat.getColor(context, R.color.grey))
             }
-            mediaPagerAdapter = MediaPagerAdapter(context, mediaList, isActive,postId,isPostLiked,likeCount,commentCount)
+            // Always create a fresh MediaPagerAdapter for this bind so that the
+            // isActive flag (which controls video autoplay vs. thumbnail-only) is
+            // in sync with the current adapter position.
+            mediaPagerAdapter = MediaPagerAdapter(context, mediaList, isActive,postId,isPostLiked,likeCount,commentCount, individualViewModal)
             { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
                 post.comments = updatedCommentCount
                 post.likedByMe = updatedIsLikedByMe
                 post.likes = updatedLikeCount
                 updateLikeBtn(updatedIsLikedByMe, binding.likeIv)
-                binding.likeTv.text = updatedLikeCount.toString()
-                binding.commentTv.text = updatedCommentCount.toString()
-                // You can also update UI elements in the activity here
+                binding.likeTv.text = formatCount(updatedLikeCount)
+                binding.commentTv.text = formatCount(updatedCommentCount)
+                // Update MediaPagerAdapter's internal state so double-tap works correctly
+                mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
             }
             binding.viewPager.adapter = mediaPagerAdapter
+            // Reset to first media item when adapter changes to ensure proper binding
+            binding.viewPager.setCurrentItem(0, false)
             binding.mediaLayout.visibility = View.VISIBLE
+            
+            // Add click listener to open post viewer
+            binding.mediaLayout.setOnClickListener {
+                val userId = post.userID ?: post.postedBy?.Id ?: ""
+                if (userId.isNotEmpty()) {
+                    context.moveToUserPostsViewer(userId, postId)
+                }
+            }
         }else{
             binding.mediaLayout.visibility = View.GONE
         }
@@ -1908,8 +1923,26 @@ class FeedAdapter(
         }
     }
 
-    fun setActivePosition(position: Int) {
-        activePosition = position
+    fun setActivePosition(newPosition: Int) {
+        if (newPosition == activePosition) return
+
+        val previous = activePosition
+        activePosition = newPosition
+
+        // Stop any currently playing inline video before switching the active
+        // feed item so only one post can play at a time.
+        com.thehotelmedia.android.fragments.VideoPlayerManager.releasePlayer()
+
+        // Post structural changes to the next frame to avoid RecyclerView's
+        // "cannot call this method in a scroll callback" restriction.
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            if (previous != RecyclerView.NO_POSITION && previous < itemCount) {
+                notifyItemChanged(previous)
+            }
+            if (activePosition != RecyclerView.NO_POSITION && activePosition < itemCount) {
+                notifyItemChanged(activePosition)
+            }
+        }
     }
 
     /**

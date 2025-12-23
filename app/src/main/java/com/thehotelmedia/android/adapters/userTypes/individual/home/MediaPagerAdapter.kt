@@ -85,6 +85,10 @@ class MediaPagerAdapter(
                 // Instead, just detach any player from this ViewHolder and show the
                 // appropriate thumbnail.
                 binding.playerView.player = null
+                // Clear any existing listeners to prevent memory leaks
+                binding.videoLayout.setOnTouchListener(null)
+                binding.playerView.setOnTouchListener(null)
+                binding.playerView.setOnLongClickListener(null)
                 currentPlayingPosition = -1
 
                 if (isVideo(mediaItem)) {
@@ -119,15 +123,48 @@ class MediaPagerAdapter(
             if (sourceUrl.isNullOrEmpty()) return
             val id = mediaItem.Id ?: ""
 
-            binding.videoLayout.visibility = View.VISIBLE
-            binding.imageView.visibility = View.GONE
-            // Ensure mute icon is visible when video is shown
-            binding.muteIcon.visibility = View.VISIBLE
+            // Show thumbnail first while player prepares
+            binding.videoLayout.visibility = View.GONE
+            binding.imageView.visibility = View.VISIBLE
+            binding.muteIcon.visibility = View.GONE
+            
+            // Load thumbnail
+            Glide.with(context)
+                .load(mediaItem.thumbnailUrl ?: sourceUrl)
+                .placeholder(R.drawable.ic_post_placeholder)
+                .error(R.drawable.ic_post_placeholder)
+                .into(binding.imageView)
+
+            // Attach player to PlayerView
             binding.playerView.player = player
 
             // Set the video player to loop
             player.repeatMode = ExoPlayer.REPEAT_MODE_ONE
-            player.playWhenReady = true // Start playing
+            
+            // Check if player is already ready, otherwise wait for it
+            if (player.playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
+                // Player is already ready, show video immediately
+                binding.imageView.visibility = View.GONE
+                binding.videoLayout.visibility = View.VISIBLE
+                binding.muteIcon.visibility = View.VISIBLE
+                player.playWhenReady = true
+            } else {
+                // Wait for player to be ready before showing video view
+                val listener = object : com.google.android.exoplayer2.Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
+                            // Player is ready, switch from thumbnail to video view
+                            binding.imageView.visibility = View.GONE
+                            binding.videoLayout.visibility = View.VISIBLE
+                            binding.muteIcon.visibility = View.VISIBLE
+                            player.playWhenReady = true // Start playing
+                            // Remove listener to avoid memory leaks
+                            player.removeListener(this)
+                        }
+                    }
+                }
+                player.addListener(listener)
+            }
 
 
 //            // Mute/UnMute Functionality
