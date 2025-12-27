@@ -70,7 +70,7 @@
 
                     <TextView
                         android:id="@+id/textView3"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/comic_regular"
                         android:text="@string/business_registration"
@@ -133,7 +133,7 @@
 
                     <TextView
                         android:id="@+id/address"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/comic_regular"
                         android:text="@string/address_proof"

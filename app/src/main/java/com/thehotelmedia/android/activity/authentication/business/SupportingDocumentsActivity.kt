@@ -119,12 +119,13 @@ class SupportingDocumentsActivity : BaseActivity() {
             ViewModelProvider(this, ViewModelFactory(authRepo))[AuthViewModel::class.java]
         val progressBar = CustomProgressBar(this)
 
-        // Add "(Optional)" text to the labels
-        val businessRegistrationText = getString(R.string.business_registration) + " (Optional)"
-        binding.textView3.text = businessRegistrationText
+        // Add "(Optional)" text to the main title
+        val supportingDocumentsText = getString(R.string.supporting_documents) + " (Optional)"
+        binding.textView2.text = supportingDocumentsText
         
-        val addressProofText = getString(R.string.address_proof) + " (Optional)"
-        binding.address.text = addressProofText
+        // Set the individual labels without "(Optional)"
+        binding.textView3.text = getString(R.string.business_registration)
+        binding.address.text = getString(R.string.address_proof)
 
         binding.backBtn.setOnClickListener {
             this.onBackPressedDispatcher.onBackPressed()
