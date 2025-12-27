@@ -631,11 +631,11 @@ class SignInActivity : BaseActivity() {
                 moveToBusinessQuestionsActivity()
             }else if (!hasProfilePicture){
                 moveToBusinessMediaActivity()
-            }else if (!isDocumentUploaded){
-                moveToBusinessSupportingDocumentsActivity()
-            }else if (!acceptedTerms){
-                moveToTermsAndCondition(accountType)
-            }else if (!hasSubscription){
+            }else {
+                // For sign-in: Skip documents and terms & conditions for existing users
+                // These steps should only be shown during signup flow
+                // If user has verified email and profile picture, proceed to subscription/home check
+                if (!hasSubscription){
                 // Check if business profile was created less than 11 months ago (grace period)
                 // If within grace period, redirect to home page instead of subscription page
                 val isWithinGracePeriod = com.thehotelmedia.android.extensions.isWithinGracePeriod(businessProfileCreatedAt)
@@ -656,17 +656,18 @@ class SignInActivity : BaseActivity() {
                     // Grace period has passed, show subscription page
                     moveToBusinessSubscriptionActivity()
                 }
-            }else{
-                // Has subscription - check if account is approved before navigating
-                if (!isApproved) {
-                    // Account not approved - show "account under review" dialog
-                    val msg = "Your account is currently under review. We will notify you once it has been verified."
-                    documentVerificationGiff.show(msg) {
-                        // Stay on sign in page after dialog closes
+                }else{
+                    // Has subscription - check if account is approved before navigating
+                    if (!isApproved) {
+                        // Account not approved - show "account under review" dialog
+                        val msg = "Your account is currently under review. We will notify you once it has been verified."
+                        documentVerificationGiff.show(msg) {
+                            // Stay on sign in page after dialog closes
+                        }
+                    } else {
+                        // Account approved, navigate to home page
+                        moveToBottomNavigationBusiness()
                     }
-                } else {
-                    // Account approved, navigate to home page
-                    moveToBottomNavigationBusiness()
                 }
             }
 

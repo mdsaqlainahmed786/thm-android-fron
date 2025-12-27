@@ -74,7 +74,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/comic_regular"
                         android:text="@string/business_registration"
-                        android:textColor="@color/text_color_60"
+                        android:textColor="@color/white_60"
                         android:textSize="14sp" />
 
                     <RelativeLayout
