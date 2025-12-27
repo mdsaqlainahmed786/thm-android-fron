@@ -478,7 +478,7 @@ class AuthViewModel (private val authRepo: AuthRepo): ViewModel(){
     //SupportingDocuments
     private val _supportingDocumentsResult = MutableLiveData<DocumentsModal>()
     val supportingDocumentsResult: LiveData<DocumentsModal> = _supportingDocumentsResult
-    fun supportingDocuments( businessRegistration: MultipartBody.Part,addressProof: MultipartBody.Part) {
+    fun supportingDocuments( businessRegistration: MultipartBody.Part?,addressProof: MultipartBody.Part?) {
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {

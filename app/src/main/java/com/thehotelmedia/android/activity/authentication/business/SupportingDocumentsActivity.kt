@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
+import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
 import com.thehotelmedia.android.activity.authentication.TermsAndConditionsActivity
@@ -118,18 +119,27 @@ class SupportingDocumentsActivity : BaseActivity() {
             ViewModelProvider(this, ViewModelFactory(authRepo))[AuthViewModel::class.java]
         val progressBar = CustomProgressBar(this)
 
+        // Add "(Optional)" text to the labels
+        val businessRegistrationText = getString(R.string.business_registration) + " (Optional)"
+        binding.textView3.text = businessRegistrationText
+        
+        val addressProofText = getString(R.string.address_proof) + " (Optional)"
+        binding.address.text = addressProofText
+
         binding.backBtn.setOnClickListener {
             this.onBackPressedDispatcher.onBackPressed()
         }
         binding.nextBtn.setOnClickListener {
-            if (businessDoc.isEmpty() ) {
-                CustomSnackBar.showSnackBar(binding.root, "Please select business documents.")
-            }else if (addressDoc.isEmpty()){
-                CustomSnackBar.showSnackBar(binding.root, "Please select address proof.")
-            }else{
+            // Documents are now optional - allow proceeding with or without documents
+            if (businessDoc.isEmpty() && addressDoc.isEmpty()) {
+                // No documents provided - skip API call and navigate directly
+                val intent = Intent(activity, TermsAndConditionsActivity::class.java)
+                intent.putExtra("From", "Business")
+                startActivity(intent)
+            } else {
+                // At least one document provided - upload documents
                 uploadDocuments()
             }
-
         }
 
         binding.businessDocIv.setOnClickListener {
@@ -359,19 +369,26 @@ class SupportingDocumentsActivity : BaseActivity() {
     }
 
     private fun uploadDocuments() {
+        // Create multipart parts only if documents are provided
+        val businessMultipart: MultipartBody.Part? = if (businessDoc.isNotEmpty()) {
+            val businessFile = File(businessDoc)
+            val businessMimeType = getMimeType(businessFile)
+            val businessRequestBody = RequestBody.create(businessMimeType.toMediaTypeOrNull(), businessFile)
+            MultipartBody.Part.createFormData("businessRegistration", businessFile.name, businessRequestBody)
+        } else {
+            null
+        }
 
-        val businessFile = File(businessDoc)
-        val businessMimeType = getMimeType(businessFile) // Dynamically get the MIME type
-        val businessRequestBody = RequestBody.create(businessMimeType.toMediaTypeOrNull(), businessFile)
-        val businessMultipart = MultipartBody.Part.createFormData("businessRegistration", businessFile.name, businessRequestBody)
-
-        val addressFile = File(addressDoc)
-        val addressMimeType = getMimeType(addressFile) // Dynamically get the MIME type
-        val addressRequestBody = RequestBody.create(addressMimeType.toMediaTypeOrNull(), addressFile)
-        val addressMultipart = MultipartBody.Part.createFormData("addressProof", addressFile.name, addressRequestBody)
+        val addressMultipart: MultipartBody.Part? = if (addressDoc.isNotEmpty()) {
+            val addressFile = File(addressDoc)
+            val addressMimeType = getMimeType(addressFile)
+            val addressRequestBody = RequestBody.create(addressMimeType.toMediaTypeOrNull(), addressFile)
+            MultipartBody.Part.createFormData("addressProof", addressFile.name, addressRequestBody)
+        } else {
+            null
+        }
 
         authViewModel.supportingDocuments(businessMultipart, addressMultipart)
-
     }
 
     private fun getMimeType(file: File): String {

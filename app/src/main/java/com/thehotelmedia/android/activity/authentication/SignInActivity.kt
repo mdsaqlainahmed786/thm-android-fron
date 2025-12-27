@@ -640,14 +640,34 @@ class SignInActivity : BaseActivity() {
                 // If within grace period, redirect to home page instead of subscription page
                 val isWithinGracePeriod = com.thehotelmedia.android.extensions.isWithinGracePeriod(businessProfileCreatedAt)
                 if (isWithinGracePeriod) {
-                    // Business user is within 11-month grace period, redirect to home page
-                    moveToBottomNavigationBusiness()
+                    // Business user is within 11-month grace period
+                    // Check if account is approved before navigating to home page
+                    if (!isApproved) {
+                        // Account not approved - show "account under review" dialog
+                        val msg = "Your account is currently under review. We will notify you once it has been verified."
+                        documentVerificationGiff.show(msg) {
+                            // Stay on sign in page after dialog closes
+                        }
+                    } else {
+                        // Account approved, redirect to home page
+                        moveToBottomNavigationBusiness()
+                    }
                 } else {
                     // Grace period has passed, show subscription page
                     moveToBusinessSubscriptionActivity()
                 }
             }else{
-                moveToBottomNavigationBusiness()
+                // Has subscription - check if account is approved before navigating
+                if (!isApproved) {
+                    // Account not approved - show "account under review" dialog
+                    val msg = "Your account is currently under review. We will notify you once it has been verified."
+                    documentVerificationGiff.show(msg) {
+                        // Stay on sign in page after dialog closes
+                    }
+                } else {
+                    // Account approved, navigate to home page
+                    moveToBottomNavigationBusiness()
+                }
             }
 
         }

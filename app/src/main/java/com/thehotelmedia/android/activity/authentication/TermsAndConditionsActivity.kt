@@ -91,6 +91,22 @@ class TermsAndConditionsActivity : BaseActivity() {
                 android.util.Log.d("TermsAndConditions", "Successfully saved USER_ACCEPTED_TERMS to preferences")
                 
                 val intent = if (from == business_type_business) {
+                    // Check if account is approved before navigating
+                    val isApproved = preferenceManager.getBoolean(PreferenceManager.Keys.BUSINESS_ACC_APPROVED, false)
+                    
+                    if (!isApproved) {
+                        // Account not approved - show "account under review" dialog and stay on sign in
+                        val documentVerificationGiff = com.thehotelmedia.android.customClasses.DocumentVerificationGiff(this)
+                        val msg = "Your account is currently under review. We will notify you once it has been verified."
+                        documentVerificationGiff.show(msg) {
+                            // Navigate back to sign in page after dialog closes
+                            val signInIntent = Intent(this, com.thehotelmedia.android.activity.authentication.SignInActivity::class.java)
+                            startActivity(signInIntent)
+                            finish()
+                        }
+                        return@observe
+                    }
+                    
                     // Check if business user is within 11-month grace period
                     val businessProfileCreatedAt = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_PROFILE_CREATED_AT, "") ?: ""
                     val isWithinGracePeriod = com.thehotelmedia.android.extensions.isWithinGracePeriod(businessProfileCreatedAt)

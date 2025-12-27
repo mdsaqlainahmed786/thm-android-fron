@@ -181,7 +181,7 @@ class AuthRepo (private val context: Context){
         }
     }
 
-    suspend fun supportingDocuments( businessRegistration: MultipartBody.Part,addressProof: MultipartBody.Part): Response<DocumentsModal> {
+    suspend fun supportingDocuments( businessRegistration: MultipartBody.Part?,addressProof: MultipartBody.Part?): Response<DocumentsModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
             throw IllegalStateException("Access token is null or empty")
