@@ -19,6 +19,7 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+import android.media.MediaMetadataRetriever
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -149,9 +150,26 @@ class CreatePostActivity : BaseActivity() {
     private val videoTrimmerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val trimmedVideoUri = result.data?.getStringExtra("trimmed_video_uri")
-            trimmedVideoUri?.let {
-                mediaList.add(it)
-                setMediaListAdapter()
+            trimmedVideoUri?.let { uriString ->
+                val uri = Uri.parse(uriString)
+                val durationMillis = getVideoDurationMillis(uri)
+                
+                when {
+                    durationMillis == null -> {
+                        // Could not determine duration, reject for safety
+                        Log.e("CreatePostActivity", "Failed to retrieve trimmed video duration")
+                        CustomSnackBar.showSnackBar(binding.root, getString(R.string.video_file_not_exist))
+                    }
+                    durationMillis >= 180000 -> {
+                        // Video is 3 minutes or longer, reject it
+                        CustomSnackBar.showSnackBar(binding.root, getString(R.string.video_too_long))
+                    }
+                    else -> {
+                        // Video is shorter than 3 minutes, accept it
+                        mediaList.add(uriString)
+                        setMediaListAdapter()
+                    }
+                }
             }
         }
     }
@@ -569,33 +587,73 @@ class CreatePostActivity : BaseActivity() {
         }
     }
     private fun checkVideoDurationAndTrim(uri: Uri) {
-        val projection = arrayOf(MediaStore.Video.Media.DURATION)
-        val cursor = contentResolver.query(uri, projection, null, null, null)
-        cursor?.use {
-            if (it.moveToFirst()) {
-                val durationMillis = it.getLong(it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION))
-                val durationSeconds = durationMillis / 1000
-
-                val savedVideoUri = saveVideo(uri)
-
-                // Launch the video trimmer with the saved video URI
-                if (savedVideoUri != null) {
-                    showVideoTrimmer(savedVideoUri)
-                }
-//                showVideoTrimmer(uri)
-//                mediaList.add(uri.toString())
-//                setMediaListAdapter()
-//                if (durationSeconds > 30) {
-//                    // Call the video trimmer if video duration exceeds 30 seconds
-//                    showVideoTrimmer(uri)
-//                } else {
-//                    // Add video directly if duration is within the limit
-//                    mediaList.add(uri.toString())
-//                    setMediaListAdapter()
-//                }
-            }
-        } ?: run {
+        val durationMillis = getVideoDurationMillis(uri)
+        
+        if (durationMillis == null) {
             Log.e("CreatePostActivity", "Failed to retrieve video duration")
+            CustomSnackBar.showSnackBar(binding.root, getString(R.string.video_file_not_exist))
+            return
+        }
+        
+        // Check if video duration is 3 minutes or longer
+        if (durationMillis >= 180000) {
+            // Video is too long, reject it
+            CustomSnackBar.showSnackBar(binding.root, getString(R.string.video_too_long))
+            return
+        }
+        
+        // Video is shorter than 3 minutes, proceed with saving and trimming
+        val savedVideoUri = saveVideo(uri)
+        
+        // Launch the video trimmer with the saved video URI
+        if (savedVideoUri != null) {
+            showVideoTrimmer(savedVideoUri)
+        }
+    }
+    
+    /**
+     * Helper method to extract video duration from URI using MediaMetadataRetriever
+     * Handles both content:// URIs and file:// URIs
+     * @param uri The video URI
+     * @return Duration in milliseconds, or null if extraction fails
+     */
+    private fun getVideoDurationMillis(uri: Uri): Long? {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            when {
+                uri.scheme == "content" -> {
+                    // For content:// URIs, use the content resolver
+                    retriever.setDataSource(applicationContext, uri)
+                }
+                uri.scheme == "file" -> {
+                    // For file:// URIs, use the file path directly
+                    val filePath = uri.path
+                    if (filePath != null) {
+                        retriever.setDataSource(filePath)
+                    } else {
+                        retriever.release()
+                        return null
+                    }
+                }
+                else -> {
+                    // Try to get file path from URI
+                    val filePath = uri.path
+                    if (filePath != null && File(filePath).exists()) {
+                        retriever.setDataSource(filePath)
+                    } else {
+                        retriever.release()
+                        return null
+                    }
+                }
+            }
+            
+            val durationString = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            retriever.release()
+            
+            durationString?.toLongOrNull()
+        } catch (e: Exception) {
+            Log.e("CreatePostActivity", "Error getting video duration: ${e.message}", e)
+            null
         }
     }
 

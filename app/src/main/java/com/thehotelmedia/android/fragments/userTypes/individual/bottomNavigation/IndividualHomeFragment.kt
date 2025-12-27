@@ -6,6 +6,7 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.graphics.Rect
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -63,7 +64,7 @@ class IndividualHomeFragment : Fragment() {
 //    private lateinit var storyAdapter: StoryAdapter
     private lateinit var progressBar: CustomProgressBar
     private var postIds: List<String> = emptyList()
-    private var activePosition = 1 // No active position initially
+    private var activePosition = RecyclerView.NO_POSITION // No active position initially
     private var currentLat = DEFAULT_LAT
     private var currentLng = DEFAULT_LNG
     private val batchSize = 30
@@ -71,16 +72,8 @@ class IndividualHomeFragment : Fragment() {
     private var isScrolling = false
      private var isManualRefresh = false
      private var loadStateListenerAdded = false
-    val debounceRunnable = Runnable {
-        if (isScrolling) {
-            val layoutManager = binding.postRecyclerView.layoutManager as LinearLayoutManager
-            val firstVisibleItem = layoutManager.findFirstCompletelyVisibleItemPosition()
-            if (firstVisibleItem != RecyclerView.NO_POSITION && firstVisibleItem != activePosition) {
-                updateActivePosition(firstVisibleItem)
-            }
-            isScrolling = false
-        }
-    }
+    // Removed debounceRunnable - we now use continuous scroll detection via viewTreeObserver
+    // which is more reliable for video auto-play
 
 
     override fun onCreateView(
@@ -356,8 +349,15 @@ class IndividualHomeFragment : Fragment() {
         if (postIds.size >= batchSize){
             individualViewModal.postViews(postIds)
         }
+        // Stop inline video playback when user navigates away from this screen
         VideoPlayerManager.pausePlayer()
         super.onPause()
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Fully release the player so audio cannot continue in background
+        VideoPlayerManager.releasePlayer()
     }
     
     override fun onResume() {
@@ -389,26 +389,36 @@ class IndividualHomeFragment : Fragment() {
             binding.postRecyclerView.setHasFixedSize(false) // Allow RecyclerView to optimize layout
             binding.postRecyclerView.itemAnimator = null
             
-            // Add scroll listener only once when adapter is created
+            // Continuous scroll detection for video auto-play (similar to ProfilePostsFragment)
+            // This fires whenever the RecyclerView scrolls, allowing us to track which post
+            // is most visible and should have its video auto-playing.
+            binding.postRecyclerView.viewTreeObserver.addOnScrollChangedListener {
+                val recyclerView = binding.postRecyclerView
+                val candidatePosition = findMostVisibleItemPosition(recyclerView)
+                if (candidatePosition != RecyclerView.NO_POSITION && candidatePosition != activePosition) {
+                    recyclerView.post {
+                        if (candidatePosition != activePosition) {
+                            updateActivePosition(candidatePosition)
+                        }
+                    }
+                }
+            }
+            
+            // Keep scroll listener for swipe refresh detection
             binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     super.onScrolled(recyclerView, dx, dy)
                     isScrolling = true
-                    handler.removeCallbacks(debounceRunnable)
                 }
                 
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     super.onScrollStateChanged(recyclerView, newState)
                     when (newState) {
                         RecyclerView.SCROLL_STATE_IDLE -> {
-                            // Scrolling has stopped
                             isScrolling = false
-                            handler.postDelayed(debounceRunnable, 100)
                         }
                         RecyclerView.SCROLL_STATE_DRAGGING, RecyclerView.SCROLL_STATE_SETTLING -> {
-                            // User is scrolling
                             isScrolling = true
-                            handler.removeCallbacks(debounceRunnable)
                         }
                     }
                 }
@@ -419,24 +429,76 @@ class IndividualHomeFragment : Fragment() {
             lifecycleScope.launch {
                 ensureLoadStateListener()
                 feedAdapter.submitData(data)
-                // Remove notifyDataSetChanged() - PagingDataAdapter handles updates automatically via DiffUtil
+                // After initial data load, ensure the first visible post (after header)
+                // is marked active so its video can auto‑play.
+                binding.postRecyclerView.post {
+                    val initialPosition = findMostVisibleItemPosition(binding.postRecyclerView)
+                    if (initialPosition != RecyclerView.NO_POSITION) {
+                        updateActivePosition(initialPosition)
+                    }
+                }
             }
         }
     }
 
-    private fun updateActivePosition(newPosition: Int) {
-        if (newPosition != activePosition) {
-            val previousActivePosition = activePosition
-            activePosition = if (newPosition == 0){
-                1
-            }else{
-                newPosition
-            }
-            // Notify adapter to update views
-            feedAdapter.setActivePosition(activePosition)
-            feedAdapter.notifyItemChanged(previousActivePosition)
-            feedAdapter.notifyItemChanged(activePosition)
+    /**
+     * Returns the adapter position of the item that is mostly visible on screen.
+     * Skips position 0 (header) and finds the most visible post item.
+     */
+    private fun findMostVisibleItemPosition(recyclerView: RecyclerView): Int {
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return RecyclerView.NO_POSITION
+
+        val firstVisible = layoutManager.findFirstVisibleItemPosition()
+        val lastVisible = layoutManager.findLastVisibleItemPosition()
+        if (firstVisible == RecyclerView.NO_POSITION || lastVisible == RecyclerView.NO_POSITION) {
+            return RecyclerView.NO_POSITION
         }
+
+        // Item becomes "active" when ~60% of its height is visible on screen
+        val visibilityThreshold = 0.6f
+        var bestPosition = RecyclerView.NO_POSITION
+        var maxVisibleRatio = 0f
+
+        val parentGlobalRect = Rect()
+        recyclerView.getGlobalVisibleRect(parentGlobalRect)
+
+        val childGlobalRect = Rect()
+
+        for (position in firstVisible..lastVisible) {
+            // Skip header (position 0)
+            if (position == 0) continue
+            
+            val child = layoutManager.findViewByPosition(position) ?: continue
+            if (child.height <= 0) continue
+
+            val hasVisibleRect = child.getGlobalVisibleRect(childGlobalRect)
+            if (!hasVisibleRect) continue
+
+            val visibleRect = Rect(childGlobalRect)
+            val intersected = visibleRect.intersect(parentGlobalRect)
+            if (!intersected) continue
+
+            val visibleHeight = visibleRect.height().coerceAtLeast(0)
+            if (visibleHeight <= 0) continue
+
+            val ratio = visibleHeight.toFloat() / child.height.toFloat()
+            if (ratio > maxVisibleRatio) {
+                maxVisibleRatio = ratio
+                bestPosition = position
+            }
+        }
+
+        return if (maxVisibleRatio >= visibilityThreshold) bestPosition else RecyclerView.NO_POSITION
+    }
+
+    private fun updateActivePosition(newPosition: Int) {
+        if (newPosition == activePosition) return
+        if (newPosition < 0 || newPosition >= feedAdapter.itemCount) return
+
+        activePosition = newPosition
+        // Delegate item update logic to the adapter so it can decide which post
+        // should have its media (video/image) in the active state.
+        feedAdapter.setActivePosition(newPosition)
     }
 
     private fun ensureLoadStateListener() {

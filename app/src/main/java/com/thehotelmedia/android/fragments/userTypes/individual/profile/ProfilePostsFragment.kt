@@ -1,10 +1,11 @@
 package com.thehotelmedia.android.fragments.userTypes.individual.profile
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import android.graphics.Rect
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -18,6 +19,7 @@ import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.customClasses.CustomSnackBar
 import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.FragmentProfilePostsBinding
+import com.thehotelmedia.android.fragments.VideoPlayerManager
 import com.thehotelmedia.android.fragments.userTypes.SavedFeedAdapter
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
@@ -37,7 +39,7 @@ class ProfilePostsFragment : Fragment() {
 
     private var ownerUserId = ""
     private lateinit var preferenceManager : PreferenceManager
-    private var activePosition = 0 // No active position initially
+    private var activePosition = RecyclerView.NO_POSITION // No active position initially
     private var pendingStoryPostId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +49,20 @@ class ProfilePostsFragment : Fragment() {
             from = it.getString("FROM") ?: ""
             viewerFollowsOwner = it.getBoolean("IS_CONNECTED", false)
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Ensure any inline video playback on this screen stops immediately
+        // when the user navigates away (e.g., presses the back button).
+        VideoPlayerManager.pausePlayer()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Release the shared ExoPlayer instance when this fragment's view is
+        // destroyed so audio/video cannot continue playing in the background.
+        VideoPlayerManager.releasePlayer()
     }
 
     override fun onCreateView(
@@ -177,60 +193,106 @@ class ProfilePostsFragment : Fragment() {
                 // Use withContext to switch to the main thread for UI updates
                 withContext(Dispatchers.Main) {
                     postAdapter.submitData(data)
+
+                    // After data is submitted and the list is laid out, ensure that
+                    // the most visible item is marked as active so that videos
+                    // can auto‑play (instead of waiting for the user to scroll).
+                    binding.postRecyclerView.post {
+                        val initialPosition = findMostVisibleItemPosition(binding.postRecyclerView)
+                        if (initialPosition != RecyclerView.NO_POSITION) {
+                            updateActivePosition(initialPosition)
+                        }
+                    }
                 }
             }
         }
 
 
-        // Scroll listener to track active item - optimized to reduce updates
-        binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            private var lastUpdateTime = 0L
-            private val UPDATE_THROTTLE_MS = 200L // Throttle updates to every 200ms
-            
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-                
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastUpdateTime < UPDATE_THROTTLE_MS) {
-                    return // Throttle updates
-                }
-                lastUpdateTime = currentTime
-
-                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
-                var candidatePosition = layoutManager.findFirstCompletelyVisibleItemPosition()
-                if (candidatePosition == RecyclerView.NO_POSITION) {
-                    candidatePosition = layoutManager.findFirstVisibleItemPosition()
-                }
-
-                if (candidatePosition != RecyclerView.NO_POSITION && candidatePosition != activePosition) {
-                    updateActivePosition(candidatePosition)
+        // Listener to track active item based on global scroll. Because this RecyclerView
+        // is inside a larger scrolling container, its own onScrolled callback may not fire
+        // when the parent scrolls. Instead, listen for global scroll changes and compute
+        // which post is most visible on screen.
+        binding.postRecyclerView.viewTreeObserver.addOnScrollChangedListener {
+            val recyclerView = binding.postRecyclerView
+            val candidatePosition = findMostVisibleItemPosition(recyclerView)
+            if (candidatePosition != RecyclerView.NO_POSITION && candidatePosition != activePosition) {
+                recyclerView.post {
+                    if (candidatePosition != activePosition) {
+                        updateActivePosition(candidatePosition)
+                    }
                 }
             }
-        })
+        }
 
         // Ensure the initially visible item is marked active
-        (binding.postRecyclerView.layoutManager as? LinearLayoutManager)?.let { layoutManager ->
-            val initialPosition = layoutManager.findFirstVisibleItemPosition()
-            if (initialPosition != RecyclerView.NO_POSITION) {
-                updateActivePosition(initialPosition)
-            }
+        val initialPosition = findMostVisibleItemPosition(binding.postRecyclerView)
+        if (initialPosition != RecyclerView.NO_POSITION) {
+            updateActivePosition(initialPosition)
         }
     }
 
-    private fun updateActivePosition(newPosition: Int) {
-        if (newPosition != activePosition) {
-            val previousActivePosition = activePosition
-            activePosition = newPosition
-            // Notify adapter to update views - use payload to avoid full rebind
-            postAdapter.setActivePosition(activePosition)
-            // Only notify if positions are valid
-            if (previousActivePosition >= 0 && previousActivePosition < postAdapter.itemCount) {
-                postAdapter.notifyItemChanged(previousActivePosition, "active_state")
-            }
-            if (activePosition >= 0 && activePosition < postAdapter.itemCount) {
-                postAdapter.notifyItemChanged(activePosition, "active_state")
+        /**
+         * Returns the adapter position of the item that is mostly/fully visible
+         * on screen (not just within the RecyclerView). Uses global coordinates
+         * so it works even when the RecyclerView itself is inside a parent
+         * scrolling container.
+         */
+    private fun findMostVisibleItemPosition(recyclerView: RecyclerView): Int {
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return RecyclerView.NO_POSITION
+
+        val firstVisible = layoutManager.findFirstVisibleItemPosition()
+        val lastVisible = layoutManager.findLastVisibleItemPosition()
+        if (firstVisible == RecyclerView.NO_POSITION || lastVisible == RecyclerView.NO_POSITION) {
+            return RecyclerView.NO_POSITION
+        }
+
+        // Threshold of visible height required to consider an item "active".
+        // If at least ~60% of a post is visible on screen, its media is
+        // considered the primary focus and its video may auto‑play.
+        val visibilityThreshold = 0.6f
+        var bestPosition = RecyclerView.NO_POSITION
+        var maxVisibleRatio = 0f
+
+        val parentGlobalRect = Rect()
+        recyclerView.getGlobalVisibleRect(parentGlobalRect)
+
+        val childGlobalRect = Rect()
+
+        for (position in firstVisible..lastVisible) {
+            val child = layoutManager.findViewByPosition(position) ?: continue
+
+            if (child.height <= 0) continue
+
+            // Compute how much of this child is currently visible on screen by
+            // intersecting its global rect with the RecyclerView's global rect.
+            val hasVisibleRect = child.getGlobalVisibleRect(childGlobalRect)
+            if (!hasVisibleRect) continue
+
+            val visibleRect = Rect(childGlobalRect)
+            val intersected = visibleRect.intersect(parentGlobalRect)
+            if (!intersected) continue
+
+            val visibleHeight = visibleRect.height().coerceAtLeast(0)
+            if (visibleHeight <= 0) continue
+
+            val ratio = visibleHeight.toFloat() / child.height.toFloat()
+            if (ratio > maxVisibleRatio) {
+                maxVisibleRatio = ratio
+                bestPosition = position
             }
         }
+
+        return if (maxVisibleRatio >= visibilityThreshold) bestPosition else RecyclerView.NO_POSITION
+    }
+
+    private fun updateActivePosition(newPosition: Int) {
+        if (newPosition == activePosition) return
+        if (newPosition < 0 || newPosition >= postAdapter.itemCount) return
+
+        activePosition = newPosition
+        // Delegate item update logic to the adapter so it can decide which post
+        // should have its media (video/image) in the active state.
+        postAdapter.setActivePosition(newPosition)
     }
 
     private fun isLoading() {

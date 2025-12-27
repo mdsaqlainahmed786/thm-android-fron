@@ -65,6 +65,12 @@ class MediaPagerAdapter(
             android.util.Log.d("MediaPagerAdapter", "ViewHolder state updated: currentIsPostLiked=$currentIsPostLiked, currentLikeCount=$currentLikeCount")
         }
 
+        private fun isVideo(mediaItem: MediaRef): Boolean {
+            val type = mediaItem.mediaType?.lowercase()
+            val mime = mediaItem.mimeType?.lowercase()
+            return type == VIDEO.lowercase() || (mime?.startsWith("video") == true)
+        }
+
         fun bind(mediaItem: MediaRef, position: Int) {
             // Update local state from adapter state
             // This ensures state is synced when ViewHolder is rebound
@@ -73,21 +79,23 @@ class MediaPagerAdapter(
             android.util.Log.d("MediaPagerAdapter", "bind() called: syncing state from adapter - isPostLiked=$isPostLiked, likeCount=$likeCount")
             
             if (!isActive) {
-
-
-                VideoPlayerManager.releasePlayer() // Ensure no active player if inactive
+                // This ViewPager belongs to a non‑active post. We must NOT release the
+                // global player here because it may be currently used by the truly
+                // active post in another adapter instance (which causes the black screen).
+                // Instead, just detach any player from this ViewHolder and show the
+                // appropriate thumbnail.
+                binding.playerView.player = null
+                // Clear any existing listeners to prevent memory leaks
+                binding.videoLayout.setOnTouchListener(null)
+                binding.playerView.setOnTouchListener(null)
+                binding.playerView.setOnLongClickListener(null)
                 currentPlayingPosition = -1
-//                setupImageView(mediaItem.sourceUrl, mediaItem.Id, postId) // Default to image handling
-                if (mediaItem.mediaType == VIDEO){
 
-                    binding.videoLayout.visibility = View.GONE
-                    binding.imageView.visibility = View.VISIBLE
-
-                    Glide.with(context).load(mediaItem.thumbnailUrl).placeholder(R.drawable.ic_post_placeholder).error(R.drawable.ic_post_placeholder).into(binding.imageView)
-
-
-                }else{
-                    setupImageView(mediaItem, postId) // Default to image handling
+                if (isVideo(mediaItem)) {
+                    // Show video thumbnail and allow tapping to open full‑screen viewer
+                    setupVideoThumbnail(mediaItem, postId)
+                } else {
+                    setupImageView(mediaItem, postId)
                 }
                 return
             }
@@ -98,7 +106,7 @@ class MediaPagerAdapter(
                 currentPlayingPosition = position
             }
 
-            if (mediaItem.mediaType == VIDEO) {
+            if (isVideo(mediaItem)) {
                 val player = VideoPlayerManager.initializePlayer(context, mediaItem.sourceUrl)
                 setupVideoPlayer(mediaItem, player, postId)
             } else {
@@ -115,13 +123,48 @@ class MediaPagerAdapter(
             if (sourceUrl.isNullOrEmpty()) return
             val id = mediaItem.Id ?: ""
 
-            binding.videoLayout.visibility = View.VISIBLE
-            binding.imageView.visibility = View.GONE
+            // Show thumbnail first while player prepares
+            binding.videoLayout.visibility = View.GONE
+            binding.imageView.visibility = View.VISIBLE
+            binding.muteIcon.visibility = View.GONE
+            
+            // Load thumbnail
+            Glide.with(context)
+                .load(mediaItem.thumbnailUrl ?: sourceUrl)
+                .placeholder(R.drawable.ic_post_placeholder)
+                .error(R.drawable.ic_post_placeholder)
+                .into(binding.imageView)
+
+            // Attach player to PlayerView
             binding.playerView.player = player
 
             // Set the video player to loop
             player.repeatMode = ExoPlayer.REPEAT_MODE_ONE
-            player.playWhenReady = true // Start playing
+            
+            // Check if player is already ready, otherwise wait for it
+            if (player.playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
+                // Player is already ready, show video immediately
+                binding.imageView.visibility = View.GONE
+                binding.videoLayout.visibility = View.VISIBLE
+                binding.muteIcon.visibility = View.VISIBLE
+                player.playWhenReady = true
+            } else {
+                // Wait for player to be ready before showing video view
+                val listener = object : com.google.android.exoplayer2.Player.Listener {
+                    override fun onPlaybackStateChanged(playbackState: Int) {
+                        if (playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
+                            // Player is ready, switch from thumbnail to video view
+                            binding.imageView.visibility = View.GONE
+                            binding.videoLayout.visibility = View.VISIBLE
+                            binding.muteIcon.visibility = View.VISIBLE
+                            player.playWhenReady = true // Start playing
+                            // Remove listener to avoid memory leaks
+                            player.removeListener(this)
+                        }
+                    }
+                }
+                player.addListener(listener)
+            }
 
 
 //            // Mute/UnMute Functionality
@@ -197,27 +240,27 @@ class MediaPagerAdapter(
                 }
 
                 override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                    // Single tap - handle video play/pause or open viewer
-                    if (player.isPlaying) {
-                        val intent = Intent(context, VideoImageViewer::class.java).apply {
-                            putExtra("MEDIA_URL", sourceUrl)
-                            putExtra("MEDIA_TYPE", VIDEO)
-                            putExtra("MEDIA_ID", id)
-                            putExtra("POST_ID", postId)
-                            putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl)
-                            putExtra("LIKED_BY_ME", currentIsPostLiked)
-                            putExtra("LIKE_COUNT", currentLikeCount)
-                            putExtra("COMMENT_COUNT", commentCount)
-                        }
+                    // Single tap should ALWAYS open the full‑screen viewer for videos,
+                    // regardless of the current play state. This matches the product
+                    // requirement that tapping a video opens the viewer.
+                    player.pause()
 
-                        MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                            onLikeClicked(updatedIsLikedByMe, updatedLikeCount, updatedCommentCount)
-                        }
-
-                        context.startActivity(intent)
-                    } else {
-                        player.play()
+                    val intent = Intent(context, VideoImageViewer::class.java).apply {
+                        putExtra("MEDIA_URL", sourceUrl)
+                        putExtra("MEDIA_TYPE", VIDEO)
+                        putExtra("MEDIA_ID", id)
+                        putExtra("POST_ID", postId)
+                        putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl)
+                        putExtra("LIKED_BY_ME", currentIsPostLiked)
+                        putExtra("LIKE_COUNT", currentLikeCount)
+                        putExtra("COMMENT_COUNT", commentCount)
                     }
+
+                    MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                        onLikeClicked(updatedIsLikedByMe, updatedLikeCount, updatedCommentCount)
+                    }
+
+                    context.startActivity(intent)
                     return true
                 }
             })
@@ -231,27 +274,25 @@ class MediaPagerAdapter(
             binding.videoLayout.setOnTouchListener { v, event ->
                 val handled = gestureDetector.onTouchEvent(event)
                 if (!handled && event.action == MotionEvent.ACTION_UP) {
-                    // Fallback to original behavior if gesture not handled
-                    if (player.isPlaying) {
-                        val intent = Intent(context, VideoImageViewer::class.java).apply {
-                            putExtra("MEDIA_URL", sourceUrl)
-                            putExtra("MEDIA_TYPE", VIDEO)
-                            putExtra("MEDIA_ID", id)
-                            putExtra("POST_ID", postId)
-                            putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl)
-                            putExtra("LIKED_BY_ME", currentIsPostLiked)
-                            putExtra("LIKE_COUNT", currentLikeCount)
-                            putExtra("COMMENT_COUNT", commentCount)
-                        }
+                    // Fallback: behave the same as a confirmed single tap and open viewer.
+                    player.pause()
 
-                        MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                            onLikeClicked(updatedIsLikedByMe, updatedLikeCount, updatedCommentCount)
-                        }
-
-                        context.startActivity(intent)
-                    } else {
-                        player.play()
+                    val intent = Intent(context, VideoImageViewer::class.java).apply {
+                        putExtra("MEDIA_URL", sourceUrl)
+                        putExtra("MEDIA_TYPE", VIDEO)
+                        putExtra("MEDIA_ID", id)
+                        putExtra("POST_ID", postId)
+                        putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl)
+                        putExtra("LIKED_BY_ME", currentIsPostLiked)
+                        putExtra("LIKE_COUNT", currentLikeCount)
+                        putExtra("COMMENT_COUNT", commentCount)
                     }
+
+                    MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                        onLikeClicked(updatedIsLikedByMe, updatedLikeCount, updatedCommentCount)
+                    }
+
+                    context.startActivity(intent)
                 }
                 handled
             }
@@ -288,6 +329,8 @@ class MediaPagerAdapter(
             val id = mediaItem.Id
             binding.videoLayout.visibility = View.GONE
             binding.imageView.visibility = View.VISIBLE
+            // Hide mute icon for pure image items
+            binding.muteIcon.visibility = View.GONE
 //            binding.imageView.loadImageInBackground(context, sourceUrl.orEmpty(), R.drawable.ic_post_placeholder)
 
             Glide.with(context).load(sourceUrl).placeholder(R.drawable.ic_post_placeholder).error(R.drawable.ic_post_placeholder).into(binding.imageView)
@@ -374,6 +417,57 @@ class MediaPagerAdapter(
                     android.util.Log.d("MediaPagerAdapter", "Touch event received on imageView: action=${event.action}")
                 }
                 handled
+            }
+        }
+
+        /**
+         * Shows a static thumbnail for video when the post is not the active one,
+         * but still allows tapping to open the full‑screen video viewer.
+         */
+        private fun setupVideoThumbnail(mediaItem: MediaRef, postId: String) {
+            val sourceUrl = mediaItem.sourceUrl
+            val id = mediaItem.Id
+
+            binding.videoLayout.visibility = View.GONE
+            binding.imageView.visibility = View.VISIBLE
+            binding.muteIcon.visibility = View.GONE
+
+            Glide.with(context)
+                .load(mediaItem.thumbnailUrl ?: sourceUrl)
+                .placeholder(R.drawable.ic_post_placeholder)
+                .error(R.drawable.ic_post_placeholder)
+                .into(binding.imageView)
+
+            binding.imageView.isClickable = true
+            binding.imageView.isFocusable = true
+
+            val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDown(e: MotionEvent): Boolean = true
+
+                override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                    // Open full‑screen VIDEO viewer from thumbnail
+                    val intent = Intent(context, VideoImageViewer::class.java).apply {
+                        putExtra("MEDIA_URL", sourceUrl)
+                        putExtra("MEDIA_TYPE", VIDEO)
+                        putExtra("MEDIA_ID", id)
+                        putExtra("POST_ID", postId)
+                        putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl ?: sourceUrl)
+                        putExtra("LIKED_BY_ME", currentIsPostLiked)
+                        putExtra("LIKE_COUNT", currentLikeCount)
+                        putExtra("COMMENT_COUNT", commentCount)
+                    }
+
+                    MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                        onLikeClicked(updatedIsLikedByMe, updatedLikeCount, updatedCommentCount)
+                    }
+
+                    context.startActivity(intent)
+                    return true
+                }
+            })
+
+            binding.imageView.setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event)
             }
         }
 
@@ -483,9 +577,10 @@ class MediaPagerAdapter(
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
         viewHolders.remove(holder)
-        if (holder.bindingAdapterPosition == currentPlayingPosition) {
-            VideoPlayerManager.releasePlayer()
-        }
+        // Do NOT release the global player here; the active post / adapter is
+        // responsible for stopping playback when focus moves. Releasing from a
+        // recycled ViewHolder can kill playback for the currently active post.
+        holder.itemView.findViewById<com.google.android.exoplayer2.ui.PlayerView?>(R.id.playerView)?.player = null
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
