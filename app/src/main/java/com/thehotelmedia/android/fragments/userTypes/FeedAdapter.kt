@@ -94,8 +94,9 @@ val DIFF_CALLBACK = object : DiffUtil.ItemCallback<Data>() {
     }
     
     // Helper function to compare collaborator lists efficiently
-    private fun collaboratorsEqual(old: ArrayList<com.thehotelmedia.android.modals.feeds.feed.Collaborator>?, 
+    fun collaboratorsEqual(old: ArrayList<com.thehotelmedia.android.modals.feeds.feed.Collaborator>?, 
                                    new: ArrayList<com.thehotelmedia.android.modals.feeds.feed.Collaborator>?): Boolean {
+
         if (old == null && new == null) return true
         if (old == null || new == null) return false
         if (old.size != new.size) return false

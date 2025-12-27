@@ -16,8 +16,8 @@ android {
         applicationId = "com.thehotelmedia.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 112
-        versionName = "1.0.3"
+        versionCode = 115
+        versionName = "1.0.6"
         resourceConfigurations.addAll(listOf("en", "hi","gu","kn","mr","te")) // List of supported languages
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
