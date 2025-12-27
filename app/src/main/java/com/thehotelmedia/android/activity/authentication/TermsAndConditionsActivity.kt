@@ -91,7 +91,17 @@ class TermsAndConditionsActivity : BaseActivity() {
                 android.util.Log.d("TermsAndConditions", "Successfully saved USER_ACCEPTED_TERMS to preferences")
                 
                 val intent = if (from == business_type_business) {
-                    Intent(this, BusinessSubscriptionActivity::class.java)
+                    // Check if business user is within 11-month grace period
+                    val businessProfileCreatedAt = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_PROFILE_CREATED_AT, "") ?: ""
+                    val isWithinGracePeriod = com.thehotelmedia.android.extensions.isWithinGracePeriod(businessProfileCreatedAt)
+                    
+                    if (isWithinGracePeriod) {
+                        // Business user is within 11-month grace period, redirect to home page
+                        Intent(this, com.thehotelmedia.android.activity.userTypes.business.bottomNavigation.BottomNavigationBusinessMainActivity::class.java)
+                    } else {
+                        // Grace period has passed, show subscription page
+                        Intent(this, BusinessSubscriptionActivity::class.java)
+                    }
                 } else {
                     Intent(this, BottomNavigationIndividualMainActivity::class.java)
                 }

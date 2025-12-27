@@ -620,6 +620,11 @@ class SignInActivity : BaseActivity() {
 
             preferenceManager.putBoolean(PreferenceManager.Keys.BUSINESS_ACC_APPROVED, isApproved)
 
+            // Get business profile creation date for grace period check
+            val businessProfileCreatedAt = businessProfile?.createdAt ?: ""
+            // Store business profile creation date in preferences for use in other activities
+            preferenceManager.putString(PreferenceManager.Keys.BUSINESS_PROFILE_CREATED_AT, businessProfileCreatedAt)
+
             if (!isVerified){
                 moveToBusinessVerifyEmailActivity(email)
             } else if (!hasAmenities){
@@ -631,7 +636,16 @@ class SignInActivity : BaseActivity() {
             }else if (!acceptedTerms){
                 moveToTermsAndCondition(accountType)
             }else if (!hasSubscription){
-                moveToBusinessSubscriptionActivity()
+                // Check if business profile was created less than 11 months ago (grace period)
+                // If within grace period, redirect to home page instead of subscription page
+                val isWithinGracePeriod = com.thehotelmedia.android.extensions.isWithinGracePeriod(businessProfileCreatedAt)
+                if (isWithinGracePeriod) {
+                    // Business user is within 11-month grace period, redirect to home page
+                    moveToBottomNavigationBusiness()
+                } else {
+                    // Grace period has passed, show subscription page
+                    moveToBusinessSubscriptionActivity()
+                }
             }else{
                 moveToBottomNavigationBusiness()
             }

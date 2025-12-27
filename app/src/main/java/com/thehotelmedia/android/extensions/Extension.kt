@@ -379,6 +379,33 @@ fun isRecentPost(utcString: String): Boolean {
     }
 }
 
+/**
+ * Checks if a business profile was created less than 11 months ago (grace period)
+ * Business users should not be routed to subscription page during the first 11 months
+ * @param createdAtString The UTC timestamp string in ISO 8601 format (can be null or empty)
+ * @return true if the profile was created less than 11 months ago, false otherwise
+ */
+fun isWithinGracePeriod(createdAtString: String?): Boolean {
+    if (createdAtString.isNullOrEmpty()) return false
+    return try {
+        // Parse the input timestamp string (ISO 8601 format)
+        val formatter = DateTimeFormatter.ISO_DATE_TIME
+        val profileCreatedDate = ZonedDateTime.parse(createdAtString, formatter)
+        
+        // Get the current date and time in UTC
+        val currentDate = ZonedDateTime.now(profileCreatedDate.zone)
+        
+        // Calculate the difference in months
+        val monthsAgo = ChronoUnit.MONTHS.between(profileCreatedDate, currentDate)
+        
+        // Return true if less than 11 months have passed
+        monthsAgo < 11
+    } catch (e: Exception) {
+        // If parsing fails, return false to allow normal subscription flow
+        false
+    }
+}
+
 fun calculateDaysAgoInSmall(utcString: String): String {
     // Parse the input timestamp string (ISO 8601 format)
     val formatter = DateTimeFormatter.ISO_DATE_TIME

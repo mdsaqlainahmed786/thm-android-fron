@@ -35,6 +35,28 @@ class BusinessSubscriptionActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Check if business user is within 11-month grace period
+        // If so, immediately redirect to home page and prevent showing subscription page
+        preferenceManager = PreferenceManager.getInstance(this)
+        val businessProfileCreatedAt = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_PROFILE_CREATED_AT, "") ?: ""
+        
+        // If creation date exists, check grace period. If missing, assume within grace period (defensive approach)
+        val isWithinGracePeriod = if (businessProfileCreatedAt.isNotEmpty()) {
+            com.thehotelmedia.android.extensions.isWithinGracePeriod(businessProfileCreatedAt)
+        } else {
+            // If creation date is missing, assume user is within grace period (backend should handle this)
+            true
+        }
+        
+        if (isWithinGracePeriod) {
+            // Business user is within grace period, redirect to home page immediately
+            val intent = Intent(this, com.thehotelmedia.android.activity.userTypes.business.bottomNavigation.BottomNavigationBusinessMainActivity::class.java)
+            startActivity(intent)
+            finish()
+            return
+        }
+        
         binding = ActivityBusinessSubscriptionBinding.inflate(layoutInflater)
         setContentView(binding.root)
         initUI()
@@ -43,7 +65,6 @@ class BusinessSubscriptionActivity : BaseActivity() {
     private fun initUI() {
         val authRepo = AuthRepo(activity)
         authViewModel = ViewModelProvider(activity, ViewModelFactory(authRepo))[AuthViewModel::class.java]
-        preferenceManager = PreferenceManager.getInstance(activity)
         val progressBar = CustomProgressBar(activity) // 'this' refers to the context
 
 
