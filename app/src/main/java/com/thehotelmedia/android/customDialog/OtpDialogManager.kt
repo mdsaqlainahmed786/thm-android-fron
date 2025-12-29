@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
@@ -235,6 +236,10 @@ class OtpDialogManager(private val context: Context) {
                 tag,
                 "Error type: ${exception.javaClass.simpleName}, Message: ${exception.message}, Localized: ${exception.localizedMessage}"
             )
+            Log.e(tag, "Full exception stack trace:", exception)
+            if (exception is FirebaseAuthException) {
+                Log.e(tag, "Firebase Auth Error Code: ${exception.errorCode}")
+            }
             
             val errorMessage = when {
                 exception is FirebaseAuthInvalidCredentialsException -> {

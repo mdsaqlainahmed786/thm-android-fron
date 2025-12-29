@@ -16,12 +16,15 @@ android {
         applicationId = "com.thehotelmedia.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 115
-        versionName = "1.0.6"
+        versionCode = 128
+        versionName = "1.1.9"
         resourceConfigurations.addAll(listOf("en", "hi","gu","kn","mr","te")) // List of supported languages
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
         }
     }
 
@@ -34,7 +37,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("/Users/appcrunk/Work/TheHotelMedia/KeyStore.jks")
+            storeFile = file("../KeyStore.jks")
             storePassword = "Appcrunk"
             keyAlias = "key0"
             keyPassword = "Appcrunk"
@@ -58,6 +61,7 @@ android {
         } 
 
         release {
+            signingConfig = signingConfigs.getByName("release")
             buildConfigField("String","ADMIN_DOMAIN","\"https://admin.thehotelmedia.com\"")
             buildConfigField("String","DOMAIN","\"https://api.thehotelmedia.com\"")
             buildConfigField("String","SHARE_DEEP_LINK_HOST","\"https://thehotelmedia.com\"")
@@ -91,6 +95,9 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 }

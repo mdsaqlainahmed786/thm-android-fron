@@ -145,6 +145,9 @@ class SignInActivity : BaseActivity() {
             updateGoogleInfo(account)
         } catch (e: ApiException) {
             // If the sign-in fails, log the error and update the UI accordingly
+            Log.e(TAG, "Google Sign-In failed: ${e.statusCode} - ${e.status?.statusMessage}")
+            Log.e(TAG, "Error code: ${e.statusCode}, Message: ${e.message}")
+            Log.e(TAG, "Full exception: $e")
             CustomSnackBar.showSnackBar(binding.root,MessageStore.somethingWentWrong(this))
             updateGoogleInfo(null)
         }
@@ -210,6 +213,7 @@ class SignInActivity : BaseActivity() {
 
     // Method to initiate the Google Sign-In process
     private fun googleSignIn() {
+        Log.d("GOOGLE_DEBUG", "pkg=${applicationContext.packageName}")
         val signInIntent = googleSignInClient.signInIntent
         signInLauncher.launch(signInIntent)
     }
