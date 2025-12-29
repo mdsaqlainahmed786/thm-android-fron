@@ -574,10 +574,7 @@ class IndividualRepo (private val context: Context){
         lng: Double?,
         locationX: Float? = null,
         locationY: Float? = null,
-        userTaggedId: String? = null,
-        userTaggedName: String? = null,
-        userTaggedX: Float? = null,
-        userTaggedY: Float? = null
+        taggedUsers: List<com.thehotelmedia.android.modals.forms.TaggedUser> = emptyList()
     ): Response<CreateStoryModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
@@ -611,19 +608,27 @@ class IndividualRepo (private val context: Context){
         val lngBody = lng?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val locationPositionXBody = locationX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val locationPositionYBody = locationY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
-        val userTaggedBody = userTaggedName?.toRequestBody("text/plain".toMediaTypeOrNull())
-        val userTaggedIdBody = userTaggedId?.toRequestBody("text/plain".toMediaTypeOrNull())
-        val userTaggedXBody = userTaggedX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
-        val userTaggedYBody = userTaggedY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         
-        android.util.Log.d("IndividualRepo", "Creating story with location - placeName: $placeName, lat: $lat, lng: $lng, locationPositionX: $locationX, locationPositionY: $locationY")
-        android.util.Log.d("IndividualRepo", "Creating story with user tag - userTaggedId: $userTaggedId, userTaggedName: $userTaggedName, userTaggedX: $userTaggedX, userTaggedY: $userTaggedY")
+        // Convert taggedUsers list to JSON string
+        val taggedUsersBody = if (taggedUsers.isNotEmpty()) {
+            val taggedUsersJson = Gson().toJson(taggedUsers)
+            android.util.Log.d("IndividualRepo", "taggedUsers JSON: $taggedUsersJson")
+            android.util.Log.d("IndividualRepo", "Creating story with location - placeName: $placeName, lat: $lat, lng: $lng, locationPositionX: $locationX, locationPositionY: $locationY")
+            android.util.Log.d("IndividualRepo", "Creating story with ${taggedUsers.size} tagged users")
+            taggedUsers.forEachIndexed { index, taggedUser ->
+                android.util.Log.d("IndividualRepo", "  [$index] User: ${taggedUser.userTagged} (${taggedUser.userTaggedId}) at (${taggedUser.positionX}, ${taggedUser.positionY})")
+            }
+            taggedUsersJson.toRequestBody("application/json".toMediaTypeOrNull())
+        } else {
+            android.util.Log.w("IndividualRepo", "No tagged users to send")
+            null
+        }
         
         // Make the API call
         return withContext(Dispatchers.IO) {
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
-                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody, locationPositionXBody, locationPositionYBody, userTaggedBody, userTaggedIdBody, userTaggedXBody, userTaggedYBody
+                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody, locationPositionXBody, locationPositionYBody, taggedUsersBody
             ).execute()
         }
     }

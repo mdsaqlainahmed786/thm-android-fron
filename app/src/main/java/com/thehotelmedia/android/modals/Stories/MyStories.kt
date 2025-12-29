@@ -20,9 +20,10 @@ data class MyStories (
   @SerializedName("location"  ) var location  : StoryLocation? = null,
   @SerializedName("locationPositionX" ) var locationPositionX : Float? = null,  // Normalized x position (0.0-1.0)
   @SerializedName("locationPositionY" ) var locationPositionY : Float? = null,  // Normalized y position (0.0-1.0)
-  @SerializedName("userTagged") var userTaggedName : String? = null,  // Name of tagged user
-  @SerializedName("userTaggedId") var userTaggedId : String? = null,  // ID of tagged user
-  @SerializedName("userTaggedPositionX" ) var userTaggedPositionX : Float? = null,  // Normalized x position (0.0-1.0)
-  @SerializedName("userTaggedPositionY" ) var userTaggedPositionY : Float? = null   // Normalized y position (0.0-1.0)
+  @SerializedName("taggedUsers") var taggedUsers : ArrayList<TaggedUser> = arrayListOf(),  // Array of tagged users
+  @SerializedName("userTagged") var userTaggedName : String? = null,  // Name of tagged user (backward compatibility)
+  @SerializedName("userTaggedId") var userTaggedId : String? = null,  // ID of tagged user (backward compatibility)
+  @SerializedName("userTaggedPositionX" ) var userTaggedPositionX : Float? = null,  // Normalized x position (0.0-1.0) (backward compatibility)
+  @SerializedName("userTaggedPositionY" ) var userTaggedPositionY : Float? = null   // Normalized y position (0.0-1.0) (backward compatibility)
 
 )

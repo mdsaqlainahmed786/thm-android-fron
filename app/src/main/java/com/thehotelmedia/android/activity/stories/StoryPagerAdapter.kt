@@ -317,40 +317,36 @@ class StoryPagerAdapter(
                 hideLocationViews(binding) // Explicitly hide if no location data
             }
             
-            // Display user tag if it exists - use floating button
-            // Get first tagged user for the user tag button
-            val firstTaggedUser = taggedPeople.firstOrNull()
+            // Display tagged users - prioritize taggedUsers array, fallback to old single user fields
+            val taggedUsers = story.taggedUsers ?: arrayListOf()
             
-            // Backend returns userTagged (name), but we may need ID from taggedRef
-            val userTaggedName = story.userTaggedName ?: firstTaggedUser?.name
-            val userTaggedX = story.userTaggedPositionX
-            val userTaggedY = story.userTaggedPositionY
-            
-            // Determine the final user ID - prioritize story.userTaggedId, then firstTaggedUser.Id
-            val finalUserId = story.userTaggedId 
-                ?: firstTaggedUser?.Id
-                ?: ""
-            
-            android.util.Log.d("StoryPagerAdapter", "User tag data - userTaggedName: $userTaggedName, story.userTaggedId: '${story.userTaggedId}', firstTaggedUser?.Id: '${firstTaggedUser?.Id}', finalUserId: '$finalUserId', userTaggedX: $userTaggedX, userTaggedY: $userTaggedY, taggedPeople count: ${taggedPeople.size}")
-            
-            // Show the tag if we have a name (ID may be missing for older stories, but we still show the tag)
-            if (!userTaggedName.isNullOrEmpty()) {
-                // Show the tag - click handler will handle missing ID gracefully
-                android.util.Log.d("StoryPagerAdapter", "Showing user tag - name: $userTaggedName, id: '$finalUserId' (${if (finalUserId.isNotEmpty()) "with navigation" else "no ID - click will show toast"})")
-                setupUserTagButton(binding, userTaggedName, finalUserId, userTaggedX, userTaggedY)
-            } else if (taggedPeople.isNotEmpty() && firstTaggedUser != null) {
-                // Fallback: If we have taggedPeople but no userTaggedName, use the first tagged user
-                val name = firstTaggedUser.name
-                val id = firstTaggedUser.Id ?: ""
-                if (!name.isNullOrEmpty()) {
-                    android.util.Log.d("StoryPagerAdapter", "Using first tagged user as fallback - name: $name, id: '$id'")
-                    setupUserTagButton(binding, name, id, userTaggedX, userTaggedY)
+            if (taggedUsers.isNotEmpty()) {
+                // New format: Multiple tagged users from taggedUsers array
+                android.util.Log.d("StoryPagerAdapter", "Found ${taggedUsers.size} tagged users in taggedUsers array")
+                setupMultipleUserTagButtons(binding, taggedUsers)
+            } else {
+                // Old format: Single tagged user (backward compatibility)
+                val firstTaggedUser = taggedPeople.firstOrNull()
+                val userTaggedName = story.userTaggedName ?: firstTaggedUser?.name
+                val userTaggedX = story.userTaggedPositionX
+                val userTaggedY = story.userTaggedPositionY
+                val finalUserId = story.userTaggedId ?: firstTaggedUser?.Id ?: ""
+                
+                android.util.Log.d("StoryPagerAdapter", "Using old format - userTaggedName: $userTaggedName, userTaggedId: '$finalUserId'")
+                
+                if (!userTaggedName.isNullOrEmpty()) {
+                    setupUserTagButton(binding, userTaggedName, finalUserId, userTaggedX, userTaggedY)
+                } else if (taggedPeople.isNotEmpty() && firstTaggedUser != null) {
+                    val name = firstTaggedUser.name
+                    val id = firstTaggedUser.Id ?: ""
+                    if (!name.isNullOrEmpty()) {
+                        setupUserTagButton(binding, name, id, userTaggedX, userTaggedY)
+                    } else {
+                        hideUserTagViews(binding)
+                    }
                 } else {
                     hideUserTagViews(binding)
                 }
-            } else {
-                android.util.Log.d("StoryPagerAdapter", "No user tag data found - hiding user tag views")
-                hideUserTagViews(binding)
             }
         } else {
             binding.taggedPeopleTv.visibility = View.GONE
@@ -599,6 +595,183 @@ class StoryPagerAdapter(
         val userTagButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.userTagButtonCard)
         userTagButtonCard?.visibility = View.GONE
         userTagButtonCard?.setOnClickListener(null)
+        
+        // Also remove any dynamically created user tag buttons
+        val rootView = binding.root as? android.view.ViewGroup
+        rootView?.let { root ->
+            val viewsToRemove = mutableListOf<android.view.View>()
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child.getTag(R.id.dynamic_user_tag_button) as? Boolean == true) {
+                    viewsToRemove.add(child)
+                }
+            }
+            viewsToRemove.forEach { root.removeView(it) }
+        }
+    }
+    
+    /**
+     * Setup multiple user tag buttons for all tagged users
+     */
+    private fun setupMultipleUserTagButtons(binding: StoryScreenLayoutBinding, taggedUsers: List<com.thehotelmedia.android.modals.Stories.TaggedUser>) {
+        android.util.Log.d("StoryPagerAdapter", "setupMultipleUserTagButtons called with ${taggedUsers.size} tagged users")
+        
+        // Hide the default single user tag button
+        val userTagButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.userTagButtonCard)
+        userTagButtonCard?.visibility = View.GONE
+        
+        // Remove any existing dynamically created user tag buttons
+        val rootView = binding.root as? android.view.ViewGroup
+        rootView?.let { root ->
+            val viewsToRemove = mutableListOf<android.view.View>()
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child.getTag(R.id.dynamic_user_tag_button) as? Boolean == true) {
+                    viewsToRemove.add(child)
+                }
+            }
+            android.util.Log.d("StoryPagerAdapter", "Removing ${viewsToRemove.size} existing dynamic user tag buttons")
+            viewsToRemove.forEach { root.removeView(it) }
+        }
+        
+        // Create a button for each tagged user
+        taggedUsers.forEachIndexed { index, taggedUser ->
+            val userName = taggedUser.userTagged ?: taggedUser.user?.name ?: ""
+            val userId = taggedUser.userTaggedId ?: taggedUser.user?.Id ?: ""
+            val positionX = taggedUser.positionX
+            val positionY = taggedUser.positionY
+            
+            android.util.Log.d("StoryPagerAdapter", "Processing tagged user[$index]: userName='$userName', userId='$userId', positionX=$positionX, positionY=$positionY")
+            
+            if (userName.isNotEmpty()) {
+                android.util.Log.d("StoryPagerAdapter", "Creating dynamic user tag button for user[$index]: $userName")
+                createDynamicUserTagButton(binding, userName, userId, positionX, positionY, index)
+            } else {
+                android.util.Log.w("StoryPagerAdapter", "Skipping tagged user[$index] - userName is empty (userId='$userId')")
+            }
+        }
+        
+        android.util.Log.d("StoryPagerAdapter", "Finished setupMultipleUserTagButtons - created buttons for ${taggedUsers.count { (it.userTagged ?: it.user?.name ?: "").isNotEmpty() }} users")
+    }
+    
+    /**
+     * Create a dynamic user tag button
+     */
+    private fun createDynamicUserTagButton(
+        binding: StoryScreenLayoutBinding,
+        userName: String,
+        userId: String,
+        positionX: Float?,
+        positionY: Float?,
+        index: Int
+    ) {
+        val root = binding.root as? android.view.ViewGroup ?: return
+        
+        // Create MaterialCardView programmatically
+        val userTagButtonCard = com.google.android.material.card.MaterialCardView(context).apply {
+            layoutParams = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT,
+                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                leftToLeft = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                leftMargin = 0
+                topMargin = 0
+            }
+            visibility = View.VISIBLE
+            elevation = 50f
+            isClickable = true
+            isFocusable = true
+            isFocusableInTouchMode = true
+            radius = context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._20sdp).toFloat()
+            setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(context, R.color.white))
+            strokeWidth = 0
+            setTag(R.id.dynamic_user_tag_button, true)
+        }
+        
+        // Create inner LinearLayout
+        val linearLayout = android.widget.LinearLayout(context).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(
+                context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._12sdp),
+                context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._8sdp),
+                context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._12sdp),
+                context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._8sdp)
+            )
+            isClickable = false
+            isFocusable = false
+        }
+        
+        // Create TextView
+        val textView = android.widget.TextView(context).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            val displayName = if (userName.startsWith("@")) userName else "@$userName"
+            text = displayName
+            setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.blue))
+            textSize = 12f
+            typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.comic_regular)
+        }
+        
+        linearLayout.addView(textView)
+        userTagButtonCard.addView(linearLayout)
+        root.addView(userTagButtonCard)
+        
+        // Position the button
+        root.post {
+            val parentWidth = root.width.toFloat()
+            val parentHeight = root.height.toFloat()
+            
+            if (parentWidth > 0 && parentHeight > 0) {
+                if (positionX != null && positionY != null) {
+                    // Backend sends pixel values that were normalized and converted based on standard reference size (1080x1920)
+                    // We need to normalize them back (0.0-1.0) based on the same standard size, then scale to current container
+                    val standardReferenceWidth = 1080f  // Must match the standard size used in CreateStoryActivity
+                    val standardReferenceHeight = 1920f  // Must match the standard size used in CreateStoryActivity
+                    
+                    // Normalize the received pixel positions (0.0-1.0) based on standard reference size
+                    val normalizedX = positionX / standardReferenceWidth
+                    val normalizedY = positionY / standardReferenceHeight
+                    
+                    // Scale normalized positions to current container size
+                    val scaledX = normalizedX * parentWidth
+                    val scaledY = normalizedY * parentHeight
+                    
+                    userTagButtonCard.x = scaledX
+                    userTagButtonCard.y = scaledY
+                    
+                    android.util.Log.d("StoryPagerAdapter", "Positioned dynamic user tag[$index] - received pixels: ($positionX, $positionY), normalized: ($normalizedX, $normalizedY), scaled: ($scaledX, $scaledY), container: ($parentWidth, $parentHeight), reference: ($standardReferenceWidth, $standardReferenceHeight)")
+                } else {
+                    // Default position with slight offset for multiple tags
+                    userTagButtonCard.x = parentWidth * 0.25f
+                    userTagButtonCard.y = parentHeight * (0.25f + index * 0.1f).coerceAtMost(0.75f)
+                    android.util.Log.d("StoryPagerAdapter", "Using default position for dynamic user tag[$index] at x: ${userTagButtonCard.x}, y: ${userTagButtonCard.y}")
+                }
+            } else {
+                android.util.Log.w("StoryPagerAdapter", "Cannot position dynamic user tag[$index] - invalid parent dimensions (width: $parentWidth, height: $parentHeight)")
+            }
+        }
+        
+        // Bring to front
+        userTagButtonCard.bringToFront()
+        
+        // Set click listener
+        userTagButtonCard.setOnClickListener {
+            pauseStory(binding)
+            if (userId.isNotEmpty()) {
+                moveToProfileDetailsActivity(userId)
+            } else {
+                android.widget.Toast.makeText(context, "Unable to open profile. User ID not available.", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
     }
     
     private fun setupUserTagButton(binding: StoryScreenLayoutBinding, userName: String, userId: String, userTaggedX: Float? = null, userTaggedY: Float? = null) {

@@ -293,10 +293,7 @@ interface Application {
         @Part("lng") lng: RequestBody?,
         @Part("locationPositionX") locationPositionX: RequestBody?,
         @Part("locationPositionY") locationPositionY: RequestBody?,
-        @Part("userTagged") userTagged: RequestBody?,
-        @Part("userTaggedId") userTaggedId: RequestBody?,
-        @Part("userTaggedPositionX") userTaggedPositionX: RequestBody?,
-        @Part("userTaggedPositionY") userTaggedPositionY: RequestBody?
+        @Part("taggedUsers") taggedUsers: RequestBody?
     ): Call<CreateStoryModal>
 
     @POST("posts/saved-posts"+"/{id}")
