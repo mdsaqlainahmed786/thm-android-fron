@@ -1439,9 +1439,9 @@ class CreateStoryActivity : BaseActivity() {
                 )
                 applyLocationIcon(textView)
             } else {
-                // People tags: keep blue text on white background
+                // People tags: blue text on white background
                 textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
-                textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
+                textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_white)
                 // Ensure people tags don't get an icon
                 clearCompoundDrawables(textView)
             }
@@ -1697,8 +1697,8 @@ class CreateStoryActivity : BaseActivity() {
 
             val textStyleBuilder = TextStyleBuilder().apply {
                 withTextColor(ContextCompat.getColor(activity, R.color.blue))
-                // Blue pill background for better visibility of the tag
-                ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                // White background for tagged users
+                ContextCompat.getDrawable(activity, R.drawable.story_tag_background_white)
                     ?.let { withBackgroundDrawable(it) }
                 ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
             }
@@ -1717,7 +1717,7 @@ class CreateStoryActivity : BaseActivity() {
                 textView?.apply {
                     text = displayName
                     setTextColor(ContextCompat.getColor(activity, R.color.blue))
-                    background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                    background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_white)
                     // Match location tag UI: 12sp text size, ellipsize, padding
                     textSize = 12f
                     maxLines = 1
