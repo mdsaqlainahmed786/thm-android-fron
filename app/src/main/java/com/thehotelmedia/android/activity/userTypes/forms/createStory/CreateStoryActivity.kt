@@ -1421,11 +1421,12 @@ class CreateStoryActivity : BaseActivity() {
         overlay.setTag(R.id.story_text_background_res_id, detectedBackgroundRes)
 
         // For normal text overlays, keep existing behavior (editable with background).
-        // For tag overlays (@username) and location overlays, we want blue, non-editable pill style.
+        // For tag overlays (@username) and location overlays, we want gradient background with white text, non-editable pill style.
         if (isTagOverlay || isLocationOverlay) {
-            textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
-            textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
             if (isLocationOverlay) {
+                // Location overlay: gradient background with white text and white icon
+                textView.setTextColor(ContextCompat.getColor(this, R.color.white))
+                textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
                 // Match viewing UI: 12sp text size, ellipsize, padding
                 textView.textSize = 12f
                 textView.maxLines = 1
@@ -1438,6 +1439,9 @@ class CreateStoryActivity : BaseActivity() {
                 )
                 applyLocationIcon(textView)
             } else {
+                // People tags: keep blue text on white background
+                textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
+                textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
                 // Ensure people tags don't get an icon
                 clearCompoundDrawables(textView)
             }
@@ -1783,7 +1787,7 @@ class CreateStoryActivity : BaseActivity() {
         if (displayText.isBlank()) return
 
         val textStyleBuilder = TextStyleBuilder().apply {
-            withTextColor(ContextCompat.getColor(activity, R.color.blue))
+            withTextColor(ContextCompat.getColor(activity, R.color.white))
             ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
                 ?.let { withBackgroundDrawable(it) }
             ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
@@ -1802,7 +1806,7 @@ class CreateStoryActivity : BaseActivity() {
 
             textView?.apply {
                 text = displayText
-                setTextColor(ContextCompat.getColor(activity, R.color.blue))
+                setTextColor(ContextCompat.getColor(activity, R.color.white))
                 background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
                 // Match viewing UI: 12sp text size
                 textSize = 12f
@@ -1842,7 +1846,7 @@ class CreateStoryActivity : BaseActivity() {
         val sizePx = (16 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
 
         val wrapped = DrawableCompat.wrap(drawable.mutate())
-        DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.blue))
+        DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.white))
         wrapped.setBounds(0, 0, sizePx, sizePx)
 
         textView.setCompoundDrawablesRelative(wrapped, null, null, null)
