@@ -275,6 +275,32 @@
                 app:layout_constraintStart_toEndOf="@+id/userProfilePic"
                 app:layout_constraintTop_toBottomOf="@+id/timeAgoTv" />
 
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/contentRightGuideline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.82" />
+
+            <TextView
+                android:id="@+id/postContentTv"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/_12sdp"
+                android:layout_marginEnd="@dimen/_8sdp"
+                android:layout_marginTop="@dimen/_8sdp"
+                android:fontFamily="@font/comic_regular"
+                android:text=""
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:maxLines="4"
+                android:ellipsize="end"
+                android:visibility="gone"
+                app:layout_constraintStart_toEndOf="@+id/userProfilePic"
+                app:layout_constraintEnd_toStartOf="@+id/contentRightGuideline"
+                app:layout_constraintTop_toBottomOf="@+id/viewAllCommentsTv"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

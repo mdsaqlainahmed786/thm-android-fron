@@ -405,6 +405,15 @@ class VideoImageViewer : DarkBaseActivity() {
         } else {
             binding.viewAllCommentsTv.visibility = View.GONE
         }
+        
+        // Set post content/caption
+        val content = data.content?.trim() ?: ""
+        if (content.isNotEmpty()) {
+            binding.postContentTv.text = content
+            binding.postContentTv.visibility = View.VISIBLE
+        } else {
+            binding.postContentTv.visibility = View.GONE
+        }
     }
 
     private fun updateBookmarkBtn(isSaved: Boolean, bookmarkIv: ImageView) {
