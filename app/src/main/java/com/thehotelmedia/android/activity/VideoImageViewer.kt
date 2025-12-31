@@ -289,6 +289,9 @@ class VideoImageViewer : DarkBaseActivity() {
         binding.viewPager.orientation = ViewPager2.ORIENTATION_VERTICAL
         binding.viewPager.isUserInputEnabled = true
         
+        // Prevent overscroll (scrolling before first or after last item)
+        binding.viewPager.overScrollMode = View.OVER_SCROLL_NEVER
+        
         // Fetch feed data and filter video posts
         fetchFeedAndSetupVideos()
 
@@ -465,6 +468,7 @@ class VideoImageViewer : DarkBaseActivity() {
 
     private fun fetchFeedAndSetupVideos() {
         // First, set up initial video with current data (only if it's a video)
+        // This is temporary - will be replaced when feed data loads
         if (mediaType == VIDEO) {
             mediaList = listOf(MediaItems(MediaType.VIDEO, mediaUrl, mediaId, postId, mediaThumbnailUrl))
         } else {
@@ -478,8 +482,43 @@ class VideoImageViewer : DarkBaseActivity() {
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                adapter.setCurrentPosition(position)
-                onVideoChanged(position)
+                val mediaListSize = adapter.getMediaList().size
+                if (position >= 0 && position < mediaListSize) {
+                    adapter.setCurrentPosition(position)
+                    onVideoChanged(position)
+                    
+                    // Show loading indicator when near bottom (within 2 items of end)
+                    if (position >= mediaListSize - 2 && mediaListSize > 0) {
+                        binding.loadingIndicator.visibility = View.VISIBLE
+                        // Optionally load more videos here if needed
+                    } else {
+                        binding.loadingIndicator.visibility = View.GONE
+                    }
+                } else if (position < 0) {
+                    // Prevent scrolling before first item
+                    binding.viewPager.post {
+                        binding.viewPager.setCurrentItem(0, false)
+                    }
+                } else if (position >= mediaListSize && mediaListSize > 0) {
+                    // Show loading indicator when trying to scroll past last item
+                    binding.loadingIndicator.visibility = View.VISIBLE
+                    // Prevent scrolling after last item
+                    binding.viewPager.post {
+                        binding.viewPager.setCurrentItem(mediaListSize - 1, false)
+                        binding.loadingIndicator.visibility = View.GONE
+                    }
+                }
+            }
+            
+            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
+                super.onPageScrolled(position, positionOffset, positionOffsetPixels)
+                val mediaListSize = adapter.getMediaList().size
+                // Show loading when scrolling down near the end
+                if (position >= mediaListSize - 2 && positionOffset > 0 && mediaListSize > 0) {
+                    binding.loadingIndicator.visibility = View.VISIBLE
+                } else if (position < mediaListSize - 2) {
+                    binding.loadingIndicator.visibility = View.GONE
+                }
             }
         })
         
@@ -531,10 +570,11 @@ class VideoImageViewer : DarkBaseActivity() {
                     }
                 })
                 
-                // Find initial video position
+                // Find initial video position in the filtered list
                 currentVideoPosition = videoPostsList.indexOfFirst { it.Id == initialPostId }
+                
                 if (currentVideoPosition == -1 && initialPostId.isNotEmpty()) {
-                    // If initial post not found, try to find it in all posts and add it
+                    // If initial post not found in filtered list, try to find it in all posts
                     val initialPost = allPosts.find { it.Id == initialPostId }
                     initialPost?.let {
                         // Check if it has video
@@ -542,36 +582,92 @@ class VideoImageViewer : DarkBaseActivity() {
                             media.mediaType?.lowercase() == "video" || 
                             media.mimeType?.lowercase()?.startsWith("video") == true
                         }
+                        
                         if (hasVideo) {
-                            // Check if it's already in the list (avoid duplicates)
+                            // Find where this post should be in the feed order
+                            // Get all posts before this one in the original feed
+                            val initialPostIndexInFeed = allPosts.indexOfFirst { it.Id == initialPostId }
+                            
+                            if (initialPostIndexInFeed >= 0) {
+                                // Filter posts that come before this one and have videos
+                                val postsBefore = allPosts.subList(0, initialPostIndexInFeed).filter { post ->
+                                    post.mediaRef.any { media ->
+                                        media.mediaType?.lowercase() == "video" || 
+                                        media.mimeType?.lowercase()?.startsWith("video") == true
+                                    }
+                                }
+                                
+                                // Find the correct position: after all videos that come before it
+                                val correctPosition = postsBefore.size
+                                
+                                // Check if it's already in the list at a different position
+                                val existingIndex = videoPostsList.indexOfFirst { existing -> existing.Id == it.Id }
+                                if (existingIndex == -1) {
+                                    // Not in list, insert at correct position
+                                    if (correctPosition <= videoPostsList.size) {
+                                        videoPostsList.add(correctPosition, it)
+                                        currentVideoPosition = correctPosition
+                                    } else {
+                                        // If position is beyond list, add at end
+                                        videoPostsList.add(it)
+                                        currentVideoPosition = videoPostsList.size - 1
+                                    }
+                                } else {
+                                    // Already in list, use existing position
+                                    currentVideoPosition = existingIndex
+                                }
+                            } else {
+                                // Post not found in feed, add at beginning (new post)
+                                if (videoPostsList.none { existing -> existing.Id == it.Id }) {
+                                    videoPostsList.add(0, it)
+                                    currentVideoPosition = 0
+                                }
+                            }
+                        } else {
+                            // Post doesn't have video but we're viewing a video
+                            // This shouldn't happen, but handle it by adding at beginning
                             if (videoPostsList.none { existing -> existing.Id == it.Id }) {
                                 videoPostsList.add(0, it)
                                 currentVideoPosition = 0
-                            } else {
-                                currentVideoPosition = videoPostsList.indexOfFirst { existing -> existing.Id == it.Id }
                             }
-                        } else {
-                            // If initial post doesn't have video in feed but we're viewing a video, 
-                            // add it anyway (it might be a new post not yet in feed)
-                            videoPostsList.add(0, it)
-                            currentVideoPosition = 0
                         }
                     }
                 }
                 
-                // If still no position found and we have videos, default to 0
-                if (currentVideoPosition == -1 && videoPostsList.isNotEmpty()) {
-                    currentVideoPosition = 0
+                // If still no position found, default to 0 (but this shouldn't happen)
+                if (currentVideoPosition == -1) {
+                    if (videoPostsList.isNotEmpty()) {
+                        currentVideoPosition = 0
+                    }
                 }
                 
                 // Update adapter with video posts (only if we have videos from feed)
                 if (videoPostsList.isNotEmpty()) {
                     updateAdapterWithVideoPosts()
                     
-                    // Set initial position
+                    // Set initial position - ensure it's valid
                     if (currentVideoPosition >= 0 && currentVideoPosition < videoPostsList.size) {
-                        binding.viewPager.setCurrentItem(currentVideoPosition, false)
-                        adapter.setCurrentPosition(currentVideoPosition)
+                        // Use postMessage to ensure this runs after adapter is updated
+                        binding.viewPager.post {
+                            binding.viewPager.setCurrentItem(currentVideoPosition, false)
+                            adapter.setCurrentPosition(currentVideoPosition)
+                            // Trigger video change callback to update UI
+                            onVideoChanged(currentVideoPosition)
+                        }
+                    } else if (currentVideoPosition == -1 && videoPostsList.isNotEmpty()) {
+                        // Fallback: if position not found, use 0
+                        binding.viewPager.post {
+                            binding.viewPager.setCurrentItem(0, false)
+                            adapter.setCurrentPosition(0)
+                            onVideoChanged(0)
+                        }
+                    }
+                } else {
+                    // No videos from feed, keep the initial video
+                    // Ensure we're at position 0 and can't scroll
+                    binding.viewPager.post {
+                        binding.viewPager.setCurrentItem(0, false)
+                        adapter.setCurrentPosition(0)
                     }
                 }
             }

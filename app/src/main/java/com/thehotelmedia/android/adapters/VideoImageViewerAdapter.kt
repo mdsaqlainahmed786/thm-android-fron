@@ -102,6 +102,11 @@ class VideoImageViewerAdapter(
                         exoPlayer.removeListener(it) 
                     }
                     
+                    // Remove old listener if exists
+                    (binding.playerView.tag as? Player.Listener)?.let { 
+                        exoPlayer.removeListener(it) 
+                    }
+                    
                     val listener = object : Player.Listener {
                         override fun onRenderedFirstFrame() {
                             // Hide thumbnail when video starts rendering
@@ -135,12 +140,15 @@ class VideoImageViewerAdapter(
                         }
                     }
                     
-                    exoPlayer.addListener(listener)
-                    binding.playerView.tag = listener
-
-                    // Only play if this is the current position
+                    // Only add listener if this is the current position
                     if (position == currentPlayingPosition || (currentPlayingPosition == -1 && position == 0)) {
-                        // Ensure player is attached
+                        exoPlayer.addListener(listener)
+                        binding.playerView.tag = listener
+                    }
+
+                    // Only attach player and play if this is the current position
+                    if (position == currentPlayingPosition || (currentPlayingPosition == -1 && position == 0)) {
+                        // This is the current playing position - attach player and play
                         binding.playerView.player = exoPlayer
                         exoPlayer.clearMediaItems()
                         exoPlayer.volume = 1f
@@ -154,7 +162,8 @@ class VideoImageViewerAdapter(
                             currentPlayingPosition = position
                         }
                     } else {
-                        // Detach player from non-current views to prevent black screen
+                        // Not current position - detach player and show thumbnail
+                        // This prevents black screen and ensures proper recycling
                         binding.playerView.player = null
                         binding.videoThumbnail.visibility = View.VISIBLE
                     }
@@ -224,27 +233,22 @@ class VideoImageViewerAdapter(
         if (previousPosition != -1 && previousPosition < mediaList.size) {
             exoPlayer.pause()
             exoPlayer.stop()
+            // Notify previous item to update (detach player, show thumbnail)
             notifyItemChanged(previousPosition)
         }
         
         // Notify video change callback - this should update user info
         onVideoChanged?.invoke(position)
         
-        // Play current video
+        // Play current video - notify item changed to attach player and play
         if (position >= 0 && position < mediaList.size) {
             val mediaItem = mediaList[position]
             if (mediaItem.type == MediaType.VIDEO) {
-                exoPlayer.clearMediaItems()
-                exoPlayer.volume = 1f
-                exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
-                val media = MediaItem.fromUri(mediaItem.uri)
-                exoPlayer.setMediaItem(media)
-                exoPlayer.prepare()
-                exoPlayer.seekTo(0)
-                exoPlayer.playWhenReady = true
-                exoPlayer.play()
+                // Notify item changed to trigger bind() which will attach player and play
+                notifyItemChanged(position)
+            } else {
+                notifyItemChanged(position)
             }
-            notifyItemChanged(position)
         }
     }
 
