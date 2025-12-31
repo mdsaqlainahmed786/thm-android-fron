@@ -115,13 +115,15 @@ class SearchPostAdapter(
                     postId,
                     isPostLiked,
                     likeCount,
-                    commentCount
-                ){ updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                    updateLikeBtn(updatedIsLikedByMe, binding.likeIv)
-                    binding.likeTv.text = updatedLikeCount.toString()
-                    binding.commentTv.text = updatedCommentCount.toString()
-                    // You can also update UI elements in the activity here
-                }
+                    commentCount,
+                    null, // individualViewModal
+                    { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                        updateLikeBtn(updatedIsLikedByMe, binding.likeIv)
+                        binding.likeTv.text = updatedLikeCount.toString()
+                        binding.commentTv.text = updatedCommentCount.toString()
+                        // You can also update UI elements in the activity here
+                    }
+                )
                 binding.viewPager.adapter = mediaPagerAdapter
                 binding.mediaLayout.visibility = View.VISIBLE
                 dotsIndicator?.attachTo(binding.viewPager)

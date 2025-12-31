@@ -11,7 +11,8 @@ data class PostedBy (
     @SerializedName("name"               ) var name               : String?             = null,
     @SerializedName("profilePic"         ) var profilePic         : ProfilePic?         = ProfilePic(),
     @SerializedName("businessProfileRef" ) var businessProfileRef : BusinessProfileRef? = BusinessProfileRef(),
-    @SerializedName("isFollowedByMe"     ) var isFollowedByMe     : Boolean?            = null
+    @SerializedName("isFollowedByMe"     ) var isFollowedByMe     : Boolean?            = null,
+    @SerializedName("privateAccount"     ) var privateAccount     : Boolean?            = null
 
 
 )

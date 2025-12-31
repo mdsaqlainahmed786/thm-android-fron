@@ -171,13 +171,15 @@ class MultiTypeAdapter(
                 "postId",
                 false,
                 1,
-                1
-            ){ updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                1,
+                null, // individualViewModal
+                { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
 //                updateLikeBtn(updatedIsLikedByMe, binding.likeIv)
 //                binding.likeTv.text = updatedLikeCount.toString()
 //                binding.commentTv.text = updatedCommentCount.toString()
                 // You can also update UI elements in the activity here
-            }
+                }
+            )
             viewPager.adapter = mediaPagerAdapter
 
 

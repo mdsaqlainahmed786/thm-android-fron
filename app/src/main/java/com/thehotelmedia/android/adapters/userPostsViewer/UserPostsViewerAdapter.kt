@@ -766,15 +766,16 @@ class UserPostsViewerAdapter(
                     state.isLiked,
                     state.likeCount,
                     state.commentCount,
-                    individualViewModal
-                ) { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                    state.isLiked = updatedIsLikedByMe
-                    state.likeCount = updatedLikeCount
-                    state.commentCount = updatedCommentCount
-                    updateLikeButton(state.isLiked, state.likeCount)
-                    binding.likeTv.text = formatCount(state.likeCount)
-                    binding.commentTv.text = formatCount(state.commentCount)
-                }
+                    individualViewModal,
+                    { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                        state.isLiked = updatedIsLikedByMe
+                        state.likeCount = updatedLikeCount
+                        state.commentCount = updatedCommentCount
+                        updateLikeButton(state.isLiked, state.likeCount)
+                        binding.likeTv.text = formatCount(state.likeCount)
+                        binding.commentTv.text = formatCount(state.commentCount)
+                    }
+                )
 
                 binding.viewPager.adapter = mediaPagerAdapter
                 binding.mediaLayout.visibility = View.VISIBLE
@@ -939,15 +940,16 @@ class UserPostsViewerAdapter(
                         state.isLiked,
                         state.likeCount,
                         state.commentCount,
-                        individualViewModal
-                    ) { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                        state.isLiked = updatedIsLikedByMe
-                        state.likeCount = updatedLikeCount
-                        state.commentCount = updatedCommentCount
-                        updateLikeButton(state.isLiked, state.likeCount)
-                        binding.likeTv.text = formatCount(state.likeCount)
-                        binding.commentTv.text = formatCount(state.commentCount)
-                    }
+                        individualViewModal,
+                        { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                            state.isLiked = updatedIsLikedByMe
+                            state.likeCount = updatedLikeCount
+                            state.commentCount = updatedCommentCount
+                            updateLikeButton(state.isLiked, state.likeCount)
+                            binding.likeTv.text = formatCount(state.likeCount)
+                            binding.commentTv.text = formatCount(state.commentCount)
+                        }
+                    )
                     binding.viewPager.adapter = mediaPagerAdapter
                 }
             }

@@ -69,6 +69,7 @@ class VideoImageViewer : DarkBaseActivity() {
     // Feed data for vertical scrolling
     private var videoPostsList = mutableListOf<Data>()
     private var currentVideoPosition = 0
+    private var previousVideoPosition = -1 // Track previous position to detect scroll direction
     private var initialPostId = ""
     private var currentLat = DEFAULT_LAT
     private var currentLng = DEFAULT_LNG
@@ -478,34 +479,36 @@ class VideoImageViewer : DarkBaseActivity() {
         adapter = VideoImageViewerAdapter(this, mediaList,exoPlayer!!,individualViewModal,::onControllerVisible,::onMediaTypeChanged, showControls = false, ::onVideoChanged)
         binding.viewPager.adapter = adapter
 
+        // Initialize previous position to -1 to indicate initial load (not a scroll)
+        // This prevents loader from showing on initial video click
+        previousVideoPosition = -1
+        binding.loadingIndicator.visibility = View.GONE
+        
         // Set up page change listener for video playback management
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
                 val mediaListSize = adapter.getMediaList().size
+                
+                // Always hide loader when page selection is complete
+                binding.loadingIndicator.visibility = View.GONE
+                
                 if (position >= 0 && position < mediaListSize) {
                     adapter.setCurrentPosition(position)
                     onVideoChanged(position)
                     
-                    // Show loading indicator when near bottom (within 2 items of end)
-                    if (position >= mediaListSize - 2 && mediaListSize > 0) {
-                        binding.loadingIndicator.visibility = View.VISIBLE
-                        // Optionally load more videos here if needed
-                    } else {
-                        binding.loadingIndicator.visibility = View.GONE
-                    }
+                    // Update previous position AFTER processing to track scroll direction
+                    // This is used in onPageScrolled to determine if we're scrolling down
+                    previousVideoPosition = position
                 } else if (position < 0) {
                     // Prevent scrolling before first item
                     binding.viewPager.post {
                         binding.viewPager.setCurrentItem(0, false)
                     }
                 } else if (position >= mediaListSize && mediaListSize > 0) {
-                    // Show loading indicator when trying to scroll past last item
-                    binding.loadingIndicator.visibility = View.VISIBLE
                     // Prevent scrolling after last item
                     binding.viewPager.post {
                         binding.viewPager.setCurrentItem(mediaListSize - 1, false)
-                        binding.loadingIndicator.visibility = View.GONE
                     }
                 }
             }
@@ -513,10 +516,20 @@ class VideoImageViewer : DarkBaseActivity() {
             override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels)
                 val mediaListSize = adapter.getMediaList().size
-                // Show loading when scrolling down near the end
-                if (position >= mediaListSize - 2 && positionOffset > 0 && mediaListSize > 0) {
+                
+                // Only show loader when:
+                // 1. Scrolling DOWN (position > previousVideoPosition OR positionOffset > 0)
+                // 2. Near bottom (position >= mediaListSize - 2)
+                // 3. Actually scrolling (positionOffset > 0)
+                // 4. Not on initial load (previousVideoPosition >= 0)
+                val isScrollingDown = position > previousVideoPosition || (position == previousVideoPosition && positionOffset > 0)
+                val isNearBottom = position >= mediaListSize - 2 && mediaListSize > 0
+                val isActuallyScrolling = positionOffset > 0
+                val isNotInitialLoad = previousVideoPosition >= 0
+                
+                if (isScrollingDown && isNearBottom && isActuallyScrolling && isNotInitialLoad) {
                     binding.loadingIndicator.visibility = View.VISIBLE
-                } else if (position < mediaListSize - 2) {
+                } else {
                     binding.loadingIndicator.visibility = View.GONE
                 }
             }

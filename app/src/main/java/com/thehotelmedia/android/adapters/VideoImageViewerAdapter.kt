@@ -44,6 +44,28 @@ class VideoImageViewerAdapter(
 
     inner class MediaViewHolder(private val binding: VideoImageViewerItemMediaBinding) :
         RecyclerView.ViewHolder(binding.root) {
+        
+        private fun prepareVideoForPosition(position: Int, mediaItem: MediaItems) {
+            // Double-check position is still current and player is attached
+            if (position == currentPlayingPosition && binding.playerView.player == exoPlayer) {
+                // Stop and clear any existing playback to ensure clean state
+                exoPlayer.stop()
+                exoPlayer.clearMediaItems()
+                
+                // Reset player settings
+                exoPlayer.volume = 1f
+                exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
+                
+                // Set up new media item
+                val media = MediaItem.fromUri(mediaItem.uri)
+                exoPlayer.setMediaItem(media)
+                
+                // Prepare and start playback
+                exoPlayer.prepare()
+                exoPlayer.seekTo(0)
+                exoPlayer.playWhenReady = true
+            }
+        }
 
         fun bind(mediaItem: MediaItems, position: Int) {
             when (mediaItem.type) {
@@ -102,45 +124,56 @@ class VideoImageViewerAdapter(
                         exoPlayer.removeListener(it) 
                     }
                     
-                    // Remove old listener if exists
-                    (binding.playerView.tag as? Player.Listener)?.let { 
-                        exoPlayer.removeListener(it) 
-                    }
-                    
                     val listener = object : Player.Listener {
                         override fun onRenderedFirstFrame() {
                             // Hide thumbnail when video starts rendering
                             if (position == currentPlayingPosition) {
-                                binding.videoThumbnail.visibility = View.GONE
+                                binding.root.post {
+                                    binding.videoThumbnail.visibility = View.GONE
+                                }
                             }
                         }
                         
                         override fun onPlaybackStateChanged(playbackState: Int) {
-                            if (playbackState == Player.STATE_READY && position == currentPlayingPosition) {
-                                // Ensure thumbnail is hidden when ready
-                                binding.videoThumbnail.visibility = View.GONE
-                                if (!exoPlayer.isPlaying && exoPlayer.playWhenReady) {
-                                    exoPlayer.play()
+                            if (position == currentPlayingPosition) {
+                                when (playbackState) {
+                                    Player.STATE_READY -> {
+                                        // Video is ready - hide thumbnail and ensure it's playing
+                                        binding.root.post {
+                                            binding.videoThumbnail.visibility = View.GONE
+                                            if (!exoPlayer.isPlaying && exoPlayer.playWhenReady) {
+                                                exoPlayer.play()
+                                            }
+                                        }
+                                    }
+                                    Player.STATE_BUFFERING -> {
+                                        // Keep thumbnail visible while buffering
+                                        binding.root.post {
+                                            binding.videoThumbnail.visibility = View.VISIBLE
+                                        }
+                                    }
                                 }
                             }
                         }
                         
                         override fun onIsPlayingChanged(isPlaying: Boolean) {
                             if (position == currentPlayingPosition) {
-                                if (isPlaying) {
-                                    binding.playPauseOverlay.visibility = View.GONE
-                                    binding.videoThumbnail.visibility = View.GONE
-                                } else {
-                                    if (!showControls) {
-                                        binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
-                                        binding.playPauseOverlay.visibility = View.VISIBLE
+                                binding.root.post {
+                                    if (isPlaying) {
+                                        binding.playPauseOverlay.visibility = View.GONE
+                                        binding.videoThumbnail.visibility = View.GONE
+                                    } else {
+                                        if (!showControls) {
+                                            binding.playPauseOverlay.setImageResource(R.drawable.ic_play_circle)
+                                            binding.playPauseOverlay.visibility = View.VISIBLE
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                     
-                    // Only add listener if this is the current position
+                    // Always add listener for current position to handle state changes
                     if (position == currentPlayingPosition || (currentPlayingPosition == -1 && position == 0)) {
                         exoPlayer.addListener(listener)
                         binding.playerView.tag = listener
@@ -149,15 +182,75 @@ class VideoImageViewerAdapter(
                     // Only attach player and play if this is the current position
                     if (position == currentPlayingPosition || (currentPlayingPosition == -1 && position == 0)) {
                         // This is the current playing position - attach player and play
-                        binding.playerView.player = exoPlayer
-                        exoPlayer.clearMediaItems()
-                        exoPlayer.volume = 1f
-                        exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
-                        val media = MediaItem.fromUri(mediaItem.uri)
-                        exoPlayer.setMediaItem(media)
-                        exoPlayer.prepare()
-                        exoPlayer.seekTo(0)
-                        exoPlayer.playWhenReady = true
+                        // Ensure video layout is visible
+                        binding.videoLayout.visibility = View.VISIBLE
+                        binding.playerView.visibility = View.VISIBLE
+                        
+                        // Keep thumbnail visible until video renders (prevents black screen)
+                        binding.videoThumbnail.visibility = View.VISIBLE
+                        
+                        // CRITICAL: For scrolling up, we need to ensure proper player state reset
+                        // First, detach player from view to reset any existing state
+                        if (binding.playerView.player != null) {
+                            binding.playerView.player = null
+                        }
+                        
+                        // Wait a frame to ensure view is ready, then attach player
+                        binding.root.post {
+                            // Double-check position is still current after post
+                            if (position == currentPlayingPosition && binding.playerView.player == null) {
+                                // Attach player to view
+                                binding.playerView.player = exoPlayer
+                                
+                                // Wait for view to be attached and laid out before preparing
+                                if (binding.playerView.isAttachedToWindow && binding.playerView.width > 0 && binding.playerView.height > 0) {
+                                    // View is attached and laid out - prepare immediately
+                                    prepareVideoForPosition(position, mediaItem)
+                                } else {
+                                    // View not ready yet - wait for it
+                                    var attachListener: View.OnAttachStateChangeListener? = null
+                                    var layoutListener: View.OnLayoutChangeListener? = null
+                                    
+                                    attachListener = object : View.OnAttachStateChangeListener {
+                                        override fun onViewAttachedToWindow(v: View) {
+                                            binding.playerView.removeOnAttachStateChangeListener(this)
+                                            // Wait for layout as well
+                                            if (binding.playerView.width > 0 && binding.playerView.height > 0) {
+                                                if (position == currentPlayingPosition && binding.playerView.player == exoPlayer) {
+                                                    prepareVideoForPosition(position, mediaItem)
+                                                }
+                                            } else {
+                                                // Wait for layout
+                                                layoutListener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                                                    binding.playerView.removeOnLayoutChangeListener(layoutListener!!)
+                                                    if (position == currentPlayingPosition && binding.playerView.player == exoPlayer) {
+                                                        prepareVideoForPosition(position, mediaItem)
+                                                    }
+                                                }
+                                                binding.playerView.addOnLayoutChangeListener(layoutListener!!)
+                                            }
+                                        }
+                                        override fun onViewDetachedFromWindow(v: View) {
+                                            binding.playerView.removeOnAttachStateChangeListener(this)
+                                            layoutListener?.let { binding.playerView.removeOnLayoutChangeListener(it) }
+                                        }
+                                    }
+                                    binding.playerView.addOnAttachStateChangeListener(attachListener)
+                                    
+                                    // Fallback: use post with delay if attach listener doesn't fire
+                                    binding.root.postDelayed({
+                                        if (position == currentPlayingPosition && 
+                                            binding.playerView.player == exoPlayer &&
+                                            binding.playerView.isAttachedToWindow &&
+                                            binding.playerView.width > 0 &&
+                                            binding.playerView.height > 0) {
+                                            prepareVideoForPosition(position, mediaItem)
+                                        }
+                                    }, 150)
+                                }
+                            }
+                        }
+                        
                         if (currentPlayingPosition == -1) {
                             currentPlayingPosition = position
                         }
@@ -227,26 +320,32 @@ class VideoImageViewerAdapter(
             return
         }
         
-        currentPlayingPosition = position
-        
-        // Pause and stop previous video
+        // Pause and stop previous video, clear media items
+        // This ensures clean state before switching to new video
         if (previousPosition != -1 && previousPosition < mediaList.size) {
             exoPlayer.pause()
             exoPlayer.stop()
-            // Notify previous item to update (detach player, show thumbnail)
-            notifyItemChanged(previousPosition)
+            exoPlayer.clearMediaItems()
         }
+        
+        // Update current position BEFORE notifying items
+        // This ensures bind() sees the correct currentPlayingPosition
+        currentPlayingPosition = position
         
         // Notify video change callback - this should update user info
         onVideoChanged?.invoke(position)
         
-        // Play current video - notify item changed to attach player and play
-        if (position >= 0 && position < mediaList.size) {
-            val mediaItem = mediaList[position]
-            if (mediaItem.type == MediaType.VIDEO) {
-                // Notify item changed to trigger bind() which will attach player and play
-                notifyItemChanged(position)
-            } else {
+        // Post notifications to avoid calling during scroll callback (IllegalStateException)
+        // Use Handler to post to main looper
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            // Notify previous item to update (detach player, show thumbnail)
+            if (previousPosition != -1 && previousPosition < mediaList.size) {
+                notifyItemChanged(previousPosition)
+            }
+            
+            // Play current video - notify item changed to attach player and play
+            // This must happen after updating currentPlayingPosition so bind() sees the correct value
+            if (position >= 0 && position < mediaList.size) {
                 notifyItemChanged(position)
             }
         }

@@ -18,8 +18,6 @@ class FeedPagingSource(
     private val tag = "PAGING_ACTIVE_FEED"
     private var maxPageLimit: Int? = null
 
-    private var staticItemAdded = false // Flag to track if static item has been added
-
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Data> {
         val nextPageNumber = params.key ?: 1 // Default to page 1 if no key is provided
         return try {
@@ -38,59 +36,24 @@ class FeedPagingSource(
                 val body = response.body()
                 val data = body?.data ?: emptyList()
 
-                // Next key calculation
-                val nextKey = if (data.isEmpty() || nextPageNumber == maxPageLimit) null else nextPageNumber + 1
-                val prevKey = if (nextPageNumber > 1) nextPageNumber - 1 else null
-//                println("fjfkjfdk   $nextKey")
-//                println("fjfkjfdk   $data")
-//                println("fjfkjfdk   ${data.size}")
-//                println("fjfkjfdk   ${params.loadSize}")
-
-                val dataList = if (nextKey == null || data.size < params.loadSize) {
-                    // Last page hai, to static item add karo
-//                    data + listOf(
-//                        Data(
-//                            Id = "static_id",
-//                            isPublished = true,
-//                            feelings = "Excited",
-//                            content = "This is a static post",
-//                            name = "Static Name",
-//                            postType = "post",
-//                            createdAt = "2025-01-09T16:19:45.248Z",
-//                            likes = 0,
-//                            comments = 0,
-//                            likedByMe = false,
-//                            savedByMe = false,
-//                            imJoining = false
-//                        )
-//                    )
-                    if (!staticItemAdded) {
-                        staticItemAdded = true // Mark that static item has been added
-                        data + listOf(
-                            Data(
-                                Id = "static_id",
-                                isPublished = true,
-                                feelings = "Excited",
-                                content = "This is a static post",
-                                name = "Static Name",
-                                postType = "post",
-                                createdAt = "2025-01-09T16:19:45.248Z",
-                                likes = 0,
-                                comments = 0,
-                                likedByMe = false,
-                                savedByMe = false,
-                                imJoining = false
-                            )
-                        )
+                // Filter out posts from private accounts where user is not following
+                val filteredData = data.filter { post ->
+                    val postedBy = post.postedBy
+                    if (postedBy == null) {
+                        true // Keep posts without postedBy info
                     } else {
-                        data
+                        val isPrivateAccount = postedBy.privateAccount == true || 
+                                               postedBy.businessProfileRef?.privateAccount == true
+                        val isFollowed = postedBy.isFollowedByMe == true
+                        
+                        // Show post if account is not private, OR if private but user is following
+                        !isPrivateAccount || isFollowed
                     }
-
-
-
-                } else {
-                    data
                 }
+
+                // Next key calculation
+                val nextKey = if (filteredData.isEmpty() || nextPageNumber == maxPageLimit) null else nextPageNumber + 1
+                val prevKey = if (nextPageNumber > 1) nextPageNumber - 1 else null
 
 
                 maxPageLimit = body?.totalPages
@@ -100,7 +63,7 @@ class FeedPagingSource(
 
                 Log.d(tag, "Loaded page $nextPageNumber")
                 LoadResult.Page(
-                    data = dataList,
+                    data = filteredData,
                     prevKey = prevKey,
                     nextKey = nextKey
                 )
