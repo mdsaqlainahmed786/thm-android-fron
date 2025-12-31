@@ -191,12 +191,12 @@ class UserPostsViewerAdapter(
                 context,
                 mediaItems,
                 exoPlayer,
-                mediaList.firstOrNull()?.Id ?: "",
-                postId,
                 individualViewModal,
-                { _ -> },
+                { controllerVisible -> 
+                    // Handle controller visibility if needed
+                },
                 { mediaType ->
-                    val isVideo = mediaType.equals(Constants.VIDEO, ignoreCase = true)
+                    val isVideo = mediaType.lowercase() == Constants.VIDEO.lowercase()
                     if (currentMediaIsVideo != isVideo) {
                         currentMediaIsVideo = isVideo
                         updateLayoutForMediaType(isVideo)

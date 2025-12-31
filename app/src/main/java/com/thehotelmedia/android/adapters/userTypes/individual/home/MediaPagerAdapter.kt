@@ -18,6 +18,8 @@ import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.ExoPlayer
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.activity.VideoImageViewer
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LAT
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LNG
 import com.thehotelmedia.android.customClasses.Constants.IMAGE
 import com.thehotelmedia.android.customClasses.Constants.VIDEO
 import com.thehotelmedia.android.databinding.ItemMediaBinding
@@ -254,6 +256,8 @@ class MediaPagerAdapter(
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
+                        putExtra("LAT", DEFAULT_LAT)
+                        putExtra("LNG", DEFAULT_LNG)
                     }
 
                     MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
@@ -286,6 +290,8 @@ class MediaPagerAdapter(
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
+                        putExtra("LAT", DEFAULT_LAT)
+                        putExtra("LNG", DEFAULT_LNG)
                     }
 
                     MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
@@ -400,6 +406,8 @@ class MediaPagerAdapter(
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
+                        putExtra("LAT", DEFAULT_LAT)
+                        putExtra("LNG", DEFAULT_LNG)
                     }
 
                     MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
@@ -455,6 +463,8 @@ class MediaPagerAdapter(
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
+                        putExtra("LAT", DEFAULT_LAT)
+                        putExtra("LNG", DEFAULT_LNG)
                     }
 
                     MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
