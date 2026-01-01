@@ -37,7 +37,8 @@ import com.thehotelmedia.android.extensions.toFormattedDate
 // ChatAdapter.kt
 class ChatAdapter(
     private val context: Context,
-    private val onStoryClick: ((storyId: String, sentByMe: Boolean, storyCreatedAt: String?) -> Unit)? = null
+    private val onStoryClick: ((storyId: String, sentByMe: Boolean, storyCreatedAt: String?) -> Unit)? = null,
+    private val onMessageAction: ((messageId: String, action: String) -> Unit)? = null
 ) : PagingDataAdapter<Messages, ChatAdapter.ViewHolder>(ChatMessagesComparator) {
 
     inner class ViewHolder(val binding: ChatItemLayoutBinding) : RecyclerView.ViewHolder(binding.root)
@@ -111,7 +112,36 @@ class ChatAdapter(
         val abusiveWords = context.loadAbusiveWordsFromJson() // Load from JSON
         val messageText = msg.censorAbusiveWords(abusiveWords)
 
-        makeLinksClickable(binding.chatMessageText, messageText, Color.WHITE, Color.TRANSPARENT)
+        // Handle deleted messages
+        val isDeleted = message.isDeleted ?: false
+        if (isDeleted) {
+            binding.chatMessageText.visibility = View.GONE
+            binding.deletedMessageText.visibility = View.VISIBLE
+            val deletedText = if (message.sentByMe == true) {
+                "You deleted this message"
+            } else {
+                "This message was deleted"
+            }
+            binding.deletedMessageText.text = deletedText
+        } else {
+            binding.chatMessageText.visibility = View.VISIBLE
+            binding.deletedMessageText.visibility = View.GONE
+            makeLinksClickable(binding.chatMessageText, messageText, Color.WHITE, Color.TRANSPARENT)
+        }
+
+        // Handle edited label
+        val isEdited = message.isEdited ?: false
+        if (isEdited && !isDeleted) {
+            binding.editedLabel.visibility = View.VISIBLE
+            val editedAt = message.editedAt
+            if (!editedAt.isNullOrEmpty()) {
+                binding.editedLabel.text = "Edited ${formatDateTime(editedAt)}"
+            } else {
+                binding.editedLabel.text = "Edited"
+            }
+        } else {
+            binding.editedLabel.visibility = View.GONE
+        }
 
         binding.timeText.text = formatDateTime(message.createdAt.toString())
         binding.pdfNameTv.text  = message.message
@@ -227,6 +257,24 @@ class ChatAdapter(
             binding.timeText.gravity = Gravity.START
         }
 
+        // Add long-press listener for sent messages to show edit/delete menu
+        val sentByMe = message.sentByMe == true
+        // Use messageID if available, otherwise fall back to Id (from server _id)
+        val messageID = message.messageID ?: message.Id
+        if (sentByMe && !messageID.isNullOrEmpty() && !isDeleted && type == "text") {
+            binding.root.setOnLongClickListener {
+                // Show context menu for edit/delete
+                if (onMessageAction != null) {
+                    // We'll handle showing the menu in the activity
+                    // For now, just trigger the callback
+                    onMessageAction.invoke(messageID, "show_menu")
+                }
+                true
+            }
+        } else {
+            binding.root.setOnLongClickListener(null)
+        }
+
         binding.root.setOnClickListener {
             // Don't handle story-comment clicks here - let storyLayout handle them
             if (type == "story-comment") {
@@ -284,7 +332,12 @@ class ChatAdapter(
         }
 
         override fun areContentsTheSame(oldItem: Messages, newItem: Messages): Boolean {
-            return oldItem == newItem
+            return oldItem.Id == newItem.Id &&
+                    oldItem.message == newItem.message &&
+                    oldItem.isEdited == newItem.isEdited &&
+                    oldItem.editedAt == newItem.editedAt &&
+                    oldItem.isDeleted == newItem.isDeleted &&
+                    oldItem.messageID == newItem.messageID
         }
     }
 
