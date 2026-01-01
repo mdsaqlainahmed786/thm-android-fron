@@ -7,6 +7,7 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import java.util.UUID
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.TextPaint
@@ -255,8 +256,11 @@ class StoryPagerAdapter(
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 val commentText = binding.commentEt.text.toString().trim()
                 if (commentText.isNotEmpty()) {
+                    // Generate messageID locally
+                    val messageID = UUID.randomUUID().toString().replace("-", "")
+
                     // Send comment via socket
-                    socketViewModel.sendStoryComment("story-comment",commentText,socketUserName,sourceUrl,mediaId,storyId)
+                    socketViewModel.sendStoryComment("story-comment",commentText,socketUserName,sourceUrl,mediaId,storyId, messageID)
                     
                     // Clear the EditText after sending
                     binding.commentEt.text?.clear()

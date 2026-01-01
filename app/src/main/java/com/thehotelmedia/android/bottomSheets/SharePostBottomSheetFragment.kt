@@ -32,6 +32,7 @@ import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.launch
 import java.util.Locale
+import java.util.UUID
 
 class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
 
@@ -177,6 +178,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
                 val messageData = result.data?.message
                 if (messageData != null) {
                     // Send the message via socket using the response from the API
+                    val messageID = UUID.randomUUID().toString().replace("-", "")
                     socketViewModel.sendPrivateMessage(
                         messageData.type ?: "",
                         messageData.message ?: "",
@@ -184,6 +186,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
                         messageData.mediaUrl ?: "",
                         messageData.thumbnailUrl ?: "",
                         messageData.mediaID ?: "",
+                        messageID,
                         messageData.postID,
                         messageData.postOwnerUsername
                     )
@@ -279,6 +282,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
                 )
             } else if (hasMediaAttachment) {
                 // Fallback: direct socket send if no postId (shouldn't happen for post sharing)
+                val messageID = UUID.randomUUID().toString().replace("-", "")
                 socketViewModel.sendPrivateMessage(
                     normalizedType!!,
                     "",
@@ -286,6 +290,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
                     sharedMediaUrl.orEmpty(),
                     sharedThumbnailUrl.orEmpty(),
                     sharedMediaId.orEmpty(),
+                    messageID,
                     null
                 )
                 Toast.makeText(
@@ -296,8 +301,9 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
                 dismissAllowingStateLoss()
             } else {
                 // Text-only share (with deep link)
+                val messageID = UUID.randomUUID().toString().replace("-", "")
                 val message = getString(R.string.post_share_message_template, shareLink)
-                socketViewModel.sendPrivateMessage("text", message, recipientUsername, "", "", "", postId.takeIf { it.isNotBlank() })
+                socketViewModel.sendPrivateMessage("text", message, recipientUsername, "", "", "", messageID, postId.takeIf { it.isNotBlank() })
                 Toast.makeText(
                     requireContext(),
                     getString(R.string.share_message_sent, displayName),

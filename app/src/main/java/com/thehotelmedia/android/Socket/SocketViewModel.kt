@@ -16,6 +16,7 @@ import com.thehotelmedia.android.SocketModals.privateMessage.SocketError
 import com.thehotelmedia.android.SocketModals.users.UsersModal
 import io.socket.client.Socket
 import org.json.JSONObject
+import java.util.UUID
 
 class SocketViewModel : ViewModel() {
 
@@ -404,15 +405,16 @@ class SocketViewModel : ViewModel() {
 
 
 
-    fun sendPrivateMessage(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, thumbnailUrl: String, mediaID: String, postID: String? = null, postOwnerUsername: String? = null) {
+    fun sendPrivateMessage(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, thumbnailUrl: String, mediaID: String, messageID: String, postID: String? = null, postOwnerUsername: String? = null) {
         // Create the JSON object for the "private message" event
         val jsonData = JSONObject()
 
         // Create the nested "message" object
-
+        
         val messageObject = JSONObject()
         messageObject.put("type", type)
         messageObject.put("message", message)
+        messageObject.put("messageID", messageID) // Add messageID
         messageObject.put("mediaUrl", recipientMediaUrl)
         messageObject.put("thumbnailUrl", thumbnailUrl)
         messageObject.put("mediaID", mediaID)
@@ -430,15 +432,16 @@ class SocketViewModel : ViewModel() {
     }
 
 
-    fun sendStoryComment(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, mediaId: String, storyId: String) {
+    fun sendStoryComment(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, mediaId: String, storyId: String, messageID: String) {
         // Create the JSON object for the "private message" event
         val jsonData = JSONObject()
 
         // Create the nested "message" object
-
+        
         val messageObject = JSONObject()
         messageObject.put("type", type)
         messageObject.put("message", message)
+        messageObject.put("messageID", messageID) // Add messageID
         messageObject.put("mediaUrl", recipientMediaUrl)
         messageObject.put("mediaID", mediaId)
         messageObject.put("storyID", storyId)

@@ -370,7 +370,11 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 val mediaUrl = result.data?.message?.mediaUrl ?: ""
                 val thumbnailUrl = result.data?.message?.thumbnailUrl ?: ""
                 val mediaId = result.data?.message?.mediaID ?: ""
-                socketViewModel.sendPrivateMessage(type, msg, userName, mediaUrl, thumbnailUrl, mediaId)
+
+                // Generate messageID locally
+                val messageID = UUID.randomUUID().toString().replace("-", "")
+
+                socketViewModel.sendPrivateMessage(type, msg, userName, mediaUrl, thumbnailUrl, mediaId, messageID)
                 val uniqueMessageId = UUID.randomUUID().toString().replace("-", "")
                 val currentTime = Date().toISO8601UTC()
                 val staticMessage = Messages(
@@ -384,7 +388,7 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                     createdAt = currentTime,
                     _v = 0,
                     sentByMe = true,
-                    messageID = null // Will be updated when server responds
+                    messageID = messageID // Store the generated messageID locally
                 )
                 addStaticMessage(staticMessage, true)
             } else {
@@ -445,8 +449,14 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         val type = "text"
         if (msg.isNotEmpty()) {
             binding.messageEt.text?.clear()
-            socketViewModel.sendPrivateMessage(type, msg, userName, "", "", "")
-            val uniqueMessageId = UUID.randomUUID().toString().replace("-", "")
+            
+            // Generate messageID locally
+            val messageID = UUID.randomUUID().toString().replace("-", "")
+            
+            // Pass messageID to sendPrivateMessage
+            socketViewModel.sendPrivateMessage(type, msg, userName, "", "", "", messageID)
+            
+            val uniqueMessageId = UUID.randomUUID().toString().replace("-", "") // This remains as local 'If' for now
             val currentTime = Date().toISO8601UTC()
             val staticMessage = Messages(
                 Id = uniqueMessageId,
@@ -456,7 +466,7 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 createdAt = currentTime,
                 _v = 0,
                 sentByMe = true,
-                messageID = null // Will be updated when server responds
+                messageID = messageID // Store the generated messageID locally
             )
             addStaticMessage(staticMessage, true)
         }
