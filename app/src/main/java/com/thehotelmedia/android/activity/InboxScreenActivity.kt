@@ -220,10 +220,18 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 val currentItems = snapshot.items
                 
                 // Use _id from response first, then messageID
-                val targetId = editResponse._id ?: editResponse.messageID
+                val serverID = editResponse._id ?: editResponse.messageID
+                val clientID = editResponse.clientMessageID
                 
-                val index = currentItems.indexOfFirst { message ->
-                    (message.messageID == targetId) || (message.Id == targetId) || (message.messageID.isNullOrEmpty() && message.Id == targetId)
+                var index = currentItems.indexOfFirst { message ->
+                    (message.messageID == serverID) || (message.Id == serverID) || (message.messageID.isNullOrEmpty() && message.Id == serverID)
+                }
+
+                // Fallback to clientMessageID if server ID lookup failed
+                if (index == -1 && !clientID.isNullOrEmpty()) {
+                     index = currentItems.indexOfFirst { message ->
+                        message.messageID == clientID || message.Id == clientID
+                    }
                 }
                 
                 if (index != -1) {
@@ -232,7 +240,7 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                         message = editResponse.message,
                         isEdited = true,
                         editedAt = editResponse.editedAt,
-                        messageID = targetId // Ensure we update the ID
+                        messageID = serverID // Ensure we update the ID
                     )
                     // Create a completely new list with the updated message
                     val updatedList = currentItems.mapIndexed { idx, msg ->
@@ -251,10 +259,17 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 val currentItems = snapshot.items
                 
                 // Use _id from response first, then messageID
-                val targetId = deleteResponse._id ?: deleteResponse.messageID
+                val serverID = deleteResponse._id ?: deleteResponse.messageID
+                val clientID = deleteResponse.clientMessageID
                 
-                val index = currentItems.indexOfFirst { message ->
-                    (message.messageID == targetId) || (message.Id == targetId) || (message.messageID.isNullOrEmpty() && message.Id == targetId)
+                var index = currentItems.indexOfFirst { message ->
+                    (message.messageID == serverID) || (message.Id == serverID) || (message.messageID.isNullOrEmpty() && message.Id == serverID)
+                }
+
+                if (index == -1 && !clientID.isNullOrEmpty()) {
+                     index = currentItems.indexOfFirst { message ->
+                        message.messageID == clientID || message.Id == clientID
+                    }
                 }
                 
                 if (index != -1) {
@@ -268,7 +283,7 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                     val updatedMessage = existingMessage.copy(
                         message = deletedText,
                         isDeleted = true,
-                        messageID = targetId // Ensure we update the ID
+                        messageID = serverID // Ensure we update the ID
                     )
                     // Create a completely new list with the updated message
                     val updatedList = currentItems.mapIndexed { idx, msg ->

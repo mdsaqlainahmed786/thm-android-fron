@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class EditMessageResponse(
     @SerializedName("messageID") val messageID: String,
     @SerializedName("_id") val _id: String? = null,
+    @SerializedName("clientMessageID") val clientMessageID: String? = null,
     @SerializedName("message") val message: String,
     @SerializedName("isEdited") val isEdited: Boolean = true,
     @SerializedName("editedAt") val editedAt: String,

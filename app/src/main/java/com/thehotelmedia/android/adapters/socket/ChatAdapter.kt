@@ -131,21 +131,18 @@ class ChatAdapter(
             makeLinksClickable(binding.chatMessageText, messageText, Color.WHITE, Color.TRANSPARENT)
         }
 
-        // Handle edited label
+        // Handle edited label logic (Moved outside bubble as per user request)
+        binding.editedLabel.visibility = View.GONE
         val isEdited = message.isEdited ?: false
-        if (isEdited && !isDeleted) {
-            binding.editedLabel.visibility = View.VISIBLE
-            val editedAt = message.editedAt
-            if (!editedAt.isNullOrEmpty()) {
-                binding.editedLabel.text = "Edited ${formatDateTime(editedAt)}"
-            } else {
-                binding.editedLabel.text = "Edited"
-            }
+        val editedAt = message.editedAt
+
+        val timeStr = if (isEdited && !isDeleted && !editedAt.isNullOrEmpty()) {
+            "Edited · ${formatDateTime(editedAt)}"
         } else {
-            binding.editedLabel.visibility = View.GONE
+            formatDateTime(message.createdAt.toString())
         }
 
-        binding.timeText.text = formatDateTime(message.createdAt.toString())
+        binding.timeText.text = timeStr
         binding.pdfNameTv.text  = message.message
 
         // Handle different message types (text, image, video, pdf)
