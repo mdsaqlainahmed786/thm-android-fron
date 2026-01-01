@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Typeface
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.text.Spannable
@@ -123,6 +124,7 @@ class ChatAdapter(
                 "This message was deleted"
             }
             binding.deletedMessageText.text = deletedText
+            binding.deletedMessageText.setTypeface(null, Typeface.ITALIC)
         } else {
             binding.chatMessageText.visibility = View.VISIBLE
             binding.deletedMessageText.visibility = View.GONE

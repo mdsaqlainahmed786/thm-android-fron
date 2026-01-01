@@ -22,6 +22,6 @@ data class Messages (
   @SerializedName("messageID" ) var messageID : String?  = null,
   @SerializedName("isEdited"  ) var isEdited  : Boolean? = null,
   @SerializedName("editedAt"  ) var editedAt  : String?  = null,
-  @SerializedName("isDeleted" ) var isDeleted : Boolean? = null
+  @SerializedName("isDeleted", alternate = ["deleted", "is_deleted"]) var isDeleted : Boolean? = null
 
 )
