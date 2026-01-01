@@ -7,7 +7,8 @@ data class DeleteMessageResponse(
     @SerializedName("_id") val _id: String? = null,
     @SerializedName("clientMessageID") val clientMessageID: String? = null,
     @SerializedName("from") val from: String,
-    @SerializedName("to") val to: String
+    @SerializedName("to") val to: String,
+    @SerializedName("isDeleted") val isDeleted: Boolean? = true
 )
 
 

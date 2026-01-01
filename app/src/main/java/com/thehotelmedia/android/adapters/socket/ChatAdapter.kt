@@ -143,7 +143,7 @@ class ChatAdapter(
         }
 
         binding.timeText.text = timeStr
-        binding.pdfNameTv.text  = message.message
+        binding.pdfNameTv.text  = if (isDeleted) "" else message.message
 
         // Handle different message types (text, image, video, pdf)
         when (type) {
@@ -155,9 +155,9 @@ class ChatAdapter(
             }
             "video", "image" -> {
                 binding.pdfLayout.visibility = View.GONE
-                binding.messageLayout.visibility = View.GONE
+                binding.messageLayout.visibility = if (isDeleted) View.VISIBLE else View.GONE
                 binding.storyLayout.visibility = View.GONE
-                binding.mediaLayout.visibility = View.VISIBLE
+                binding.mediaLayout.visibility = if (isDeleted) View.GONE else View.VISIBLE
 //                Glide.with(context).load(mediaUrl).placeholder(R.drawable.ic_post_placeholder).into(binding.chatMediaIv)
                 if (type == "video" ){
                     Glide.with(context).load(thumbnailUrl).placeholder(R.drawable.ic_post_placeholder).into(binding.chatMediaIv)
@@ -168,10 +168,10 @@ class ChatAdapter(
                 binding.playIcon.visibility = if (type == "video") View.VISIBLE else View.GONE
             }
             "pdf" -> {
-                binding.messageLayout.visibility = View.GONE
+                binding.messageLayout.visibility = if (isDeleted) View.VISIBLE else View.GONE
                 binding.mediaLayout.visibility = View.GONE
                 binding.storyLayout.visibility = View.GONE
-                binding.pdfLayout.visibility = View.VISIBLE
+                binding.pdfLayout.visibility = if (isDeleted) View.GONE else View.VISIBLE
             }
             "story-comment" -> {
                 binding.messageLayout.visibility = View.VISIBLE
@@ -223,12 +223,15 @@ class ChatAdapter(
                     binding.storyLayout.isFocusable = true
                 }else{
                     binding.storyIv.visibility = View.GONE
-                    binding.storyAvailableTv.visibility = View.VISIBLE
+                    binding.storyAvailableTv.visibility = if (isDeleted) View.GONE else View.VISIBLE
                     binding.storyAvailableTv.text = mediaUrl
                     // Clear click listener if story is not available
                     binding.storyLayout.setOnClickListener(null)
                 }
 
+                if (isDeleted) {
+                    binding.storyLayout.visibility = View.GONE
+                }
             }
         }
 
@@ -275,6 +278,11 @@ class ChatAdapter(
         }
 
         binding.root.setOnClickListener {
+            // Don't handle clicks for deleted messages
+            if (isDeleted) {
+                return@setOnClickListener
+            }
+            
             // Don't handle story-comment clicks here - let storyLayout handle them
             if (type == "story-comment") {
                 return@setOnClickListener

@@ -274,15 +274,9 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 
                 if (index != -1) {
                     val existingMessage = currentItems[index]
-                    val deletedText = if (existingMessage.sentByMe == true) {
-                        "You deleted this message"
-                    } else {
-                        "This message was deleted"
-                    }
                     
                     val updatedMessage = existingMessage.copy(
-                        message = deletedText,
-                        isDeleted = true,
+                        isDeleted = deleteResponse.isDeleted ?: true,
                         messageID = serverID // Ensure we update the ID
                     )
                     // Create a completely new list with the updated message
