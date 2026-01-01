@@ -38,6 +38,7 @@ import com.thehotelmedia.android.adapters.socket.ChatAdapter
 import com.thehotelmedia.android.bottomSheets.BlockUserBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.EditMessageBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.MessageActionBottomSheetFragment
 import android.app.AlertDialog
 import android.widget.EditText
@@ -868,28 +869,14 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             val currentPagingData = chatAdapter.snapshot().filterNotNull().toMutableList()
             val message = currentPagingData.find { (it.messageID == messageID) || (it.Id == messageID) }
             if (message != null && message.type == "text" && (message.isDeleted != true)) {
-                val editText = EditText(this@InboxScreenActivity)
-                editText.setText(message.message)
-                editText.setSelection(editText.text.length)
-                val layout = LinearLayout(this@InboxScreenActivity).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(50, 40, 50, 10)
-                    addView(editText)
-                }
                 // Use messageID if available, otherwise use Id
                 val actualMessageID = message.messageID ?: message.Id
                 if (!actualMessageID.isNullOrEmpty()) {
-                    AlertDialog.Builder(this@InboxScreenActivity)
-                        .setTitle("Edit Message")
-                        .setView(layout)
-                        .setPositiveButton("Save") { _, _ ->
-                            val newMessage = editText.text.toString().trim()
-                            if (newMessage.isNotEmpty()) {
-                                socketViewModel.editMessage(actualMessageID, newMessage)
-                            }
-                        }
-                        .setNegativeButton("Cancel", null)
-                        .show()
+                    val editSheet = EditMessageBottomSheetFragment.newInstance(message.message ?: "")
+                    editSheet.onSaveClick = { newMessage ->
+                        socketViewModel.editMessage(actualMessageID, newMessage)
+                    }
+                    editSheet.show(supportFragmentManager, "EditMessageBottomSheet")
                 }
             }
         }
