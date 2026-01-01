@@ -29,6 +29,23 @@
                     android:paddingTop="@dimen/_10sdp"
                     android:paddingBottom="@dimen/_10sdp"
                     android:textAlignment="center"
+                    android:id="@+id/copyBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Copy"
+                    android:textColor="@color/text_color_60"
+                    android:fontFamily="@font/comic_regular"
+                    android:textSize="14sp"
+                    android:background="@drawable/rounded_edit_text_background_normal"/>
+
+                <View
+                    android:layout_width="@dimen/_8sdp"
+                    android:layout_height="@dimen/_8sdp"/>
+
+                <TextView
+                    android:paddingTop="@dimen/_10sdp"
+                    android:paddingBottom="@dimen/_10sdp"
+                    android:textAlignment="center"
                     android:id="@+id/editBtn"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

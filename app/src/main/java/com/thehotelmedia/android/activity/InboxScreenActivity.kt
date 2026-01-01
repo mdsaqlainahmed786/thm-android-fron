@@ -314,9 +314,9 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         chatAdapter = ChatAdapter(this, onStoryClick = { storyId, sentByMe, storyCreatedAt ->
                 handleStoryClick(storyId, sentByMe, storyCreatedAt)
             },
-            onMessageAction = { messageId, action ->
+            onMessageAction = { message, action ->
                 if (action == "show_menu") {
-                    showMessageContextMenu(messageId)
+                    showMessageContextMenu(message)
                 }
             }
         )
@@ -861,10 +861,20 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
     }
 
     /**
-     * Show context menu for message actions (Edit/Delete)
+     * Show context menu for message actions (Copy/Edit/Delete)
      */
-    private fun showMessageContextMenu(messageID: String) {
-        val bottomSheet = MessageActionBottomSheetFragment.newInstance()
+    private fun showMessageContextMenu(message: Messages) {
+        val messageID = message.messageID ?: message.Id ?: return
+        val sentByMe = message.sentByMe == true
+        val bottomSheet = MessageActionBottomSheetFragment.newInstance(isOwnMessage = sentByMe)
+        
+        bottomSheet.onCopyClick = {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("Clipped Message", message.message)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Message copied to clipboard", Toast.LENGTH_SHORT).show()
+        }
+        
         bottomSheet.onEditClick = { showEditMessageDialog(messageID) }
         bottomSheet.onDeleteClick = { showDeleteMessageConfirmation(messageID) }
         bottomSheet.show(supportFragmentManager, "MessageActionBottomSheet")

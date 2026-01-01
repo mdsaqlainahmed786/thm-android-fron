@@ -172,7 +172,7 @@
         android:background="@drawable/msg_receiver_background"
         android:orientation="vertical">
         <TextView
-            android:textIsSelectable="true"
+            android:textIsSelectable="false"
             android:id="@+id/chatMessageText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

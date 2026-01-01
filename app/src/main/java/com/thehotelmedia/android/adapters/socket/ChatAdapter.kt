@@ -39,7 +39,7 @@ import com.thehotelmedia.android.extensions.toFormattedDate
 class ChatAdapter(
     private val context: Context,
     private val onStoryClick: ((storyId: String, sentByMe: Boolean, storyCreatedAt: String?) -> Unit)? = null,
-    private val onMessageAction: ((messageId: String, action: String) -> Unit)? = null
+    private val onMessageAction: ((message: Messages, action: String) -> Unit)? = null
 ) : PagingDataAdapter<Messages, ChatAdapter.ViewHolder>(ChatMessagesComparator) {
 
     inner class ViewHolder(val binding: ChatItemLayoutBinding) : RecyclerView.ViewHolder(binding.root)
@@ -259,22 +259,23 @@ class ChatAdapter(
             binding.timeText.gravity = Gravity.START
         }
 
-        // Add long-press listener for sent messages to show edit/delete menu
-        val sentByMe = message.sentByMe == true
-        // Use messageID if available, otherwise fall back to Id (from server _id)
-        val messageID = message.messageID ?: message.Id
-        if (sentByMe && !messageID.isNullOrEmpty() && !isDeleted && type == "text") {
-            binding.root.setOnLongClickListener {
-                // Show context menu for edit/delete
+        // Add long-press listener for text messages to show context menu
+        val isTextMessage = type == "text"
+        if (!isDeleted && isTextMessage) {
+            val longClickListener = View.OnLongClickListener {
+                // Show context menu
                 if (onMessageAction != null) {
-                    // We'll handle showing the menu in the activity
-                    // For now, just trigger the callback
-                    onMessageAction.invoke(messageID, "show_menu")
+                    onMessageAction.invoke(message, "show_menu")
                 }
                 true
             }
+            binding.root.setOnLongClickListener(longClickListener)
+            binding.messageLayout.setOnLongClickListener(longClickListener)
+            binding.chatMessageText.setOnLongClickListener(longClickListener)
         } else {
             binding.root.setOnLongClickListener(null)
+            binding.messageLayout.setOnLongClickListener(null)
+            binding.chatMessageText.setOnLongClickListener(null)
         }
 
         binding.root.setOnClickListener {

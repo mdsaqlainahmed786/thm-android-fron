@@ -18,6 +18,8 @@ class MessageActionBottomSheetFragment : BottomSheetDialogFragment() {
 
     var onEditClick: (() -> Unit)? = null
     var onDeleteClick: (() -> Unit)? = null
+    var onCopyClick: (() -> Unit)? = null
+    var isOwnMessage: Boolean = true
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val bottomSheetDialog = BottomSheetDialog(requireContext(), R.style.CustomBottomSheetDialogTheme)
@@ -41,6 +43,18 @@ class MessageActionBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     private fun initUI() {
+        if (!isOwnMessage) {
+            binding.editBtn.visibility = View.GONE
+            binding.deleteBtn.visibility = View.GONE
+            // Also hide the spacers if necessary, but visibility GONE usually handles layout well if correctly packed.
+            // In Linear layout, it should be fine.
+        }
+
+        binding.copyBtn.setOnClickListener {
+            onCopyClick?.invoke()
+            dismiss()
+        }
+
         binding.editBtn.setOnClickListener {
             onEditClick?.invoke()
             dismiss()
@@ -53,8 +67,10 @@ class MessageActionBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     companion object {
-        fun newInstance(): MessageActionBottomSheetFragment {
-            return MessageActionBottomSheetFragment()
+        fun newInstance(isOwnMessage: Boolean = true): MessageActionBottomSheetFragment {
+            val fragment = MessageActionBottomSheetFragment()
+            fragment.isOwnMessage = isOwnMessage
+            return fragment
         }
     }
 }
