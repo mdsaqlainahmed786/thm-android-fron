@@ -782,6 +782,12 @@ interface Application {
         @Path(value = "bookingId",encoded = true) bookingId: String,
     ): Call<DeleteModal>
 
+    @DELETE("bookings/user/cancel"+"/{bookingId}")
+    fun userCancelBooking(
+        @Header("x-access-token") token: String,
+        @Path(value = "bookingId",encoded = true) bookingId: String,
+    ): Call<DeleteModal>
+
     @POST("auth/mobile/request-otp")
     @FormUrlEncoded
     fun sentOtpToNumber(

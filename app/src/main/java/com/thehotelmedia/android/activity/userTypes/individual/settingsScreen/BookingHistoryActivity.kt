@@ -14,6 +14,7 @@ import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.databinding.ActivityBookingHistoryBinding
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
+import com.thehotelmedia.android.extensions.showToast
 import kotlinx.coroutines.launch
 
 class BookingHistoryActivity : BaseActivity() {
@@ -54,7 +55,9 @@ class BookingHistoryActivity : BaseActivity() {
 
     private fun gteBookingHistory() {
 
-        bookingHistoryAdapter = BookingHistoryAdapter(this)
+        bookingHistoryAdapter = BookingHistoryAdapter(this) { bookingId ->
+            individualViewModal.userCancelBooking(bookingId)
+        }
 
         binding.bookingHistoryRv.adapter = bookingHistoryAdapter
 
@@ -65,6 +68,26 @@ class BookingHistoryActivity : BaseActivity() {
             this.lifecycleScope.launch {
                 isLoading()
                 bookingHistoryAdapter.submitData(it)
+            }
+        }
+
+        individualViewModal.userCancelBookingResult.observe(this) {
+            if (it != null) {
+                bookingHistoryAdapter.refresh()
+            }
+        }
+
+        individualViewModal.toast.observe(this) {
+            if (!it.isNullOrEmpty()) {
+                showToast(it)
+            }
+        }
+
+        individualViewModal.loading.observe(this) {
+            if (it) {
+                progressBar.show()
+            } else {
+                progressBar.hide()
             }
         }
 
