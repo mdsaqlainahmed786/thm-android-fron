@@ -9,6 +9,7 @@ data class PrivateMessageModal (
     @SerializedName("from"    ) var from    : String?  = null,
     @SerializedName("to"      ) var to      : String?  = null,
     @SerializedName("time"    ) var time    : String?  = null,
-    @SerializedName("isSeen"  ) var isSeen  : Boolean? = null
+    @SerializedName("isSeen"  ) var isSeen  : Boolean? = null,
+    @SerializedName("isEdited") var isEdited: Boolean? = null
 
 )

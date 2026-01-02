@@ -191,12 +191,12 @@ class UserPostsViewerAdapter(
                 context,
                 mediaItems,
                 exoPlayer,
-                mediaList.firstOrNull()?.Id ?: "",
-                postId,
                 individualViewModal,
-                { _ -> },
+                { controllerVisible -> 
+                    // Handle controller visibility if needed
+                },
                 { mediaType ->
-                    val isVideo = mediaType.equals(Constants.VIDEO, ignoreCase = true)
+                    val isVideo = mediaType.lowercase() == Constants.VIDEO.lowercase()
                     if (currentMediaIsVideo != isVideo) {
                         currentMediaIsVideo = isVideo
                         updateLayoutForMediaType(isVideo)
@@ -766,15 +766,16 @@ class UserPostsViewerAdapter(
                     state.isLiked,
                     state.likeCount,
                     state.commentCount,
-                    individualViewModal
-                ) { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                    state.isLiked = updatedIsLikedByMe
-                    state.likeCount = updatedLikeCount
-                    state.commentCount = updatedCommentCount
-                    updateLikeButton(state.isLiked, state.likeCount)
-                    binding.likeTv.text = formatCount(state.likeCount)
-                    binding.commentTv.text = formatCount(state.commentCount)
-                }
+                    individualViewModal,
+                    { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                        state.isLiked = updatedIsLikedByMe
+                        state.likeCount = updatedLikeCount
+                        state.commentCount = updatedCommentCount
+                        updateLikeButton(state.isLiked, state.likeCount)
+                        binding.likeTv.text = formatCount(state.likeCount)
+                        binding.commentTv.text = formatCount(state.commentCount)
+                    }
+                )
 
                 binding.viewPager.adapter = mediaPagerAdapter
                 binding.mediaLayout.visibility = View.VISIBLE
@@ -939,15 +940,16 @@ class UserPostsViewerAdapter(
                         state.isLiked,
                         state.likeCount,
                         state.commentCount,
-                        individualViewModal
-                    ) { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                        state.isLiked = updatedIsLikedByMe
-                        state.likeCount = updatedLikeCount
-                        state.commentCount = updatedCommentCount
-                        updateLikeButton(state.isLiked, state.likeCount)
-                        binding.likeTv.text = formatCount(state.likeCount)
-                        binding.commentTv.text = formatCount(state.commentCount)
-                    }
+                        individualViewModal,
+                        { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                            state.isLiked = updatedIsLikedByMe
+                            state.likeCount = updatedLikeCount
+                            state.commentCount = updatedCommentCount
+                            updateLikeButton(state.isLiked, state.likeCount)
+                            binding.likeTv.text = formatCount(state.likeCount)
+                            binding.commentTv.text = formatCount(state.commentCount)
+                        }
+                    )
                     binding.viewPager.adapter = mediaPagerAdapter
                 }
             }

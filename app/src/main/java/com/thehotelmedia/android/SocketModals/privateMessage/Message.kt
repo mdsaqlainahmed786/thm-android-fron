@@ -14,5 +14,9 @@ data class Message (
   @SerializedName("thumbnailUrl" ) var thumbnailUrl : String? = null,
   @SerializedName("mediaID" ) var mediaID : String? = null,
   @SerializedName("isStoryAvailable"  ) var isStoryAvailable  : Boolean? = null,
+  @SerializedName("messageID" ) var messageID : String? = null,
+  @SerializedName("_id"       ) var _id       : String? = null,
+  @SerializedName("isEdited"  ) var isEdited  : Boolean? = null,
+  @SerializedName("editedAt"  ) var editedAt  : String?  = null
 
 )

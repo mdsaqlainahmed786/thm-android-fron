@@ -293,10 +293,7 @@ interface Application {
         @Part("lng") lng: RequestBody?,
         @Part("locationPositionX") locationPositionX: RequestBody?,
         @Part("locationPositionY") locationPositionY: RequestBody?,
-        @Part("userTagged") userTagged: RequestBody?,
-        @Part("userTaggedId") userTaggedId: RequestBody?,
-        @Part("userTaggedPositionX") userTaggedPositionX: RequestBody?,
-        @Part("userTaggedPositionY") userTaggedPositionY: RequestBody?
+        @Part("taggedUsers") taggedUsers: RequestBody?
     ): Call<CreateStoryModal>
 
     @POST("posts/saved-posts"+"/{id}")
@@ -781,6 +778,12 @@ interface Application {
 
     @DELETE("bookings"+"/{bookingId}")
     fun cancelBooking(
+        @Header("x-access-token") token: String,
+        @Path(value = "bookingId",encoded = true) bookingId: String,
+    ): Call<DeleteModal>
+
+    @DELETE("bookings/user/cancel"+"/{bookingId}")
+    fun userCancelBooking(
         @Header("x-access-token") token: String,
         @Path(value = "bookingId",encoded = true) bookingId: String,
     ): Call<DeleteModal>

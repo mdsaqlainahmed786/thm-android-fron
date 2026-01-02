@@ -18,7 +18,10 @@ import com.thehotelmedia.android.extensions.toFormattedDateTime
 import com.thehotelmedia.android.extensions.updateBookingStatusColor
 import com.thehotelmedia.android.modals.booking.bookingHistory.BookingHistoryData
 
-class BookingHistoryAdapter(private val context: Context) : PagingDataAdapter<BookingHistoryData, BookingHistoryAdapter.BookingViewHolder>(
+class BookingHistoryAdapter(
+    private val context: Context,
+    private val onCancelClick: (String) -> Unit
+) : PagingDataAdapter<BookingHistoryData, BookingHistoryAdapter.BookingViewHolder>(
     BookingHistoryDiffCallback()
 ) {
 
@@ -95,6 +98,16 @@ class BookingHistoryAdapter(private val context: Context) : PagingDataAdapter<Bo
             binding.bookingStatus.text = bookingStatus.capitalizeFirstLetter()
             Glide.with(context).load(businessProfilePic).placeholder(R.drawable.ic_profile_placeholder).into(binding.profileIv)
             binding.bookingCard.updateBookingStatusColor(context, bookingStatus)
+
+            // Show cancel button only for pending hotel bookings
+            if (bookingStatus.lowercase() == "pending" && bookingType != "book-banquet" && bookingType != "book-table") {
+                binding.cancelBtn.visibility = android.view.View.VISIBLE
+                binding.cancelBtn.setOnClickListener {
+                    onCancelClick(bookingId)
+                }
+            } else {
+                binding.cancelBtn.visibility = android.view.View.GONE
+            }
 
 
             binding.root.setOnClickListener {

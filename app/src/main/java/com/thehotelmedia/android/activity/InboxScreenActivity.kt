@@ -38,6 +38,11 @@ import com.thehotelmedia.android.adapters.socket.ChatAdapter
 import com.thehotelmedia.android.bottomSheets.BlockUserBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.YesOrNoBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.EditMessageBottomSheetFragment
+import com.thehotelmedia.android.bottomSheets.MessageActionBottomSheetFragment
+import android.app.AlertDialog
+import android.widget.EditText
+import android.widget.LinearLayout
 import com.thehotelmedia.android.customClasses.Constants.DEFAULT_PDF_MB
 import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.customClasses.MessageStore
@@ -58,16 +63,15 @@ import java.io.FileOutputStream
 import java.util.Date
 import java.util.UUID
 
-class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.BottomSheetListener{
-
+class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.BottomSheetListener {
     // View Binding
     private lateinit var binding: ActivityInboxScreenBinding
+
     // Variables
     private lateinit var chatAdapter: ChatAdapter
     private lateinit var preferenceManager: PreferenceManager
     private lateinit var progressBar: CustomProgressBar
     private val socketViewModel: SocketViewModel by viewModels()
-
     private var myUserName: String = ""
     private var from: String = ""
     private var name: String = ""
@@ -77,40 +81,33 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
     private var pdfSizeLimit = 5
     private var scrollButtonAnimator: ObjectAnimator? = null
     private lateinit var individualViewModal: IndividualViewModal
-
     private lateinit var fetchConversationPagingSource: FetchConversationPagingSource
     private var isEmojiPickerVisible = false
-
     var isBlocked = false
     private lateinit var fileDownloadManager: FileDownloadManager
-
-    private val selectFileLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
+    private val selectFileLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> uri?.let {
             // Check the file type
             val mimeType = contentResolver.getType(uri)
-
             // Get the file size
-            val fileSizeInBytes = contentResolver.openInputStream(uri)?.use { inputStream ->
-                inputStream.available().toLong() // Get file size in bytes
+            val fileSizeInBytes = contentResolver.openInputStream(uri)?.use { inputStream -> inputStream.available().toLong() // Get file size in bytes
             } ?: 0L
-
             when {
                 mimeType?.startsWith("image/") == true -> {
-//                    Toast.makeText(this, "Selected Image", Toast.LENGTH_SHORT).show()
+                    // Toast.makeText(this, "Selected Image", Toast.LENGTH_SHORT).show()
                     // You can now send the image file as multipart
                     sendFileToServer(uri, "image")
                 }
                 mimeType?.startsWith("video/") == true -> {
-//                    Toast.makeText(this, "Selected Video", Toast.LENGTH_SHORT).show()
+                    // Toast.makeText(this, "Selected Video", Toast.LENGTH_SHORT).show()
                     // You can now send the video file as multipart
                     sendFileToServer(uri, "video")
                 }
                 mimeType == "application/pdf" -> {
-////                    Toast.makeText(this, "Selected PDF", Toast.LENGTH_SHORT).show()
-//                    // You can now send the PDF file as multipart
-//                    sendFileToServer(uri, "pdf")
-
-                    if (fileSizeInBytes > pdfSizeLimit * 1024 * 1024) { // 5 MB in bytes
+                    //// Toast.makeText(this, "Selected PDF", Toast.LENGTH_SHORT).show()
+                    // // You can now send the PDF file as multipart
+                    // sendFileToServer(uri, "pdf")
+                    if (fileSizeInBytes > pdfSizeLimit * 1024 * 1024) {
+                        // 5 MB in bytes
                         val errorMessage = getString(R.string.pdf_limit_in_mb, pdfSizeLimit)
                         Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show()
                     } else {
@@ -124,12 +121,10 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         }
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityInboxScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         initializeUI()
     }
 
@@ -140,15 +135,15 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
     }
 
     override fun onDestroy() {
-//        socketViewModel.leavePrivateChat(userName)
-////        socketViewModel.leaveChat()
-//        socketViewModel.removeAllListeners()
+        // socketViewModel.leavePrivateChat(userName)
+        //// socketViewModel.leaveChat()
+        // socketViewModel.removeAllListeners()
         super.onDestroy()
     }
 
     override fun onPause() {
         socketViewModel.leavePrivateChat(userName)
-//        socketViewModel.leaveChat()
+        // socketViewModel.leaveChat()
         // DON'T remove all listeners - the Fragment still needs them!
         // Only remove listeners specific to this activity if needed
         // socketViewModel.removeAllListeners()
@@ -162,7 +157,6 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         val individualRepo = IndividualRepo(this)
         individualViewModal = ViewModelProvider(this, ViewModelFactory(null, individualRepo, null))[IndividualViewModal::class.java]
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-
         // Fetch intent data
         from = intent.getStringExtra("FROM") ?: ""
         name = intent.getStringExtra("NAME") ?: ""
@@ -170,19 +164,15 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         profilePic = intent.getStringExtra("PROFILE_PIC") ?: ""
         userId = intent.getStringExtra("USER_ID") ?: ""
         fileDownloadManager = FileDownloadManager(this)
-        println("asfjsakjkl   $userId")
+        println("asfjsakjkl $userId")
         // Set title and profile picture
         binding.titleTv.text = name
         Glide.with(this).load(profilePic)
             .placeholder(R.drawable.ic_profile_placeholder)
             .into(binding.profilePicIv)
-
-
-
-        if (from == "job"){
+        if (from == "job") {
             binding.messageEt.setText(getString(R.string.job_application_message))
         }
-
 
         socketViewModel.receivedMessage.observe(this) { message ->
             val msg = message.message?.message.toString().trim()
@@ -195,14 +185,17 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             val from = message.from.orEmpty()
             val time = message.time.orEmpty()
             val isSeen = message.isSeen ?: true
-
-
-
-
+            
+            // Priority: use _id if available, otherwise fallback to messageID
+            val messageID = message.message?._id ?: message.message?.messageID
+            
+            // Extract messageID from server response
             if (from == userName) {
-                val uniqueMessageId = UUID.randomUUID().toString().replace("-", "")
+                // Use the determined messageID (which might be _id)
+                val uniqueMessageId = messageID ?: UUID.randomUUID().toString().replace("-", "")
                 val staticMessage = Messages(
                     Id = uniqueMessageId,
+                    messageID = messageID,
                     message = msg,
                     isSeen = isSeen,
                     type = type,
@@ -213,16 +206,96 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                     postOwnerUsername = postOwnerUsername,
                     createdAt = time,
                     _v = 0,
-                    sentByMe = false
+                    sentByMe = false,
+                    isEdited = message.isEdited ?: false
                 )
                 addStaticMessage(staticMessage, false)
             }
         }
 
+        // Observe message edited events
+        socketViewModel.messageEdited.observe(this) { editResponse ->
+            lifecycleScope.launch {
+                val snapshot = chatAdapter.snapshot()
+                val currentItems = snapshot.items
+                
+                // Use _id from response first, then messageID
+                val serverID = editResponse._id ?: editResponse.messageID
+                val clientID = editResponse.clientMessageID
+                
+                var index = currentItems.indexOfFirst { message ->
+                    (message.messageID == serverID) || (message.Id == serverID) || (message.messageID.isNullOrEmpty() && message.Id == serverID)
+                }
 
+                // Fallback to clientMessageID if server ID lookup failed
+                if (index == -1 && !clientID.isNullOrEmpty()) {
+                     index = currentItems.indexOfFirst { message ->
+                        message.messageID == clientID || message.Id == clientID
+                    }
+                }
+                
+                if (index != -1) {
+                    val existingMessage = currentItems[index]
+                    val updatedMessage = existingMessage.copy(
+                        message = editResponse.message,
+                        isEdited = true,
+                        editedAt = editResponse.editedAt,
+                        messageID = serverID // Ensure we update the ID
+                    )
+                    // Create a completely new list with the updated message
+                    val updatedList = currentItems.mapIndexed { idx, msg ->
+                        if (idx == index) updatedMessage else msg
+                    }
+                    val newPagingData = PagingData.from(updatedList)
+                    chatAdapter.submitData(newPagingData)
+                }
+            }
+        }
+
+        // Observe message deleted events
+        socketViewModel.messageDeleted.observe(this) { deleteResponse ->
+            lifecycleScope.launch {
+                val snapshot = chatAdapter.snapshot()
+                val currentItems = snapshot.items
+                
+                // Use _id from response first, then messageID
+                val serverID = deleteResponse._id ?: deleteResponse.messageID
+                val clientID = deleteResponse.clientMessageID
+                
+                var index = currentItems.indexOfFirst { message ->
+                    (message.messageID == serverID) || (message.Id == serverID) || (message.messageID.isNullOrEmpty() && message.Id == serverID)
+                }
+
+                if (index == -1 && !clientID.isNullOrEmpty()) {
+                     index = currentItems.indexOfFirst { message ->
+                        message.messageID == clientID || message.Id == clientID
+                    }
+                }
+                
+                if (index != -1) {
+                    val existingMessage = currentItems[index]
+                    
+                    val updatedMessage = existingMessage.copy(
+                        isDeleted = deleteResponse.isDeleted ?: true,
+                        messageID = serverID // Ensure we update the ID
+                    )
+                    // Create a completely new list with the updated message
+                    val updatedList = currentItems.mapIndexed { idx, msg ->
+                        if (idx == index) updatedMessage else msg
+                    }
+                    val newPagingData = PagingData.from(updatedList)
+                    chatAdapter.submitData(newPagingData)
+                }
+            }
+        }
+
+        // Observe socket errors
+        socketViewModel.socketError.observe(this) { error ->
+            Toast.makeText(this, error.message, Toast.LENGTH_SHORT).show()
+        }
 
         binding.profilePicIv.setOnClickListener {
-            if (userId.isNotEmpty()){
+            if (userId.isNotEmpty()) {
                 val intent = Intent(this, BusinessProfileDetailsActivity::class.java)
                 intent.putExtra("USER_ID", userId)
                 startActivity(intent)
@@ -233,64 +306,60 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             showMenuDialog(view)
         }
 
-
-
         // Initialize utilities
         preferenceManager = PreferenceManager.getInstance(this)
         progressBar = CustomProgressBar(this)
         myUserName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
         pdfSizeLimit = preferenceManager.getInt(PreferenceManager.Keys.PDF_SIZE_INT, DEFAULT_PDF_MB)
+        chatAdapter = ChatAdapter(this, onStoryClick = { storyId, sentByMe, storyCreatedAt ->
+                handleStoryClick(storyId, sentByMe, storyCreatedAt)
+            },
+            onMessageAction = { message, action ->
+                if (action == "show_menu") {
+                    showMessageContextMenu(message)
+                }
+            }
+        )
 
-
-        chatAdapter = ChatAdapter(this) { storyId, sentByMe, storyCreatedAt ->
-            handleStoryClick(storyId, sentByMe, storyCreatedAt)
-        }
-
-//        socketViewModel.connectSocket(myUserName)
-//        fetchConversationData()
-
+        // socketViewModel.connectSocket(myUserName)
+        // fetchConversationData()
+        
         // Button click listeners
         binding.backBtn.setOnClickListener { finish() }
         binding.sendMsgBtn.setOnClickListener { sendMessage() }
         binding.scrollDownBtn.setOnClickListener { scrollToBottom() }
-        binding.galleryBtn.setOnClickListener {
-            openFilePicker()
-        }
-// Set the click listener for the emoji button
+        binding.galleryBtn.setOnClickListener { openFilePicker() }
+
+        // Set the click listener for the emoji button
         binding.emojiBtn.setOnClickListener {
             if (isEmojiPickerVisible) {
                 // Hide Emoji Picker
                 binding.emojiPicker.visibility = View.GONE
                 binding.emojiBtn.setImageResource(R.drawable.ic_emoji_small) // Change to emoji icon
-
                 // Show Keyboard
                 binding.messageEt.requestFocus()
                 imm.showSoftInput(binding.messageEt, InputMethodManager.SHOW_IMPLICIT)
-
                 // Enable the EditText when Emoji Picker is hidden
                 binding.messageEt.isEnabled = true
             } else {
                 // Hide Keyboard
                 imm.hideSoftInputFromWindow(binding.messageEt.windowToken, 0)
-
                 // Show Emoji Picker
                 binding.emojiPicker.visibility = View.VISIBLE
                 binding.emojiBtn.setImageResource(R.drawable.ic_keyboard) // Change to keyboard icon
-
                 // Disable the EditText when Emoji Picker is visible
                 binding.messageEt.isEnabled = false
             }
-
             // Toggle visibility state
             isEmojiPickerVisible = !isEmojiPickerVisible
         }
 
-// Handle emoji selection
+        // Handle emoji selection
         binding.emojiPicker.setOnEmojiPickedListener { emoji ->
             binding.messageEt.append(emoji.emoji)
         }
 
-// Handle soft keyboard closing when the user taps outside of the EditText
+        // Handle soft keyboard closing when the user taps outside of the EditText
         binding.root.setOnTouchListener { _, event ->
             // If the emoji picker is visible, hide it when tapping outside the EditText
             if (isEmojiPickerVisible && event.action == MotionEvent.ACTION_DOWN) {
@@ -301,21 +370,21 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             false // Allow other touches to propagate
         }
 
-
         // Set up RecyclerView scroll listener
         setupScrollListener()
-
-
-        individualViewModal.sendMediaResult.observe(this){result->
-            if (result.status==true){
-
+        
+        individualViewModal.sendMediaResult.observe(this) { result ->
+            if (result.status == true) {
                 val msg = result.data?.message?.message.toString().trim() ?: ""
                 val type = result.data?.message?.type ?: ""
                 val mediaUrl = result.data?.message?.mediaUrl ?: ""
                 val thumbnailUrl = result.data?.message?.thumbnailUrl ?: ""
                 val mediaId = result.data?.message?.mediaID ?: ""
 
-                socketViewModel.sendPrivateMessage(type, msg, userName,mediaUrl,thumbnailUrl,mediaId)
+                // Generate messageID locally
+                val messageID = UUID.randomUUID().toString().replace("-", "")
+
+                socketViewModel.sendPrivateMessage(type, msg, userName, mediaUrl, thumbnailUrl, mediaId, messageID)
                 val uniqueMessageId = UUID.randomUUID().toString().replace("-", "")
                 val currentTime = Date().toISO8601UTC()
                 val staticMessage = Messages(
@@ -328,72 +397,59 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                     type = type,
                     createdAt = currentTime,
                     _v = 0,
-                    sentByMe = true
+                    sentByMe = true,
+                    messageID = messageID // Store the generated messageID locally
                 )
                 addStaticMessage(staticMessage, true)
-
-            }else{
+            } else {
                 val msg = result.message
-                Toast.makeText(this,msg, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
             }
         }
-
-
-        individualViewModal.exportChatResult.observe(this){result->
-            if (result.status==true){
+        
+        individualViewModal.exportChatResult.observe(this) { result ->
+            if (result.status == true) {
                 val fileUrl = result.data?.filePath ?: ""
                 val fileName = result.data?.filename ?: "ChatFile.txt"
-                if (fileUrl.isNotEmpty()){
-
+                if (fileUrl.isNotEmpty()) {
                     val bottomSheet = YesOrNoBottomSheetFragment.newInstance(MessageStore.sureWantToExportChat(this))
-                    bottomSheet.onYesClicked = {
-                        fileDownloadManager.downloadFile(fileName, fileUrl)
-                    }
-                    bottomSheet.onNoClicked = {
-
-                    }
+                    bottomSheet.onYesClicked = { fileDownloadManager.downloadFile(fileName, fileUrl) }
+                    bottomSheet.onNoClicked = { }
                     bottomSheet.show(supportFragmentManager, "YesOrNoBottomSheet")
-
-//                    fileDownloadManager.downloadFileFromUrl(fileName, fileUrl)
+                    // fileDownloadManager.downloadFileFromUrl(fileName, fileUrl)
                 }
-            }else{
+            } else {
                 val msg = result.message
-                Toast.makeText(this,msg, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
             }
         }
-
-        individualViewModal.deleteChatResult.observe(this){result->
-            if (result.status==true){
+        
+        individualViewModal.deleteChatResult.observe(this) { result ->
+            if (result.status == true) {
                 finish()
-            }else{
+            } else {
                 val msg = result.message
-                Toast.makeText(this,msg, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
             }
         }
-
-
-        individualViewModal.loading.observe(this){
-            if (it == true){
+        
+        individualViewModal.loading.observe(this) {
+            if (it == true) {
                 progressBar.show() // To show the progress bar
-            }else{
+            } else {
                 progressBar.hide() // To hide the progress bar
             }
         }
-
-        individualViewModal.toast.observe(this){
-            Toast.makeText(this,it, Toast.LENGTH_SHORT).show()
+        
+        individualViewModal.toast.observe(this) {
+            Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
         }
-
-
-
-
     }
+
     private fun openFilePicker() {
         // Open the file picker for images, videos, and PDFs
         selectFileLauncher.launch("*/*") // "*" means any file type
     }
-
-
 
     /**
      * Handle sending a message.
@@ -401,12 +457,16 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
     private fun sendMessage() {
         val msg = binding.messageEt.text?.trim().toString()
         val type = "text"
-
         if (msg.isNotEmpty()) {
             binding.messageEt.text?.clear()
-            socketViewModel.sendPrivateMessage(type, msg, userName,"","","")
-
-            val uniqueMessageId = UUID.randomUUID().toString().replace("-", "")
+            
+            // Generate messageID locally
+            val messageID = UUID.randomUUID().toString().replace("-", "")
+            
+            // Pass messageID to sendPrivateMessage
+            socketViewModel.sendPrivateMessage(type, msg, userName, "", "", "", messageID)
+            
+            val uniqueMessageId = UUID.randomUUID().toString().replace("-", "") // This remains as local 'If' for now
             val currentTime = Date().toISO8601UTC()
             val staticMessage = Messages(
                 Id = uniqueMessageId,
@@ -415,7 +475,8 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 type = type,
                 createdAt = currentTime,
                 _v = 0,
-                sentByMe = true
+                sentByMe = true,
+                messageID = messageID // Store the generated messageID locally
             )
             addStaticMessage(staticMessage, true)
         }
@@ -435,16 +496,12 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
      * Add a static message to the chat.
      */
     private fun addStaticMessage(message: Messages, sentByMe: Boolean) {
-
-        println("fsahksadh    $message")
+        println("fsahksadh $message")
         lifecycleScope.launch {
             val currentPagingData = chatAdapter.snapshot().filterNotNull().toMutableList()
             currentPagingData.add(message)
-
             val newPagingData = PagingData.from(currentPagingData)
             chatAdapter.submitData(newPagingData)
-
-
             if (sentByMe) {
                 binding.inboxRv.scrollToPosition(currentPagingData.size - 1)
             } else {
@@ -453,9 +510,6 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         }
     }
 
-
-
-
     /**
      * Handle scrolling behavior for incoming messages.
      */
@@ -463,7 +517,6 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         val layoutManager = binding.inboxRv.layoutManager as LinearLayoutManager
         val totalItemCount = layoutManager.itemCount
         val lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition()
-
         if (totalItemCount - lastVisibleItemPosition <= 8) {
             binding.inboxRv.scrollToPosition(updatedMessages.size - 1)
         } else {
@@ -476,10 +529,9 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
      * Fetch conversation data using paging.
      */
     private fun fetchConversationData() {
-//        socketViewModel.inChat()
+        // socketViewModel.inChat()
         socketViewModel.inPrivateChat(userName)
         socketViewModel.messageSeen(userName)
-
         if (binding.inboxRv.adapter == null) {
             binding.inboxRv.adapter = chatAdapter.withLoadStateFooter(LoaderAdapter())
             binding.inboxRv.isNestedScrollingEnabled = false
@@ -488,40 +540,12 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         // Initialize a fresh FetchConversationPagingSource each time
         lifecycleScope.launch {
             val chatFlow = Pager(PagingConfig(pageSize = 80, prefetchDistance = 40, enablePlaceholders = true)) {
-                FetchConversationPagingSource(socketViewModel, userName)  // Create a new instance of PagingSource
+                FetchConversationPagingSource(socketViewModel, userName) // Create a new instance of PagingSource
             }.flow
-
-            chatFlow.collectLatest { chatAdapter.submitData(it) }
+            chatFlow.collectLatest {
+                chatAdapter.submitData(it)
+            }
         }
-
-//        socketViewModel.receivedMessage.observe(this) { message ->
-//            val msg = message.message?.message.orEmpty()
-//            val mediaUrl = message.message?.mediaUrl.orEmpty()
-//            val type = message.message?.type.orEmpty()
-//            val from = message.from.orEmpty()
-//            val time = message.time.orEmpty()
-//            val isSeen = message.isSeen ?: true
-//
-//
-//
-//
-//            if (from == userName) {
-//                val uniqueMessageId = UUID.randomUUID().toString().replace("-", "")
-//                val staticMessage = Messages(
-//                    Id = uniqueMessageId,
-//                    message = msg,
-//                    isSeen = isSeen,
-//                    type = type,
-//                    mediaUrl = mediaUrl,
-//                    createdAt = time,
-//                    _v = 0,
-//                    sentByMe = false
-//                )
-//                addStaticMessage(staticMessage, false)
-//            }
-//        }
-
-
     }
 
     /**
@@ -534,7 +558,6 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                 val totalItemCount = layoutManager.itemCount
                 val lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition()
-
                 if (totalItemCount > 0 && lastVisibleItemPosition == totalItemCount - 1) {
                     scrollButtonAnimator?.cancel()
                     binding.scrollDownBtn.visibility = View.GONE
@@ -558,15 +581,11 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         scrollButtonAnimator = bounceAnimator
     }
 
-
     private fun sendFileToServer(uri: Uri, fileType: String) {
         val originalFileName = getFileNameFromUri(uri)
-
-        val savedUri = saveMediaToStorageFromUri(uri,fileType).toString()
-
+        val savedUri = saveMediaToStorageFromUri(uri, fileType).toString()
         val validPath = savedUri.replace("file:", "")
         val mediaFile = File(validPath)
-
         individualViewModal.sendMediaMessage(userName, originalFileName, fileType, mediaFile)
     }
 
@@ -584,7 +603,6 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
     private fun saveMediaToStorageFromUri(uri: Uri, fileType: String): Uri? {
         // Extract the file name from the URI
         val fileName = getFileNameFromUri(uri)
-
         // Use a directory based on the file type (images, videos, etc.)
         val mediaDir = when (fileType) {
             "image" -> File(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "HotelMediaImages")
@@ -592,12 +610,10 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             "pdf" -> File(this.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "HotelMediaPDFs")
             else -> File(this.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "HotelMedia")
         }
-
         // Create directory if it doesn't exist
         if (!mediaDir.exists()) {
             mediaDir.mkdirs()
         }
-
         // Generate a unique file name based on the file type
         val fileExtension = when (fileType) {
             "image" -> ".jpg"
@@ -605,18 +621,14 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             "pdf" -> ".pdf"
             else -> ""
         }
-
-//        val mediaFile = File(mediaDir, "media_${System.currentTimeMillis()}$fileExtension")
+        // val mediaFile = File(mediaDir, "media_${System.currentTimeMillis()}$fileExtension")
         val mediaFile = File(mediaDir, "${fileName}_${System.currentTimeMillis()}$fileExtension")
-
-
         try {
             contentResolver.openInputStream(uri)?.use { inputStream ->
                 FileOutputStream(mediaFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
             }
-
             // Return the URI of the saved file
             return Uri.fromFile(mediaFile)
         } catch (e: Exception) {
@@ -625,12 +637,10 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         return null
     }
 
-
     private fun showMenuDialog(view: View?) {
         // Inflate the dropdown menu layout
         val inflater = this.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val dropdownView = inflater.inflate(R.layout.chat_menu_dropdown_item, null)
-
         // Create the PopupWindow
         val popupWindow = PopupWindow(
             dropdownView,
@@ -638,31 +648,24 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             ViewGroup.LayoutParams.WRAP_CONTENT,
             true
         )
-
         // Find TextViews and set click listeners
         val blockBtn: TextView = dropdownView.findViewById(R.id.blockBtn)
         val reportBtn: TextView = dropdownView.findViewById(R.id.reportBtn)
         val deleteChatBtn: TextView = dropdownView.findViewById(R.id.deleteChatBtn)
         val exportChatBtn: TextView = dropdownView.findViewById(R.id.exportChatBtn)
-
-
-        if (isBlocked){
+        if (isBlocked) {
             blockBtn.text = getString(R.string.unblock)
-        }else{
+        } else {
             blockBtn.text = getString(R.string.block)
         }
-
-
         blockBtn.setOnClickListener {
             blockUser()
             popupWindow.dismiss()
         }
-
         reportBtn.setOnClickListener {
             reportUser()
             popupWindow.dismiss()
         }
-
         deleteChatBtn.setOnClickListener {
             deleteChat()
             popupWindow.dismiss()
@@ -671,13 +674,10 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             individualViewModal.exportChat(userId)
             popupWindow.dismiss()
         }
-
         // Set the background drawable to make the popup more visually appealing
         popupWindow.setBackgroundDrawable(ContextCompat.getDrawable(this, R.drawable.popup_background))
-
         // Show the popup window
         popupWindow.showAsDropDown(view)
-
         // Optionally, dismiss the popup when clicking outside of it
         popupWindow.setOnDismissListener {
             // Handle any actions you want to perform when the popup is dismissed
@@ -686,39 +686,31 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
 
     private fun deleteChat() {
         val bottomSheet = YesOrNoBottomSheetFragment.newInstance(MessageStore.sureWantToDeleteChat(this))
-        bottomSheet.onYesClicked = {
-            individualViewModal.deleteChat(userId)
-        }
-        bottomSheet.onNoClicked = {
-
-        }
+        bottomSheet.onYesClicked = { individualViewModal.deleteChat(userId) }
+        bottomSheet.onNoClicked = { }
         bottomSheet.show(supportFragmentManager, "YesOrNoBottomSheet")
     }
 
     private fun reportUser() {
-
         val bottomSheetFragment = ReportBottomSheetFragment().apply {
             arguments = Bundle().apply {
                 putString("ID", userId)
                 putString("TYPE", "user")
             }
-            onReasonSelected = { selectedReason ->
-                individualViewModal.reportUser(userId,selectedReason)
-            }
+            onReasonSelected = { selectedReason -> individualViewModal.reportUser(userId, selectedReason) }
         }
         bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
-
     }
+
     private fun blockUser() {
-        val bottomSheetFragment = BlockUserBottomSheetFragment.newInstance(isBlocked,userId)
+        val bottomSheetFragment = BlockUserBottomSheetFragment.newInstance(isBlocked, userId)
         bottomSheetFragment.show(supportFragmentManager, bottomSheetFragment.tag)
     }
 
     override fun onBooleanDataReceived(isUserBlocked: Boolean) {
         // Handle the boolean returned from the fragment
         isBlocked = isUserBlocked
-//        getUserProfile()
-
+        // getUserProfile()
     }
 
     /**
@@ -733,12 +725,6 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         } else {
             preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").toString() // Story belongs to current user
         }
-        
-        //if (storyOwnerId.isEmpty()) {
-        //    Toast.makeText(this, "Unable to open story", Toast.LENGTH_SHORT).show()
-        //    return
-       // }
-
         // Check if story is expired (24 hours) using message createdAt as fallback
         if (storyCreatedAt != null && storyCreatedAt.isNotEmpty()) {
             val isExpired = !isRecentPost(storyCreatedAt)
@@ -746,35 +732,27 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                 return
             }
         }
-
         // Fetch stories directly from repository
         lifecycleScope.launch {
             try {
                 android.util.Log.d("StoryClick", "Starting story navigation - storyId: $storyId, storyOwnerId: $storyOwnerId")
-                
                 // Get current user ID to check if this is the user's own story
                 val currentUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").toString()
                 val isMyStory = storyOwnerId == currentUserId
-                
                 android.util.Log.d("StoryClick", "Is my story: $isMyStory, currentUserId: $currentUserId, storyOwnerId: $storyOwnerId")
-                
                 // Call repository directly to get stories
                 val individualRepo = IndividualRepo(this@InboxScreenActivity)
                 val response = individualRepo.getStories(1, 20)
-                
                 if (!response.isSuccessful || response.body() == null) {
                     android.util.Log.e("StoryClick", "Failed to fetch stories: ${response.code()}")
                     return@launch
                 }
-                
                 val storiesModal = response.body()!!
                 var validStory: Stories? = null
-                
                 if (isMyStory) {
                     // Handle user's own stories from myStories
                     val myStories = storiesModal.storiesData?.myStories ?: emptyList()
                     android.util.Log.d("StoryClick", "Checking myStories: ${myStories.size} stories")
-                    
                     // Find the specific story in myStories
                     val storyRef = myStories.find { it.Id == storyId }
                     if (storyRef != null) {
@@ -787,7 +765,6 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                                 return@launch
                             }
                         }
-                        
                         // Convert MyStories to StoriesRef
                         val storiesRefList = myStories.map { myStory ->
                             com.thehotelmedia.android.modals.Stories.StoriesRef(
@@ -811,20 +788,17 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                                 userTaggedPositionY = myStory.userTaggedPositionY
                             )
                         }
-                        
                         // Create Stories object with user's profile info
                         val userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").toString()
                         val fullName = preferenceManager.getString(PreferenceManager.Keys.USER_FULL_NAME, "").toString()
                         val smallProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_SMALL_PROFILE_PIC, "").toString()
                         val mediumProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_MEDIUM_PROFILE_PIC, "").toString()
                         val largeProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_LARGE_PROFILE_PIC, "").toString()
-                        
                         val profilePic = com.thehotelmedia.android.modals.Stories.ProfilePic(
                             small = smallProfilePic,
                             medium = mediumProfilePic,
                             large = largeProfilePic
                         )
-                        
                         validStory = Stories(
                             id = currentUserId,
                             accountType = "individual",
@@ -843,16 +817,13 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                     // Handle other users' stories
                     val allStories = storiesModal.storiesData?.stories ?: emptyList()
                     android.util.Log.d("StoryClick", "Total stories loaded: ${allStories.size}")
-                    
                     // Filter stories by storyOwnerId
                     val userStories = allStories.filter { story: Stories -> story.id == storyOwnerId }
                     android.util.Log.d("StoryClick", "Filtered stories for owner $storyOwnerId: ${userStories.size}")
-                    
                     if (userStories.isEmpty()) {
                         android.util.Log.d("StoryClick", "No stories found for user $storyOwnerId")
                         return@launch
                     }
-
                     // Check if the specific story exists and is not expired
                     for (userStory in userStories) {
                         val storyRef = userStory.storiesRef.find { storyRef -> storyRef.Id == storyId }
@@ -870,13 +841,11 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
                             break
                         }
                     }
-
                     if (validStory == null) {
                         android.util.Log.d("StoryClick", "Story not found - storyId: $storyId")
                         return@launch
                     }
                 }
-
                 // Navigate to ViewStoriesActivity with the user's stories
                 android.util.Log.d("StoryClick", "Navigating to ViewStoriesActivity")
                 val jsonString = Gson().toJson(listOf(validStory))
@@ -891,4 +860,55 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         }
     }
 
+    /**
+     * Show context menu for message actions (Copy/Edit/Delete)
+     */
+    private fun showMessageContextMenu(message: Messages) {
+        val messageID = message.messageID ?: message.Id ?: return
+        val sentByMe = message.sentByMe == true
+        val bottomSheet = MessageActionBottomSheetFragment.newInstance(isOwnMessage = sentByMe)
+        
+        bottomSheet.onCopyClick = {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("Clipped Message", message.message)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Message copied to clipboard", Toast.LENGTH_SHORT).show()
+        }
+        
+        bottomSheet.onEditClick = { showEditMessageDialog(messageID) }
+        bottomSheet.onDeleteClick = { showDeleteMessageConfirmation(messageID) }
+        bottomSheet.show(supportFragmentManager, "MessageActionBottomSheet")
+    }
+
+    /**
+     * Show edit message dialog
+     */
+    private fun showEditMessageDialog(messageID: String) {
+        lifecycleScope.launch {
+            val currentPagingData = chatAdapter.snapshot().filterNotNull().toMutableList()
+            val message = currentPagingData.find { (it.messageID == messageID) || (it.Id == messageID) }
+            if (message != null && message.type == "text" && (message.isDeleted != true)) {
+                // Use messageID if available, otherwise use Id
+                val actualMessageID = message.messageID ?: message.Id
+                if (!actualMessageID.isNullOrEmpty()) {
+                    val editSheet = EditMessageBottomSheetFragment.newInstance(message.message ?: "")
+                    editSheet.onSaveClick = { newMessage ->
+                        socketViewModel.editMessage(actualMessageID, newMessage)
+                    }
+                    editSheet.show(supportFragmentManager, "EditMessageBottomSheet")
+                }
+            }
+        }
+    }
+
+    /**
+     * Show delete message confirmation dialog
+     */
+    private fun showDeleteMessageConfirmation(messageID: String) {
+        val bottomSheet = YesOrNoBottomSheetFragment.newInstance("Are you sure you want to delete this message?")
+        bottomSheet.onYesClicked = { socketViewModel.deleteMessage(messageID) }
+        bottomSheet.onNoClicked = { // Do nothing
+        }
+        bottomSheet.show(supportFragmentManager, "DeleteMessageBottomSheet")
+    }
 }

@@ -82,6 +82,13 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         initialIndex = if (intent.hasExtra("INITIAL_INDEX")) intent.getIntExtra("INITIAL_INDEX", -1).takeIf { it >= 0 } else null
         filterMediaType = intent.getStringExtra("FILTER_MEDIA_TYPE")
 
+        // Set title based on media filter
+        if (filterMediaType == "video") {
+            binding.titleTv.text = getString(R.string.videos)
+        } else {
+            binding.titleTv.text = getString(R.string.photos)
+        }
+
         binding.backBtn.setOnClickListener {
             finish()
         }

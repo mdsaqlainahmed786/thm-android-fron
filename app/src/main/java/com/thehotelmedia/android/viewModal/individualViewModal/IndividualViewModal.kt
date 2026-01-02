@@ -856,11 +856,11 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     //Create Story
     private val _createStoryResult = MutableLiveData<CreateStoryModal>()
     val createStoryResult: LiveData<CreateStoryModal> = _createStoryResult
-    fun createStory(imageFile: File?, videoFile: File?, taggedIds: List<String>, placeName: String?, lat: Double?, lng: Double?, locationX: Float? = null, locationY: Float? = null, userTaggedId: String? = null, userTaggedName: String? = null, userTaggedX: Float? = null, userTaggedY: Float? = null) {
+    fun createStory(imageFile: File?, videoFile: File?, taggedIds: List<String>, placeName: String?, lat: Double?, lng: Double?, locationX: Float? = null, locationY: Float? = null, taggedUsers: List<com.thehotelmedia.android.modals.forms.TaggedUser> = emptyList()) {
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
-                val response = individualRepo.createStory(imageFile, videoFile, taggedIds, placeName, lat, lng, locationX, locationY, userTaggedId, userTaggedName, userTaggedX, userTaggedY)
+                val response = individualRepo.createStory(imageFile, videoFile, taggedIds, placeName, lat, lng, locationX, locationY, taggedUsers)
                 if (response.isSuccessful) {
 //                    val res = response.body()
 //                    toastMessageLiveData.postValue(res?.message)
@@ -2483,6 +2483,43 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                 } else {
                     Log.wtf(tag + "ELSE", response.message().toString())
                     toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
+    //User Cancel Booking
+    private val _userCancelBookingResult = MutableLiveData<DeleteModal>()
+    val userCancelBookingResult: LiveData<DeleteModal> = _userCancelBookingResult
+    fun userCancelBooking(bookingId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.userCancelBooking(bookingId)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _userCancelBookingResult.postValue(res)
+                    Log.wtf(tag, res.toString())
+                    _loading.postValue(false)
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.wtf(tag + "ELSE", response.toString())
+                    
+                    val errorMessage = try {
+                        JSONObject(errorBody ?: "{}").optString("message")
+                    } catch (e: Exception) {
+                        null
+                    }
+                    
+                    toastMessageLiveData.postValue(errorMessage ?: response.message())
+                    _userCancelBookingResult.postValue(null)
                     _loading.postValue(false)
                 }
 

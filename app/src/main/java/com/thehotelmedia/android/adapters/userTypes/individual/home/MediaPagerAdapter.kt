@@ -18,6 +18,8 @@ import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.ExoPlayer
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.activity.VideoImageViewer
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LAT
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LNG
 import com.thehotelmedia.android.customClasses.Constants.IMAGE
 import com.thehotelmedia.android.customClasses.Constants.VIDEO
 import com.thehotelmedia.android.databinding.ItemMediaBinding
@@ -44,7 +46,8 @@ class MediaPagerAdapter(
     private var likeCount: Int,
     private val commentCount: Int,
     private val individualViewModal: IndividualViewModal? = null,
-    private val onLikeClicked: (isLikedByMe: Boolean, likeCount: Int, commentCount: Int) -> Unit
+    private val onLikeClicked: (isLikedByMe: Boolean, likeCount: Int, commentCount: Int) -> Unit,
+    private val isScrollingDown: Boolean = true // Track scroll direction for buffering control
 ) : RecyclerView.Adapter<MediaPagerAdapter.ViewHolder>() {
 
 
@@ -57,12 +60,23 @@ class MediaPagerAdapter(
         // These will be updated in bind() and when adapter state changes
         private var currentIsPostLiked = isPostLiked
         private var currentLikeCount = likeCount
+        private var playerListener: com.google.android.exoplayer2.Player.Listener? = null
         
         fun updateState(newIsPostLiked: Boolean, newLikeCount: Int) {
             android.util.Log.d("MediaPagerAdapter", "ViewHolder.updateState() called: newIsPostLiked=$newIsPostLiked, newLikeCount=$newLikeCount (old: currentIsPostLiked=$currentIsPostLiked, currentLikeCount=$currentLikeCount)")
             currentIsPostLiked = newIsPostLiked
             currentLikeCount = newLikeCount
             android.util.Log.d("MediaPagerAdapter", "ViewHolder state updated: currentIsPostLiked=$currentIsPostLiked, currentLikeCount=$currentLikeCount")
+        }
+        
+        fun cleanup() {
+            // Clean up player listener to prevent memory leaks
+            val player = binding.playerView.player
+            if (player != null && playerListener != null) {
+                player.removeListener(playerListener!!)
+                playerListener = null
+            }
+            binding.bufferingProgress.visibility = View.GONE
         }
 
         private fun isVideo(mediaItem: MediaRef): Boolean {
@@ -84,11 +98,17 @@ class MediaPagerAdapter(
                 // active post in another adapter instance (which causes the black screen).
                 // Instead, just detach any player from this ViewHolder and show the
                 // appropriate thumbnail.
+                val currentPlayer = binding.playerView.player
+                if (currentPlayer != null && playerListener != null) {
+                    currentPlayer.removeListener(playerListener!!)
+                    playerListener = null
+                }
                 binding.playerView.player = null
                 // Clear any existing listeners to prevent memory leaks
                 binding.videoLayout.setOnTouchListener(null)
                 binding.playerView.setOnTouchListener(null)
                 binding.playerView.setOnLongClickListener(null)
+                binding.bufferingProgress.visibility = View.GONE
                 currentPlayingPosition = -1
 
                 if (isVideo(mediaItem)) {
@@ -123,6 +143,9 @@ class MediaPagerAdapter(
             if (sourceUrl.isNullOrEmpty()) return
             val id = mediaItem.Id ?: ""
 
+            // Hide buffering progress initially
+            binding.bufferingProgress.visibility = View.GONE
+
             // Show thumbnail first while player prepares
             binding.videoLayout.visibility = View.GONE
             binding.imageView.visibility = View.VISIBLE
@@ -141,29 +164,62 @@ class MediaPagerAdapter(
             // Set the video player to loop
             player.repeatMode = ExoPlayer.REPEAT_MODE_ONE
             
-            // Check if player is already ready, otherwise wait for it
-            if (player.playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
-                // Player is already ready, show video immediately
-                binding.imageView.visibility = View.GONE
-                binding.videoLayout.visibility = View.VISIBLE
-                binding.muteIcon.visibility = View.VISIBLE
-                player.playWhenReady = true
-            } else {
-                // Wait for player to be ready before showing video view
-                val listener = object : com.google.android.exoplayer2.Player.Listener {
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
+            // Remove any existing listener first to prevent duplicates
+            if (playerListener != null) {
+                player.removeListener(playerListener!!)
+            }
+            
+            // Create a listener to handle playback state and buffering
+            playerListener = object : com.google.android.exoplayer2.Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    when (playbackState) {
+                        com.google.android.exoplayer2.Player.STATE_READY -> {
                             // Player is ready, switch from thumbnail to video view
+                            // This fixes the issue when scrolling up - video will be shown when ready
                             binding.imageView.visibility = View.GONE
                             binding.videoLayout.visibility = View.VISIBLE
                             binding.muteIcon.visibility = View.VISIBLE
+                            binding.bufferingProgress.visibility = View.GONE // Hide buffering when ready
                             player.playWhenReady = true // Start playing
-                            // Remove listener to avoid memory leaks
-                            player.removeListener(this)
+                        }
+                        com.google.android.exoplayer2.Player.STATE_BUFFERING -> {
+                            // Show buffering indicator only when scrolling down
+                            // Don't show when scrolling up or when video layout is not visible
+                            if (isScrollingDown && binding.videoLayout.visibility == View.VISIBLE) {
+                                binding.bufferingProgress.visibility = View.VISIBLE
+                            } else {
+                                binding.bufferingProgress.visibility = View.GONE
+                            }
+                        }
+                        com.google.android.exoplayer2.Player.STATE_ENDED, 
+                        com.google.android.exoplayer2.Player.STATE_IDLE -> {
+                            binding.bufferingProgress.visibility = View.GONE
                         }
                     }
                 }
-                player.addListener(listener)
+                
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    // Hide buffering when video starts playing
+                    if (isPlaying) {
+                        binding.bufferingProgress.visibility = View.GONE
+                    }
+                }
+            }
+            
+            // Check if player is already ready
+            if (player.playbackState == com.google.android.exoplayer2.Player.STATE_READY) {
+                // Player is already ready, show video immediately
+                // This is important when scrolling up - if player was already prepared, show video right away
+                binding.imageView.visibility = View.GONE
+                binding.videoLayout.visibility = View.VISIBLE
+                binding.muteIcon.visibility = View.VISIBLE
+                binding.bufferingProgress.visibility = View.GONE
+                player.playWhenReady = true
+                // Still add listener for buffering state changes
+                player.addListener(playerListener!!)
+            } else {
+                // Wait for player to be ready before showing video view
+                player.addListener(playerListener!!)
             }
 
 
@@ -254,6 +310,8 @@ class MediaPagerAdapter(
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
+                        putExtra("LAT", DEFAULT_LAT)
+                        putExtra("LNG", DEFAULT_LNG)
                     }
 
                     MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
@@ -286,6 +344,8 @@ class MediaPagerAdapter(
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
+                        putExtra("LAT", DEFAULT_LAT)
+                        putExtra("LNG", DEFAULT_LNG)
                     }
 
                     MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
@@ -400,6 +460,8 @@ class MediaPagerAdapter(
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
+                        putExtra("LAT", DEFAULT_LAT)
+                        putExtra("LNG", DEFAULT_LNG)
                     }
 
                     MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
@@ -455,6 +517,8 @@ class MediaPagerAdapter(
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
+                        putExtra("LAT", DEFAULT_LAT)
+                        putExtra("LNG", DEFAULT_LNG)
                     }
 
                     MediaActionCallback.onMediaAction = { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
@@ -577,6 +641,8 @@ class MediaPagerAdapter(
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
         viewHolders.remove(holder)
+        // Clean up player listener to prevent memory leaks
+        holder.cleanup()
         // Do NOT release the global player here; the active post / adapter is
         // responsible for stopping playback when focus moves. Releasing from a
         // recycled ViewHolder can kill playback for the currently active post.

@@ -92,7 +92,7 @@
             android:focusableInTouchMode="true"
             android:duplicateParentState="false"
             app:cardCornerRadius="20dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="@android:color/transparent"
             app:strokeWidth="0dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -102,6 +102,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
+                android:background="@drawable/story_tag_background_blue"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
                 android:paddingTop="8dp"
@@ -113,14 +114,15 @@
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:src="@drawable/ic_location_blue"
-                    android:layout_marginEnd="6dp"/>
+                    android:layout_marginEnd="6dp"
+                    android:tint="@color/white"/>
                 
                 <TextView
                     android:id="@+id/locationButtonText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text=""
-                    android:textColor="@color/blue"
+                    android:textColor="@color/white"
                     android:textSize="12sp"
                     android:fontFamily="@font/comic_regular"/>
             </LinearLayout>

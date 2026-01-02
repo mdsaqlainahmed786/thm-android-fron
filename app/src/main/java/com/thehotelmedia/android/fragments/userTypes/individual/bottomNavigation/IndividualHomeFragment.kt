@@ -72,6 +72,8 @@ class IndividualHomeFragment : Fragment() {
     private var isScrolling = false
      private var isManualRefresh = false
      private var loadStateListenerAdded = false
+    private var lastScrollY = 0
+    private var isScrollingDown = true // Default to true for initial load
     // Removed debounceRunnable - we now use continuous scroll detection via viewTreeObserver
     // which is more reliable for video auto-play
 
@@ -404,11 +406,16 @@ class IndividualHomeFragment : Fragment() {
                 }
             }
             
-            // Keep scroll listener for swipe refresh detection
+            // Keep scroll listener for swipe refresh detection and scroll direction tracking
             binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     super.onScrolled(recyclerView, dx, dy)
                     isScrolling = true
+                    
+                    // Track scroll direction
+                    val currentScrollY = recyclerView.computeVerticalScrollOffset()
+                    isScrollingDown = currentScrollY > lastScrollY
+                    lastScrollY = currentScrollY
                 }
                 
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
@@ -498,7 +505,8 @@ class IndividualHomeFragment : Fragment() {
         activePosition = newPosition
         // Delegate item update logic to the adapter so it can decide which post
         // should have its media (video/image) in the active state.
-        feedAdapter.setActivePosition(newPosition)
+        // Pass scroll direction so adapter can control buffering indicator
+        feedAdapter.setActivePosition(newPosition, isScrollingDown)
     }
 
     private fun ensureLoadStateListener() {

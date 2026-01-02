@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Typeface
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.text.Spannable
@@ -37,7 +38,8 @@ import com.thehotelmedia.android.extensions.toFormattedDate
 // ChatAdapter.kt
 class ChatAdapter(
     private val context: Context,
-    private val onStoryClick: ((storyId: String, sentByMe: Boolean, storyCreatedAt: String?) -> Unit)? = null
+    private val onStoryClick: ((storyId: String, sentByMe: Boolean, storyCreatedAt: String?) -> Unit)? = null,
+    private val onMessageAction: ((message: Messages, action: String) -> Unit)? = null
 ) : PagingDataAdapter<Messages, ChatAdapter.ViewHolder>(ChatMessagesComparator) {
 
     inner class ViewHolder(val binding: ChatItemLayoutBinding) : RecyclerView.ViewHolder(binding.root)
@@ -111,10 +113,37 @@ class ChatAdapter(
         val abusiveWords = context.loadAbusiveWordsFromJson() // Load from JSON
         val messageText = msg.censorAbusiveWords(abusiveWords)
 
-        makeLinksClickable(binding.chatMessageText, messageText, Color.WHITE, Color.TRANSPARENT)
+        // Handle deleted messages
+        val isDeleted = message.isDeleted ?: false
+        if (isDeleted) {
+            binding.chatMessageText.visibility = View.GONE
+            binding.deletedMessageText.visibility = View.VISIBLE
+            val deletedText = if (message.sentByMe == true) {
+                "You deleted this message"
+            } else {
+                "This message was deleted"
+            }
+            binding.deletedMessageText.text = deletedText
+            binding.deletedMessageText.setTypeface(null, Typeface.ITALIC)
+        } else {
+            binding.chatMessageText.visibility = View.VISIBLE
+            binding.deletedMessageText.visibility = View.GONE
+            makeLinksClickable(binding.chatMessageText, messageText, Color.WHITE, Color.TRANSPARENT)
+        }
 
-        binding.timeText.text = formatDateTime(message.createdAt.toString())
-        binding.pdfNameTv.text  = message.message
+        // Handle edited label logic (Moved outside bubble as per user request)
+        binding.editedLabel.visibility = View.GONE
+        val isEdited = message.isEdited ?: false
+        val editedAt = message.editedAt
+
+        val timeStr = if (isEdited && !isDeleted && !editedAt.isNullOrEmpty()) {
+            "Edited · ${formatDateTime(editedAt)}"
+        } else {
+            formatDateTime(message.createdAt.toString())
+        }
+
+        binding.timeText.text = timeStr
+        binding.pdfNameTv.text  = if (isDeleted) "" else message.message
 
         // Handle different message types (text, image, video, pdf)
         when (type) {
@@ -126,9 +155,9 @@ class ChatAdapter(
             }
             "video", "image" -> {
                 binding.pdfLayout.visibility = View.GONE
-                binding.messageLayout.visibility = View.GONE
+                binding.messageLayout.visibility = if (isDeleted) View.VISIBLE else View.GONE
                 binding.storyLayout.visibility = View.GONE
-                binding.mediaLayout.visibility = View.VISIBLE
+                binding.mediaLayout.visibility = if (isDeleted) View.GONE else View.VISIBLE
 //                Glide.with(context).load(mediaUrl).placeholder(R.drawable.ic_post_placeholder).into(binding.chatMediaIv)
                 if (type == "video" ){
                     Glide.with(context).load(thumbnailUrl).placeholder(R.drawable.ic_post_placeholder).into(binding.chatMediaIv)
@@ -139,10 +168,10 @@ class ChatAdapter(
                 binding.playIcon.visibility = if (type == "video") View.VISIBLE else View.GONE
             }
             "pdf" -> {
-                binding.messageLayout.visibility = View.GONE
+                binding.messageLayout.visibility = if (isDeleted) View.VISIBLE else View.GONE
                 binding.mediaLayout.visibility = View.GONE
                 binding.storyLayout.visibility = View.GONE
-                binding.pdfLayout.visibility = View.VISIBLE
+                binding.pdfLayout.visibility = if (isDeleted) View.GONE else View.VISIBLE
             }
             "story-comment" -> {
                 binding.messageLayout.visibility = View.VISIBLE
@@ -194,12 +223,15 @@ class ChatAdapter(
                     binding.storyLayout.isFocusable = true
                 }else{
                     binding.storyIv.visibility = View.GONE
-                    binding.storyAvailableTv.visibility = View.VISIBLE
+                    binding.storyAvailableTv.visibility = if (isDeleted) View.GONE else View.VISIBLE
                     binding.storyAvailableTv.text = mediaUrl
                     // Clear click listener if story is not available
                     binding.storyLayout.setOnClickListener(null)
                 }
 
+                if (isDeleted) {
+                    binding.storyLayout.visibility = View.GONE
+                }
             }
         }
 
@@ -227,7 +259,31 @@ class ChatAdapter(
             binding.timeText.gravity = Gravity.START
         }
 
+        // Add long-press listener for text messages to show context menu
+        val isTextMessage = type == "text"
+        if (!isDeleted && isTextMessage) {
+            val longClickListener = View.OnLongClickListener {
+                // Show context menu
+                if (onMessageAction != null) {
+                    onMessageAction.invoke(message, "show_menu")
+                }
+                true
+            }
+            binding.root.setOnLongClickListener(longClickListener)
+            binding.messageLayout.setOnLongClickListener(longClickListener)
+            binding.chatMessageText.setOnLongClickListener(longClickListener)
+        } else {
+            binding.root.setOnLongClickListener(null)
+            binding.messageLayout.setOnLongClickListener(null)
+            binding.chatMessageText.setOnLongClickListener(null)
+        }
+
         binding.root.setOnClickListener {
+            // Don't handle clicks for deleted messages
+            if (isDeleted) {
+                return@setOnClickListener
+            }
+            
             // Don't handle story-comment clicks here - let storyLayout handle them
             if (type == "story-comment") {
                 return@setOnClickListener
@@ -284,7 +340,12 @@ class ChatAdapter(
         }
 
         override fun areContentsTheSame(oldItem: Messages, newItem: Messages): Boolean {
-            return oldItem == newItem
+            return oldItem.Id == newItem.Id &&
+                    oldItem.message == newItem.message &&
+                    oldItem.isEdited == newItem.isEdited &&
+                    oldItem.editedAt == newItem.editedAt &&
+                    oldItem.isDeleted == newItem.isDeleted &&
+                    oldItem.messageID == newItem.messageID
         }
     }
 

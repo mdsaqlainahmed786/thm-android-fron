@@ -7,6 +7,10 @@
     <item name="story_location_overlay_view" type="id" />
     <!-- Marker for the first user tag overlay (for position tracking) -->
     <item name="story_user_tag_first" type="id" />
+    <!-- Marker for user tag ID (stores the TagPeople.id) -->
+    <item name="story_user_tag_id" type="id" />
+    <!-- Marker for dynamically created user tag buttons -->
+    <item name="dynamic_user_tag_button" type="id" />
     
     <!-- UCrop toolbar button IDs -->
     <item name="ucrop_fab_cancel" type="id" />

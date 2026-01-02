@@ -10,9 +10,13 @@ import com.thehotelmedia.android.BuildConfig
 import com.thehotelmedia.android.SocketModals.chatScreen.ChatScreenModal
 import com.thehotelmedia.android.SocketModals.fetchConversation.FetchConversationModal
 import com.thehotelmedia.android.SocketModals.privateMessage.PrivateMessageModal
+import com.thehotelmedia.android.SocketModals.privateMessage.EditMessageResponse
+import com.thehotelmedia.android.SocketModals.privateMessage.DeleteMessageResponse
+import com.thehotelmedia.android.SocketModals.privateMessage.SocketError
 import com.thehotelmedia.android.SocketModals.users.UsersModal
 import io.socket.client.Socket
 import org.json.JSONObject
+import java.util.UUID
 
 class SocketViewModel : ViewModel() {
 
@@ -47,6 +51,15 @@ class SocketViewModel : ViewModel() {
 
     private val _conversationList = MutableLiveData<FetchConversationModal>()
     val conversationList: LiveData<FetchConversationModal> get() = _conversationList
+
+    private val _messageEdited = MutableLiveData<EditMessageResponse>()
+    val messageEdited: LiveData<EditMessageResponse> get() = _messageEdited
+
+    private val _messageDeleted = MutableLiveData<DeleteMessageResponse>()
+    val messageDeleted: LiveData<DeleteMessageResponse> get() = _messageDeleted
+
+    private val _socketError = MutableLiveData<SocketError>()
+    val socketError: LiveData<SocketError> get() = _socketError
 
     private lateinit var socketManager: SocketManager
     private var listenersAttached = false
@@ -259,6 +272,60 @@ class SocketViewModel : ViewModel() {
 
             }
         }
+
+        // Listen for 'edit message' event
+        socketManager.on("edit message") { args ->
+            if (args.isNotEmpty()) {
+                val json = args[0].toString()
+                println("dahfjhsadjkhas   edit message ${args[0]}")
+                try {
+                    val gson = Gson()
+                    val editResponse: EditMessageResponse = gson.fromJson(
+                        json,
+                        object : TypeToken<EditMessageResponse>() {}.type
+                    )
+                    _messageEdited.postValue(editResponse)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        // Listen for 'delete message' event
+        socketManager.on("delete message") { args ->
+            if (args.isNotEmpty()) {
+                val json = args[0].toString()
+                println("dahfjhsadjkhas   delete message ${args[0]}")
+                try {
+                    val gson = Gson()
+                    val deleteResponse: DeleteMessageResponse = gson.fromJson(
+                        json,
+                        object : TypeToken<DeleteMessageResponse>() {}.type
+                    )
+                    _messageDeleted.postValue(deleteResponse)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        // Listen for 'error' event
+        socketManager.on("error") { args ->
+            if (args.isNotEmpty()) {
+                val json = args[0].toString()
+                println("dahfjhsadjkhas   error ${args[0]}")
+                try {
+                    val gson = Gson()
+                    val error: SocketError = gson.fromJson(
+                        json,
+                        object : TypeToken<SocketError>() {}.type
+                    )
+                    _socketError.postValue(error)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
         
         listenersAttached = true
     }
@@ -338,15 +405,16 @@ class SocketViewModel : ViewModel() {
 
 
 
-    fun sendPrivateMessage(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, thumbnailUrl: String, mediaID: String, postID: String? = null, postOwnerUsername: String? = null) {
+    fun sendPrivateMessage(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, thumbnailUrl: String, mediaID: String, messageID: String, postID: String? = null, postOwnerUsername: String? = null) {
         // Create the JSON object for the "private message" event
         val jsonData = JSONObject()
 
         // Create the nested "message" object
-
+        
         val messageObject = JSONObject()
         messageObject.put("type", type)
         messageObject.put("message", message)
+        messageObject.put("messageID", messageID) // Add messageID
         messageObject.put("mediaUrl", recipientMediaUrl)
         messageObject.put("thumbnailUrl", thumbnailUrl)
         messageObject.put("mediaID", mediaID)
@@ -364,15 +432,16 @@ class SocketViewModel : ViewModel() {
     }
 
 
-    fun sendStoryComment(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, mediaId: String, storyId: String) {
+    fun sendStoryComment(type: String, message: String, recipientUsername: String, recipientMediaUrl: String, mediaId: String, storyId: String, messageID: String) {
         // Create the JSON object for the "private message" event
         val jsonData = JSONObject()
 
         // Create the nested "message" object
-
+        
         val messageObject = JSONObject()
         messageObject.put("type", type)
         messageObject.put("message", message)
+        messageObject.put("messageID", messageID) // Add messageID
         messageObject.put("mediaUrl", recipientMediaUrl)
         messageObject.put("mediaID", mediaId)
         messageObject.put("storyID", storyId)
@@ -435,5 +504,24 @@ class SocketViewModel : ViewModel() {
 
     private fun clearUsername() {
         userName = ""
+    }
+
+    /**
+     * Edit a message by sending edit message event to server
+     */
+    fun editMessage(messageID: String, newMessage: String) {
+        val jsonData = JSONObject()
+        jsonData.put("messageID", messageID)
+        jsonData.put("message", newMessage)
+        socketManager.emitEvent("edit message", jsonData)
+    }
+
+    /**
+     * Delete a message by sending delete message event to server
+     */
+    fun deleteMessage(messageID: String) {
+        val jsonData = JSONObject()
+        jsonData.put("messageID", messageID)
+        socketManager.emitEvent("delete message", jsonData)
     }
 }

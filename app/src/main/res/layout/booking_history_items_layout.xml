@@ -173,6 +173,29 @@
 
 
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cancelBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/_5sdp"
+                        android:visibility="gone"
+                        app:cardBackgroundColor="@color/red_50"
+                        app:strokeColor="@color/transparent">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginStart="@dimen/_7sdp"
+                            android:layout_marginTop="@dimen/_3sdp"
+                            android:layout_marginEnd="@dimen/_7sdp"
+                            android:layout_marginBottom="@dimen/_3sdp"
+                            android:fontFamily="@font/comic_regular"
+                            android:text="Cancel"
+                            android:textColor="@color/white"
+                            android:textSize="10sp" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
                         android:id="@+id/bookingCard"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

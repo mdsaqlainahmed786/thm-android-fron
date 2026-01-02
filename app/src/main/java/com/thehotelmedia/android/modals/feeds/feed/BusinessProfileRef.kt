@@ -13,6 +13,7 @@ data class BusinessProfileRef (
     @SerializedName("address"            ) var address               : Address?            = Address(),
     @SerializedName("businessTypeRef"    ) var businessTypeRef       : BusinessTypeRef?    = BusinessTypeRef(),
     @SerializedName("businessSubtypeRef" ) var businessSubtypeRef    : BusinessSubtypeRef? = BusinessSubtypeRef(),
-    @SerializedName("isFollowedByMe"     ) var isFollowedByMe        : Boolean?            = null
+    @SerializedName("isFollowedByMe"     ) var isFollowedByMe        : Boolean?            = null,
+    @SerializedName("privateAccount"     ) var privateAccount        : Boolean?            = null
 
 )

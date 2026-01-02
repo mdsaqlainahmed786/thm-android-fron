@@ -7,6 +7,7 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.util.Log
+import java.util.UUID
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.TextPaint
@@ -255,8 +256,11 @@ class StoryPagerAdapter(
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 val commentText = binding.commentEt.text.toString().trim()
                 if (commentText.isNotEmpty()) {
+                    // Generate messageID locally
+                    val messageID = UUID.randomUUID().toString().replace("-", "")
+
                     // Send comment via socket
-                    socketViewModel.sendStoryComment("story-comment",commentText,socketUserName,sourceUrl,mediaId,storyId)
+                    socketViewModel.sendStoryComment("story-comment",commentText,socketUserName,sourceUrl,mediaId,storyId, messageID)
                     
                     // Clear the EditText after sending
                     binding.commentEt.text?.clear()
@@ -317,40 +321,45 @@ class StoryPagerAdapter(
                 hideLocationViews(binding) // Explicitly hide if no location data
             }
             
-            // Display user tag if it exists - use floating button
-            // Get first tagged user for the user tag button
-            val firstTaggedUser = taggedPeople.firstOrNull()
+            // Display tagged users - prioritize taggedUsers array, fallback to old single user fields
+            val taggedUsers = story.taggedUsers ?: arrayListOf()
             
-            // Backend returns userTagged (name), but we may need ID from taggedRef
-            val userTaggedName = story.userTaggedName ?: firstTaggedUser?.name
-            val userTaggedX = story.userTaggedPositionX
-            val userTaggedY = story.userTaggedPositionY
+            // Log raw taggedUsers data for debugging
+            if (taggedUsers.isNotEmpty()) {
+                android.util.Log.d("StoryPagerAdapter", "=== RAW taggedUsers data from API ===")
+                taggedUsers.forEachIndexed { idx, user ->
+                    android.util.Log.d("StoryPagerAdapter", "  [$idx] userTagged='${user.userTagged}', userTaggedId='${user.userTaggedId}', positionX=${user.positionX}, positionY=${user.positionY}")
+                }
+                android.util.Log.d("StoryPagerAdapter", "=== End raw taggedUsers data ===")
+            }
             
-            // Determine the final user ID - prioritize story.userTaggedId, then firstTaggedUser.Id
-            val finalUserId = story.userTaggedId 
-                ?: firstTaggedUser?.Id
-                ?: ""
-            
-            android.util.Log.d("StoryPagerAdapter", "User tag data - userTaggedName: $userTaggedName, story.userTaggedId: '${story.userTaggedId}', firstTaggedUser?.Id: '${firstTaggedUser?.Id}', finalUserId: '$finalUserId', userTaggedX: $userTaggedX, userTaggedY: $userTaggedY, taggedPeople count: ${taggedPeople.size}")
-            
-            // Show the tag if we have a name (ID may be missing for older stories, but we still show the tag)
-            if (!userTaggedName.isNullOrEmpty()) {
-                // Show the tag - click handler will handle missing ID gracefully
-                android.util.Log.d("StoryPagerAdapter", "Showing user tag - name: $userTaggedName, id: '$finalUserId' (${if (finalUserId.isNotEmpty()) "with navigation" else "no ID - click will show toast"})")
-                setupUserTagButton(binding, userTaggedName, finalUserId, userTaggedX, userTaggedY)
-            } else if (taggedPeople.isNotEmpty() && firstTaggedUser != null) {
-                // Fallback: If we have taggedPeople but no userTaggedName, use the first tagged user
-                val name = firstTaggedUser.name
-                val id = firstTaggedUser.Id ?: ""
-                if (!name.isNullOrEmpty()) {
-                    android.util.Log.d("StoryPagerAdapter", "Using first tagged user as fallback - name: $name, id: '$id'")
-                    setupUserTagButton(binding, name, id, userTaggedX, userTaggedY)
+            if (taggedUsers.isNotEmpty()) {
+                // New format: Multiple tagged users from taggedUsers array
+                android.util.Log.d("StoryPagerAdapter", "Found ${taggedUsers.size} tagged users in taggedUsers array")
+                setupMultipleUserTagButtons(binding, taggedUsers)
+            } else {
+                // Old format: Single tagged user (backward compatibility - no position data available)
+                val firstTaggedUser = taggedPeople.firstOrNull()
+                val userTaggedName = story.userTaggedName ?: firstTaggedUser?.name
+                val finalUserId = story.userTaggedId ?: firstTaggedUser?.Id ?: ""
+                
+                android.util.Log.d("StoryPagerAdapter", "Using old format - userTaggedName: $userTaggedName, userTaggedId: '$finalUserId' (no position data - using default)")
+                
+                if (!userTaggedName.isNullOrEmpty()) {
+                    // userTaggedPositionX and userTaggedPositionY are no longer used - pass null for default positioning
+                    setupUserTagButton(binding, userTaggedName, finalUserId, null, null)
+                } else if (taggedPeople.isNotEmpty() && firstTaggedUser != null) {
+                    val name = firstTaggedUser.name
+                    val id = firstTaggedUser.Id ?: ""
+                    if (!name.isNullOrEmpty()) {
+                        // userTaggedPositionX and userTaggedPositionY are no longer used - pass null for default positioning
+                        setupUserTagButton(binding, name, id, null, null)
+                    } else {
+                        hideUserTagViews(binding)
+                    }
                 } else {
                     hideUserTagViews(binding)
                 }
-            } else {
-                android.util.Log.d("StoryPagerAdapter", "No user tag data found - hiding user tag views")
-                hideUserTagViews(binding)
             }
         } else {
             binding.taggedPeopleTv.visibility = View.GONE
@@ -513,14 +522,15 @@ class StoryPagerAdapter(
                 locationButtonCard.layoutParams = it
             }
             
-            binding.root.post {
+            // Position function that can be called multiple times if needed
+            fun positionLocationTag() {
                 val parentWidth = binding.root.width.toFloat()
                 val parentHeight = binding.root.height.toFloat()
                 
                 android.util.Log.d("StoryPagerAdapter", "Positioning location tag - parentWidth: $parentWidth, parentHeight: $parentHeight, locationX: $locationX, locationY: $locationY")
                 
                 if (parentWidth > 0 && parentHeight > 0) {
-                    if (locationX != null && locationY != null) {
+                    if (locationX != null && locationY != null && locationX > 0f && locationY > 0f) {
                         // Use saved position (normalized 0.0-1.0 converted to pixels)
                         val xPosition = locationX * parentWidth
                         val yPosition = locationY * parentHeight
@@ -531,12 +541,20 @@ class StoryPagerAdapter(
                         // Default position: top-left area (matching Create Story default)
                         locationButtonCard.x = parentWidth * 0.12f  // 12% from left
                         locationButtonCard.y = parentHeight * 0.20f  // 20% from top
-                        android.util.Log.d("StoryPagerAdapter", "Using default position - x: ${locationButtonCard.x}, y: ${locationButtonCard.y} (locationX and locationY are null)")
+                        android.util.Log.d("StoryPagerAdapter", "Using default position - x: ${locationButtonCard.x}, y: ${locationButtonCard.y} (locationX=$locationX, locationY=$locationY)")
                     }
                 } else {
-                    android.util.Log.w("StoryPagerAdapter", "Cannot position location tag - invalid parent dimensions (width: $parentWidth, height: $parentHeight)")
+                    android.util.Log.w("StoryPagerAdapter", "Cannot position location tag - invalid parent dimensions (width: $parentWidth, height: $parentHeight), will retry")
+                    // Retry after a short delay if dimensions are not ready
+                    binding.root.postDelayed({ positionLocationTag() }, 100)
                 }
             }
+            
+            // Initial positioning attempt
+            binding.root.post { positionLocationTag() }
+            
+            // Also try positioning after a short delay to handle cases where media loads later
+            binding.root.postDelayed({ positionLocationTag() }, 300)
             
             // Bring to front to ensure it's above other views (image/video/navigation buttons)
             locationButtonCard.bringToFront()
@@ -599,6 +617,263 @@ class StoryPagerAdapter(
         val userTagButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.userTagButtonCard)
         userTagButtonCard?.visibility = View.GONE
         userTagButtonCard?.setOnClickListener(null)
+        
+        // Also remove any dynamically created user tag buttons
+        val rootView = binding.root as? android.view.ViewGroup
+        rootView?.let { root ->
+            val viewsToRemove = mutableListOf<android.view.View>()
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child.getTag(R.id.dynamic_user_tag_button) as? Boolean == true) {
+                    viewsToRemove.add(child)
+                }
+            }
+            viewsToRemove.forEach { root.removeView(it) }
+        }
+    }
+    
+    /**
+     * Calculate the visible media bounds within the container.
+     * Accounts for centerCrop/zoom scaling where media maintains aspect ratio.
+     * 
+     * @param binding The story screen binding
+     * @return Pair of (visibleWidth, visibleHeight) representing the actual visible media dimensions,
+     *         or null if media dimensions cannot be determined
+     */
+    private fun getVisibleMediaBounds(binding: StoryScreenLayoutBinding): Pair<Float, Float>? {
+        val containerWidth = binding.root.width.toFloat()
+        val containerHeight = binding.root.height.toFloat()
+        
+        if (containerWidth <= 0 || containerHeight <= 0) {
+            return null
+        }
+        
+        // With centerCrop/zoom scaling, the media is scaled to fill the container while maintaining aspect ratio.
+        // The visible area is always the container dimensions (media is cropped if aspect ratios differ).
+        // Therefore, we can use container dimensions directly as the visible bounds.
+        // This approach works regardless of the actual media dimensions.
+        return Pair(containerWidth, containerHeight)
+    }
+    
+    /**
+     * Transform coordinates from reference size (1080x1920) to actual display coordinates.
+     * Accounts for media scaling and container dimensions.
+     * 
+     * @param positionX X coordinate in reference pixel space (1080x1920)
+     * @param positionY Y coordinate in reference pixel space (1080x1920)
+     * @param binding The story screen binding
+     * @return Pair of (x, y) in actual display pixel coordinates, or null if transformation fails
+     */
+    private fun transformPositionToDisplay(
+        positionX: Float,
+        positionY: Float,
+        binding: StoryScreenLayoutBinding
+    ): Pair<Float, Float>? {
+        val standardReferenceWidth = 1080f
+        val standardReferenceHeight = 1920f
+        
+        // Get visible media bounds
+        val visibleBounds = getVisibleMediaBounds(binding) ?: return null
+        val visibleWidth = visibleBounds.first
+        val visibleHeight = visibleBounds.second
+        
+        // Normalize the reference pixel positions (0.0-1.0)
+        val normalizedX = (positionX / standardReferenceWidth).coerceIn(0f, 1f)
+        val normalizedY = (positionY / standardReferenceHeight).coerceIn(0f, 1f)
+        
+        // Scale normalized positions to visible media bounds
+        val displayX = normalizedX * visibleWidth
+        val displayY = normalizedY * visibleHeight
+        
+        android.util.Log.d("StoryPagerAdapter", "Transform position - reference: ($positionX, $positionY), normalized: ($normalizedX, $normalizedY), visible bounds: ($visibleWidth, $visibleHeight), display: ($displayX, $displayY)")
+        
+        return Pair(displayX, displayY)
+    }
+    
+    /**
+     * Setup multiple user tag buttons for all tagged users
+     */
+    private fun setupMultipleUserTagButtons(binding: StoryScreenLayoutBinding, taggedUsers: List<com.thehotelmedia.android.modals.Stories.TaggedUser>) {
+        android.util.Log.d("StoryPagerAdapter", "setupMultipleUserTagButtons called with ${taggedUsers.size} tagged users")
+        
+        // Hide the default single user tag button
+        val userTagButtonCard = binding.root.findViewById<com.google.android.material.card.MaterialCardView>(R.id.userTagButtonCard)
+        userTagButtonCard?.visibility = View.GONE
+        
+        // Remove any existing dynamically created user tag buttons
+        val rootView = binding.root as? android.view.ViewGroup
+        rootView?.let { root ->
+            val viewsToRemove = mutableListOf<android.view.View>()
+            for (i in 0 until root.childCount) {
+                val child = root.getChildAt(i)
+                if (child.getTag(R.id.dynamic_user_tag_button) as? Boolean == true) {
+                    viewsToRemove.add(child)
+                }
+            }
+            android.util.Log.d("StoryPagerAdapter", "Removing ${viewsToRemove.size} existing dynamic user tag buttons")
+            viewsToRemove.forEach { root.removeView(it) }
+        }
+        
+        // Create a button for each tagged user
+        taggedUsers.forEachIndexed { index, taggedUser ->
+            val userName = taggedUser.userTagged ?: taggedUser.user?.name ?: ""
+            val userId = taggedUser.userTaggedId ?: taggedUser.user?.Id ?: ""
+            val positionX = taggedUser.positionX
+            val positionY = taggedUser.positionY
+            
+            android.util.Log.d("StoryPagerAdapter", "Processing tagged user[$index]: userName='$userName', userId='$userId', positionX=$positionX, positionY=$positionY")
+            
+            // CRITICAL: Validate that we have valid position data
+            if (positionX == null || positionY == null) {
+                android.util.Log.e("StoryPagerAdapter", "✗ MISSING POSITION DATA for tagged user[$index] '$userName' (userId='$userId') - positionX=$positionX, positionY=$positionY")
+            } else if (positionX < 0f || positionY < 0f || positionX > 1080f || positionY > 1920f) {
+                android.util.Log.e("StoryPagerAdapter", "✗ INVALID POSITION RANGE for tagged user[$index] '$userName' (userId='$userId') - positionX=$positionX (expected 0-1080), positionY=$positionY (expected 0-1920)")
+            }
+            
+            if (userName.isNotEmpty()) {
+                android.util.Log.d("StoryPagerAdapter", "Creating dynamic user tag button for user[$index]: $userName")
+                createDynamicUserTagButton(binding, userName, userId, positionX, positionY, index)
+            } else {
+                android.util.Log.w("StoryPagerAdapter", "Skipping tagged user[$index] - userName is empty (userId='$userId')")
+            }
+        }
+        
+        android.util.Log.d("StoryPagerAdapter", "Finished setupMultipleUserTagButtons - created buttons for ${taggedUsers.count { (it.userTagged ?: it.user?.name ?: "").isNotEmpty() }} users")
+    }
+    
+    /**
+     * Create a dynamic user tag button
+     */
+    private fun createDynamicUserTagButton(
+        binding: StoryScreenLayoutBinding,
+        userName: String,
+        userId: String,
+        positionX: Float?,
+        positionY: Float?,
+        index: Int
+    ) {
+        val root = binding.root as? android.view.ViewGroup ?: return
+        
+        // Create MaterialCardView programmatically
+        val userTagButtonCard = com.google.android.material.card.MaterialCardView(context).apply {
+            layoutParams = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT,
+                androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                leftToLeft = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
+                leftMargin = 0
+                topMargin = 0
+            }
+            visibility = View.VISIBLE
+            elevation = 50f
+            isClickable = true
+            isFocusable = true
+            isFocusableInTouchMode = true
+            radius = context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._20sdp).toFloat()
+            setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(context, R.color.white))
+            strokeWidth = 0
+            setTag(R.id.dynamic_user_tag_button, true)
+        }
+        
+        // Create inner LinearLayout
+        val linearLayout = android.widget.LinearLayout(context).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(
+                context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._12sdp),
+                context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._8sdp),
+                context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._12sdp),
+                context.resources.getDimensionPixelSize(com.intuit.sdp.R.dimen._8sdp)
+            )
+            isClickable = false
+            isFocusable = false
+        }
+        
+        // Create TextView
+        val textView = android.widget.TextView(context).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            val displayName = if (userName.startsWith("@")) userName else "@$userName"
+            text = displayName
+            setTextColor(androidx.core.content.ContextCompat.getColor(context, R.color.blue))
+            textSize = 12f
+            typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.comic_regular)
+        }
+        
+        linearLayout.addView(textView)
+        userTagButtonCard.addView(linearLayout)
+        root.addView(userTagButtonCard)
+        
+        // Position the button - use a function that can be called multiple times if needed
+        fun positionButton() {
+            val parentWidth = root.width.toFloat()
+            val parentHeight = root.height.toFloat()
+            
+            if (parentWidth > 0 && parentHeight > 0) {
+                // CRITICAL: Allow positionX >= 0 and positionY >= 0 (0 is a valid position at the edge)
+                // Also check that positions are within reasonable bounds (not negative and not absurdly large)
+                if (positionX != null && positionY != null && positionX >= 0f && positionY >= 0f && 
+                    positionX <= 1080f && positionY <= 1920f) {
+                    // Transform position from reference size (1080x1920) to actual display coordinates
+                    // This accounts for media scaling, aspect ratio, and container dimensions
+                    val displayPosition = transformPositionToDisplay(positionX, positionY, binding)
+                    
+                    if (displayPosition != null) {
+                        userTagButtonCard.x = displayPosition.first
+                        userTagButtonCard.y = displayPosition.second
+                        
+                        android.util.Log.d("StoryPagerAdapter", "✓ Positioned dynamic user tag[$index] '$userName' - reference pixels: ($positionX, $positionY), display: (${displayPosition.first}, ${displayPosition.second}), container: ($parentWidth, $parentHeight)")
+                    } else {
+                        // Fallback: use simple scaling if transformation fails
+                        val standardReferenceWidth = 1080f
+                        val standardReferenceHeight = 1920f
+                        val normalizedX = (positionX / standardReferenceWidth).coerceIn(0f, 1f)
+                        val normalizedY = (positionY / standardReferenceHeight).coerceIn(0f, 1f)
+                        userTagButtonCard.x = normalizedX * parentWidth
+                        userTagButtonCard.y = normalizedY * parentHeight
+                        android.util.Log.w("StoryPagerAdapter", "⚠ Transform failed for dynamic user tag[$index] '$userName', using fallback scaling - reference: ($positionX, $positionY), normalized: ($normalizedX, $normalizedY), display: (${userTagButtonCard.x}, ${userTagButtonCard.y})")
+                    }
+                } else {
+                    // Invalid or missing positions - log warning and use default
+                    android.util.Log.e("StoryPagerAdapter", "✗ INVALID POSITION for dynamic user tag[$index] '$userName' - positionX=$positionX, positionY=$positionY (must be 0-1080 for X, 0-1920 for Y)")
+                    // Default position with slight offset for multiple tags
+                    userTagButtonCard.x = parentWidth * 0.25f
+                    userTagButtonCard.y = parentHeight * (0.25f + index * 0.1f).coerceAtMost(0.75f)
+                    android.util.Log.d("StoryPagerAdapter", "Using default position for dynamic user tag[$index] '$userName' at x: ${userTagButtonCard.x}, y: ${userTagButtonCard.y}")
+                }
+            } else {
+                android.util.Log.w("StoryPagerAdapter", "Cannot position dynamic user tag[$index] - invalid parent dimensions (width: $parentWidth, height: $parentHeight), will retry")
+                // Retry after a short delay if dimensions are not ready
+                root.postDelayed({ positionButton() }, 100)
+            }
+        }
+        
+        // Initial positioning attempt
+        root.post { positionButton() }
+        
+        // Also try positioning after a short delay to handle cases where media loads later
+        root.postDelayed({ positionButton() }, 300)
+        
+        // Bring to front
+        userTagButtonCard.bringToFront()
+        
+        // Set click listener
+        userTagButtonCard.setOnClickListener {
+            pauseStory(binding)
+            if (userId.isNotEmpty()) {
+                moveToProfileDetailsActivity(userId)
+            } else {
+                android.widget.Toast.makeText(context, "Unable to open profile. User ID not available.", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
     }
     
     private fun setupUserTagButton(binding: StoryScreenLayoutBinding, userName: String, userId: String, userTaggedX: Float? = null, userTaggedY: Float? = null) {
@@ -633,14 +908,15 @@ class StoryPagerAdapter(
                 userTagButtonCard.layoutParams = it
             }
             
-            binding.root.post {
+            // Position function that can be called multiple times if needed
+            fun positionUserTag() {
                 val parentWidth = binding.root.width.toFloat()
                 val parentHeight = binding.root.height.toFloat()
                 
                 android.util.Log.d("StoryPagerAdapter", "Positioning user tag - parentWidth: $parentWidth, parentHeight: $parentHeight, userTaggedX: $userTaggedX, userTaggedY: $userTaggedY")
                 
                 if (parentWidth > 0 && parentHeight > 0) {
-                    if (userTaggedX != null && userTaggedY != null) {
+                    if (userTaggedX != null && userTaggedY != null && userTaggedX > 0f && userTaggedY > 0f) {
                         // Use saved position (normalized 0.0-1.0 converted to pixels)
                         val xPosition = userTaggedX * parentWidth
                         val yPosition = userTaggedY * parentHeight
@@ -651,12 +927,20 @@ class StoryPagerAdapter(
                         // Default position: top-left area (matching Create Story default)
                         userTagButtonCard.x = parentWidth * 0.25f  // 25% from left
                         userTagButtonCard.y = parentHeight * 0.25f  // 25% from top
-                        android.util.Log.d("StoryPagerAdapter", "Using default position for user tag - x: ${userTagButtonCard.x}, y: ${userTagButtonCard.y} (userTaggedX and userTaggedY are null)")
+                        android.util.Log.d("StoryPagerAdapter", "Using default position for user tag - x: ${userTagButtonCard.x}, y: ${userTagButtonCard.y} (userTaggedX=$userTaggedX, userTaggedY=$userTaggedY)")
                     }
                 } else {
-                    android.util.Log.w("StoryPagerAdapter", "Cannot position user tag - invalid parent dimensions (width: $parentWidth, height: $parentHeight)")
+                    android.util.Log.w("StoryPagerAdapter", "Cannot position user tag - invalid parent dimensions (width: $parentWidth, height: $parentHeight), will retry")
+                    // Retry after a short delay if dimensions are not ready
+                    binding.root.postDelayed({ positionUserTag() }, 100)
                 }
             }
+            
+            // Initial positioning attempt
+            binding.root.post { positionUserTag() }
+            
+            // Also try positioning after a short delay to handle cases where media loads later
+            binding.root.postDelayed({ positionUserTag() }, 300)
             
             // Bring to front to ensure it's above other views
             userTagButtonCard.bringToFront()

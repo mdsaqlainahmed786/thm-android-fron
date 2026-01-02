@@ -35,8 +35,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 app:resize_mode="zoom"
-                app:use_controller="false" />
+                app:use_controller="false"
+                app:show_buffering="never" />
 
+            <!-- Custom Progress Indicator (shown only when scrolling down and buffering) -->
+            <ProgressBar
+                android:id="@+id/bufferingProgress"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:indeterminateTint="@color/blue"
+                android:visibility="gone"
+                style="?android:attr/progressBarStyle" />
 
             <!-- Mute/Unmute Icon -->
             <com.google.android.material.imageview.ShapeableImageView

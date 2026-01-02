@@ -121,6 +121,7 @@ class FeedAdapter(
     private var dotsIndicator: SpringDotsIndicator? = null
 
     private var activePosition = 0 // No active position initially
+    private var isScrollingDown = true // Track scroll direction for buffering control
 
     companion object {
         private const val VIEW_TYPE_HEADER = -1
@@ -453,17 +454,28 @@ class FeedAdapter(
             // Always create a fresh MediaPagerAdapter for this bind so that the
             // isActive flag (which controls video autoplay vs. thumbnail-only) is
             // in sync with the current adapter position.
-            mediaPagerAdapter = MediaPagerAdapter(context, mediaList, isActive,postId,isPostLiked,likeCount,commentCount, individualViewModal)
-            { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                post.comments = updatedCommentCount
-                post.likedByMe = updatedIsLikedByMe
-                post.likes = updatedLikeCount
-                updateLikeBtn(updatedIsLikedByMe, binding.likeIv)
-                binding.likeTv.text = formatCount(updatedLikeCount)
-                binding.commentTv.text = formatCount(updatedCommentCount)
-                // Update MediaPagerAdapter's internal state so double-tap works correctly
-                mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
-            }
+            // Pass scroll direction to control buffering indicator visibility
+            mediaPagerAdapter = MediaPagerAdapter(
+                context, 
+                mediaList, 
+                isActive,
+                postId,
+                isPostLiked,
+                likeCount,
+                commentCount, 
+                individualViewModal,
+                { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                    post.comments = updatedCommentCount
+                    post.likedByMe = updatedIsLikedByMe
+                    post.likes = updatedLikeCount
+                    updateLikeBtn(updatedIsLikedByMe, binding.likeIv)
+                    binding.likeTv.text = formatCount(updatedLikeCount)
+                    binding.commentTv.text = formatCount(updatedCommentCount)
+                    // Update MediaPagerAdapter's internal state so double-tap works correctly
+                    mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
+                },
+                isScrollingDown
+            )
             binding.viewPager.adapter = mediaPagerAdapter
             // Reset to first media item when adapter changes to ensure proper binding
             binding.viewPager.setCurrentItem(0, false)
@@ -1924,11 +1936,12 @@ class FeedAdapter(
         }
     }
 
-    fun setActivePosition(newPosition: Int) {
+    fun setActivePosition(newPosition: Int, isScrollingDown: Boolean = true) {
         if (newPosition == activePosition) return
 
         val previous = activePosition
         activePosition = newPosition
+        this.isScrollingDown = isScrollingDown // Store scroll direction
 
         // Stop any currently playing inline video before switching the active
         // feed item so only one post can play at a time.

@@ -19,5 +19,9 @@ data class Messages (
   @SerializedName("__v"       ) var _v        : Int?     = null,
   @SerializedName("sentByMe"  ) var sentByMe  : Boolean? = null,
   @SerializedName("isStoryAvailable"  ) var isStoryAvailable  : Boolean? = null,
+  @SerializedName("messageID" ) var messageID : String?  = null,
+  @SerializedName("isEdited"  ) var isEdited  : Boolean? = null,
+  @SerializedName("editedAt"  ) var editedAt  : String?  = null,
+  @SerializedName("isDeleted", alternate = ["deleted", "is_deleted"]) var isDeleted : Boolean? = null
 
 )

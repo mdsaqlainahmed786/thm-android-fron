@@ -87,13 +87,14 @@ class StoriesPagingSource(
                         location = myStory.location,  // CRITICAL: Preserve location data from API response
                         locationPositionX = myStory.locationPositionX,  // Preserve x position
                         locationPositionY = myStory.locationPositionY,  // Preserve y position
-                        userTaggedName = myStory.userTaggedName,  // Preserve user tag name
-                        userTaggedId = myStory.userTaggedId,  // Preserve user tag ID
-                        userTaggedPositionX = myStory.userTaggedPositionX,  // Preserve x position
-                        userTaggedPositionY = myStory.userTaggedPositionY   // Preserve y position
+                        taggedUsers = myStory.taggedUsers,  // Preserve tagged users array
+                        userTaggedName = myStory.userTaggedName,  // Preserve user tag name (backward compatibility)
+                        userTaggedId = myStory.userTaggedId,  // Preserve user tag ID (backward compatibility)
+                        userTaggedPositionX = myStory.userTaggedPositionX,  // Preserve x position (backward compatibility)
+                        userTaggedPositionY = myStory.userTaggedPositionY   // Preserve y position (backward compatibility)
                     ).also {
                         // Log to verify all data is being preserved, especially userTaggedId
-                        Log.d(tag, "Converted MyStories to StoriesRef - location: ${it.location}, placeName: ${it.location?.placeName}, lat: ${it.location?.lat}, lng: ${it.location?.lng}, x: ${it.locationPositionX}, y: ${it.locationPositionY}, userTaggedName: '${it.userTaggedName}', userTaggedId: '${it.userTaggedId}', userTaggedX: ${it.userTaggedPositionX}, userTaggedY: ${it.userTaggedPositionY}")
+                        Log.d(tag, "Converted MyStories to StoriesRef - location: ${it.location}, placeName: ${it.location?.placeName}, lat: ${it.location?.lat}, lng: ${it.location?.lng}, x: ${it.locationPositionX}, y: ${it.locationPositionY}, taggedUsers count: ${it.taggedUsers?.size ?: 0}, userTaggedName: '${it.userTaggedName}', userTaggedId: '${it.userTaggedId}', userTaggedX: ${it.userTaggedPositionX}, userTaggedY: ${it.userTaggedPositionY}")
                         // Additional debug log specifically for userTaggedId
                         if (it.userTaggedName != null && it.userTaggedId == null) {
                             Log.w(tag, "WARNING: Story has userTaggedName '${it.userTaggedName}' but userTaggedId is NULL! This story may need to be re-created after backend update.")

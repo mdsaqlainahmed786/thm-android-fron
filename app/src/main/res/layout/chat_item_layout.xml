@@ -172,7 +172,7 @@
         android:background="@drawable/msg_receiver_background"
         android:orientation="vertical">
         <TextView
-            android:textIsSelectable="true"
+            android:textIsSelectable="false"
             android:id="@+id/chatMessageText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -182,6 +182,32 @@
             android:textColor="@color/white"
             android:textSize="14sp"
             android:maxWidth="@dimen/_240sdp" />
+
+        <TextView
+            android:id="@+id/deletedMessageText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:text="This message was deleted"
+            android:fontFamily="@font/comic_regular"
+            android:textColor="@color/white_70"
+            android:textSize="14sp"
+            android:maxWidth="@dimen/_240sdp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/editedLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/chatMessageText"
+            android:layout_alignStart="@id/chatMessageText"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="2dp"
+            android:text="Edited"
+            android:fontFamily="@font/comic_regular"
+            android:textColor="@color/white_70"
+            android:textSize="10sp"
+            android:visibility="gone" />
 
 
 

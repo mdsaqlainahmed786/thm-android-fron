@@ -302,33 +302,34 @@ class SavedFeedAdapter(
                 isPostLiked,
                 likeCount,
                 commentCount,
-                individualViewModal
-            ){ updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
-                android.util.Log.d("SavedFeedAdapter", "onLikeClicked callback received: isLiked=$updatedIsLikedByMe, likeCount=$updatedLikeCount")
+                individualViewModal,
+                { updatedIsLikedByMe, updatedLikeCount, updatedCommentCount ->
+                    android.util.Log.d("SavedFeedAdapter", "onLikeClicked callback received: isLiked=$updatedIsLikedByMe, likeCount=$updatedLikeCount")
 
-                // Update local variables to keep them in sync
-                isPostLiked = updatedIsLikedByMe
-                likeCount = updatedLikeCount
-                commentCount = updatedCommentCount
+                    // Update local variables to keep them in sync
+                    isPostLiked = updatedIsLikedByMe
+                    likeCount = updatedLikeCount
+                    commentCount = updatedCommentCount
 
-                // Update the post data
-                post.likedByMe = updatedIsLikedByMe
-                post.likes = updatedLikeCount
-                post.comments = updatedCommentCount
+                    // Update the post data
+                    post.likedByMe = updatedIsLikedByMe
+                    post.likes = updatedLikeCount
+                    post.comments = updatedCommentCount
 
-                // Update UI exactly like the like button does - CRITICAL: This must update the counter
-                binding.likeIv.setImageResource(if (updatedIsLikedByMe) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon)
-                val formattedCount = formatCount(updatedLikeCount)
-                android.util.Log.d("SavedFeedAdapter", "Updating likeTv.text to: $formattedCount (from count: $updatedLikeCount)")
-                binding.likeTv.text = formattedCount
-                binding.commentTv.text = formatCount(updatedCommentCount)
+                    // Update UI exactly like the like button does - CRITICAL: This must update the counter
+                    binding.likeIv.setImageResource(if (updatedIsLikedByMe) R.drawable.ic_like_icon else R.drawable.ic_unlike_icon)
+                    val formattedCount = formatCount(updatedLikeCount)
+                    android.util.Log.d("SavedFeedAdapter", "Updating likeTv.text to: $formattedCount (from count: $updatedLikeCount)")
+                    binding.likeTv.text = formattedCount
+                    binding.commentTv.text = formatCount(updatedCommentCount)
 
-                // Add scale animation to like button when double-tapped
-                animateLikeButtonScale(binding.likeIv)
+                    // Add scale animation to like button when double-tapped
+                    animateLikeButtonScale(binding.likeIv)
 
-                // Update MediaPagerAdapter's internal state so double-tap works correctly
-                mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
-            }
+                    // Update MediaPagerAdapter's internal state so double-tap works correctly
+                    mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
+                }
+            )
             binding.viewPager.adapter = mediaPagerAdapter
             binding.mediaLayout.visibility = View.VISIBLE
             

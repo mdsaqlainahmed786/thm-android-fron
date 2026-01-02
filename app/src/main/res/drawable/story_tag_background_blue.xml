@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- White pill background so blue text is clearly visible - matches MaterialCardView styling -->
-    <solid android:color="@color/white" />
+    <!-- Gradient background: purplish-blue to magenta -->
+    <gradient
+        android:type="linear"
+        android:angle="0"
+        android:startColor="#6B46C1"
+        android:endColor="#E91E63" />
     <corners android:radius="20dp" />
 </shape>
-
-
