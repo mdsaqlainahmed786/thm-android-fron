@@ -574,7 +574,10 @@ class IndividualRepo (private val context: Context){
         lng: Double?,
         locationX: Float? = null,
         locationY: Float? = null,
-        taggedUsers: List<com.thehotelmedia.android.modals.forms.TaggedUser> = emptyList()
+        userTaggedId: String? = null,
+        userTaggedName: String? = null,
+        userTaggedX: Float? = null,
+        userTaggedY: Float? = null
     ): Response<CreateStoryModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
@@ -609,23 +612,14 @@ class IndividualRepo (private val context: Context){
         val locationPositionXBody = locationX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val locationPositionYBody = locationY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         
-        // Convert taggedUsers to individual form fields - only support single user tagging for now
-        // Take the first tagged user if available, otherwise send null
-        val firstTaggedUser = taggedUsers.firstOrNull()
-        val userTaggedBody = firstTaggedUser?.userTagged?.toRequestBody("text/plain".toMediaTypeOrNull())
-        val userTaggedIdBody = firstTaggedUser?.userTaggedId?.toRequestBody("text/plain".toMediaTypeOrNull())
-        val userTaggedPositionXBody = firstTaggedUser?.positionX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
-        val userTaggedPositionYBody = firstTaggedUser?.positionY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        // Convert user tag data to RequestBody
+        val userTaggedBody = userTaggedName?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedIdBody = userTaggedId?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedXBody = userTaggedX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedYBody = userTaggedY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         
         android.util.Log.d("IndividualRepo", "Creating story with location - placeName: $placeName, lat: $lat, lng: $lng, locationPositionX: $locationX, locationPositionY: $locationY")
-        if (firstTaggedUser != null) {
-            android.util.Log.d("IndividualRepo", "Creating story with tagged user: ${firstTaggedUser.userTagged} (${firstTaggedUser.userTaggedId}) at (${firstTaggedUser.positionX}, ${firstTaggedUser.positionY})")
-            if (taggedUsers.size > 1) {
-                android.util.Log.w("IndividualRepo", "Warning: Multiple users tagged (${taggedUsers.size}), but only sending first user: ${firstTaggedUser.userTagged}")
-            }
-        } else {
-            android.util.Log.d("IndividualRepo", "Creating story with no tagged users")
-        }
+        android.util.Log.d("IndividualRepo", "Creating story with user tag - userTaggedId: $userTaggedId, userTaggedName: $userTaggedName, userTaggedX: $userTaggedX, userTaggedY: $userTaggedY")
         
         // Make the API call
         return withContext(Dispatchers.IO) {
@@ -642,8 +636,8 @@ class IndividualRepo (private val context: Context){
                 locationPositionYBody, 
                 userTaggedBody, 
                 userTaggedIdBody, 
-                userTaggedPositionXBody, 
-                userTaggedPositionYBody
+                userTaggedXBody, 
+                userTaggedYBody
             ).execute()
         }
     }

@@ -109,10 +109,11 @@ class CreateStoryActivity : BaseActivity() {
     private var selectedLocationX: Float? = null  // Normalized x position (0.0-1.0)
     private var selectedLocationY: Float? = null  // Normalized y position (0.0-1.0)
     private var locationOverlayView: View? = null  // Reference to the location overlay view
-    // Map to track all user tag overlays: TagPeople.id -> View
-    private val userTagOverlayViews: MutableMap<String, View> = mutableMapOf()
-    // Map to track user tag positions: TagPeople.id -> Pair(x, y) normalized positions
-    private val userTagPositions: MutableMap<String, Pair<Float, Float>> = mutableMapOf()
+    private var selectedUserTagX: Float? = null  // Normalized x position (0.0-1.0) for first user tag
+    private var selectedUserTagY: Float? = null  // Normalized y position (0.0-1.0) for first user tag
+    private var userTagOverlayView: View? = null  // Reference to the first user tag overlay view
+    private var selectedUserTagId: String? = null  // ID of the first tagged user
+    private var selectedUserTagName: String? = null  // Name of the first tagged user
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var locationHelper: LocationHelper
 
@@ -1031,31 +1032,25 @@ class CreateStoryActivity : BaseActivity() {
                         }
                     }
                     
-                    // Check if any user tag overlays were removed
-                    val currentUserTagIds = (0 until binding.photoEditorView.childCount)
+                    // Check if first user tag overlay was removed
+                    val currentFirstUserTag = (0 until binding.photoEditorView.childCount)
                         .mapNotNull { binding.photoEditorView.getChildAt(it) }
-                        .mapNotNull { view ->
-                            view.getTag(R.id.story_user_tag_id) as? String
+                        .firstOrNull { view ->
+                            view.getTag(R.id.story_user_tag_first) as? Boolean ?: false
                         }
-                        .toSet()
                     
-                    // Remove entries for user tags that no longer exist
-                    val removedUserIds = userTagOverlayViews.keys.filter { it !in currentUserTagIds }
-                    removedUserIds.forEach { userId ->
-                        Log.d("CreateStoryActivity", "User tag overlay removed for user: $userId")
-                        userTagOverlayViews.remove(userId)
-                        userTagPositions.remove(userId)
+                    if (currentFirstUserTag == null && userTagOverlayView != null) {
+                        // First user tag overlay was removed
+                        Log.d("CreateStoryActivity", "First user tag overlay removed")
+                        userTagOverlayView = null
+                        selectedUserTagId = null
+                        selectedUserTagName = null
+                        selectedUserTagX = null
+                        selectedUserTagY = null
+                    } else if (currentFirstUserTag != null && currentFirstUserTag != userTagOverlayView) {
+                        // First user tag overlay reference changed
+                        userTagOverlayView = currentFirstUserTag
                     }
-                    
-                    // Update userTagOverlayViews map with current overlays
-                    (0 until binding.photoEditorView.childCount)
-                        .mapNotNull { binding.photoEditorView.getChildAt(it) }
-                        .forEach { view ->
-                            val userId = view.getTag(R.id.story_user_tag_id) as? String
-                            if (userId != null) {
-                                userTagOverlayViews[userId] = view
-                            }
-                        }
                     
                     // Check if activeTextOverlay was removed
                     if (activeTextOverlay != null) {
@@ -1143,21 +1138,10 @@ class CreateStoryActivity : BaseActivity() {
                                 updateLocationPosition(view)
                             }
                             
-                            // Update user tag position if this is a user tag overlay (IMMEDIATELY)
-                            val userId = view.getTag(R.id.story_user_tag_id) as? String
-                            if (userId != null) {
-                                val viewWidth = binding.photoEditorView.width.toFloat()
-                                val viewHeight = binding.photoEditorView.height.toFloat()
-                                if (viewWidth > 0 && viewHeight > 0) {
-                                    // Use the final position (either restored or new)
-                                    val finalX = view.x
-                                    val finalY = view.y
-                                    val normalizedX = (finalX / viewWidth).coerceIn(0f, 1f)
-                                    val normalizedY = (finalY / viewHeight).coerceIn(0f, 1f)
-                                    userTagPositions[userId] = Pair(normalizedX, normalizedY)
-                                    Log.d("CreateStoryActivity", "✓ IMMEDIATELY updated position for userId $userId: final ($finalX, $finalY), normalized ($normalizedX, $normalizedY)")
-                                }
-                                updateUserTagPosition(view, userId)
+                            // Update user tag position if this is the first user tag overlay
+                            val isFirstUserTag = view.getTag(R.id.story_user_tag_first) as? Boolean ?: false
+                            if (isFirstUserTag) {
+                                updateUserTagPosition(view)
                             }
                         }
                     }
@@ -1184,20 +1168,10 @@ class CreateStoryActivity : BaseActivity() {
                                     updateLocationPosition(view)
                                 }
                                 
-                                // Update user tag position if this is a user tag overlay
-                                val userId = view.getTag(R.id.story_user_tag_id) as? String
-                                if (userId != null) {
-                                    val viewWidth = binding.photoEditorView.width.toFloat()
-                                    val viewHeight = binding.photoEditorView.height.toFloat()
-                                    if (viewWidth > 0 && viewHeight > 0) {
-                                        val overlayX = view.x
-                                        val overlayY = view.y
-                                        val normalizedX = (overlayX / viewWidth).coerceIn(0f, 1f)
-                                        val normalizedY = (overlayY / viewHeight).coerceIn(0f, 1f)
-                                        userTagPositions[userId] = Pair(normalizedX, normalizedY)
-                                        Log.d("CreateStoryActivity", "✓ POST updated position for userId $userId: overlay ($overlayX, $overlayY), normalized ($normalizedX, $normalizedY)")
-                                    }
-                                    updateUserTagPosition(view, userId)
+                                // Update user tag position if this is the first user tag overlay
+                                val isFirstUserTag = view.getTag(R.id.story_user_tag_first) as? Boolean ?: false
+                                if (isFirstUserTag) {
+                                    updateUserTagPosition(view)
                                 }
                             }
                         }
@@ -1708,187 +1682,52 @@ class CreateStoryActivity : BaseActivity() {
     private fun postStory(imageFile: File?, videoFile: File?) {
         val selectedTagIdList = selectedTagPeopleList.map { it.id }
         
-        // CRITICAL: Re-verify overlay views exist in view hierarchy and read ACTUAL positions
-        // Sometimes overlay references can become stale, so we need to find them fresh
-        val verifiedOverlays = mutableMapOf<String, View>()
-        val childCount = binding.photoEditorView.childCount
-        for (i in 0 until childCount) {
-            val child = binding.photoEditorView.getChildAt(i)
-            val userId = child?.getTag(R.id.story_user_tag_id) as? String
-            if (userId != null && child != null) {
-                verifiedOverlays[userId] = child
-                Log.d("CreateStoryActivity", "✓ Verified overlay exists for userId: $userId")
-            }
-        }
-        
-        // Update userTagOverlayViews with verified overlays
-        userTagOverlayViews.clear()
-        userTagOverlayViews.putAll(verifiedOverlays)
-        
-        // CRITICAL: Read ACTUAL current positions from verified overlay views RIGHT NOW
-        // Update both viewPositions (pixel) and userTagPositions (normalized) for consistency
-        val viewWidth = binding.photoEditorView.width.toFloat()
-        val viewHeight = binding.photoEditorView.height.toFloat()
-        if (viewWidth > 0 && viewHeight > 0) {
-            userTagOverlayViews.forEach { (userId, overlay) ->
-                // Priority: Use viewPositions if available (most reliable), otherwise use actual bounds
-                val pixelPos = viewPositions[overlay]
-                val overlayX = pixelPos?.first ?: overlay.left.toFloat()  // Use bounds.left (top-left)
-                val overlayY = pixelPos?.second ?: overlay.top.toFloat()  // Use bounds.top (top-left)
-                
-                if (overlayX >= 0f && overlayY >= 0f && overlayX <= viewWidth && overlayY <= viewHeight) {
-                    // Update viewPositions with current position (top-left coordinates)
-                    viewPositions[overlay] = Pair(overlayX, overlayY)
-                    
-                    // Update normalized position (Y=0 is top, Y=1 is bottom)
-                    val normalizedX = (overlayX / viewWidth).coerceIn(0f, 1f)
-                    val normalizedY = (overlayY / viewHeight).coerceIn(0f, 1f)
-                    userTagPositions[userId] = Pair(normalizedX, normalizedY)
-                    Log.d("CreateStoryActivity", "✓ FINAL SYNC position for $userId: pixel top-left ($overlayX, $overlayY), normalized ($normalizedX, $normalizedY), viewSize ($viewWidth, $viewHeight)")
-                } else {
-                    Log.w("CreateStoryActivity", "⚠ Invalid position for $userId: ($overlayX, $overlayY), viewSize ($viewWidth, $viewHeight)")
-                }
-            }
-        } else {
-            Log.e("CreateStoryActivity", "✗ Invalid view dimensions: $viewWidth x $viewHeight")
-        }
-        
+        // Update location position if exists
         locationOverlayView?.let { overlay ->
-            val viewWidth = binding.photoEditorView.width.toFloat()
-            val viewHeight = binding.photoEditorView.height.toFloat()
-            if (viewWidth > 0 && viewHeight > 0) {
-                selectedLocationX = (overlay.x / viewWidth).coerceIn(0f, 1f)
-                selectedLocationY = (overlay.y / viewHeight).coerceIn(0f, 1f)
-                Log.d("CreateStoryActivity", "Synchronously updated location position: ($selectedLocationX, $selectedLocationY)")
-            }
+            updateLocationPosition(overlay)
         }
         
-        // Use post to ensure view is fully laid out, then read positions one final time
-        binding.photoEditorView.post {
-            // Final position update to catch any last-minute changes
-            userTagOverlayViews.forEach { (userId, overlay) ->
-                updateUserTagPosition(overlay, userId)
-            }
-            locationOverlayView?.let { overlay ->
-                updateLocationPosition(overlay)
-            }
-            
-            // Small delay to ensure position updates are complete
-            binding.photoEditorView.postDelayed({
-                postStoryWithPositions(imageFile, selectedTagIdList)
-            }, 100)
-        }
-    }
-    
-    private fun postStoryWithPositions(imageFile: File?, selectedTagIdList: List<String>) {
-        // Get video file if exists
-        val videoFile = currentVideoUri?.let { uri ->
-            try {
-                val file = File(uri.path ?: "")
-                if (file.exists()) file else null
-            } catch (e: Exception) {
-                null
-            }
-        }
-        
-        // Create list of tagged users with their positions (convert normalized to pixel values)
-        val viewWidth = binding.photoEditorView.width.toFloat()
-        val viewHeight = binding.photoEditorView.height.toFloat()
-        
-        Log.d("CreateStoryActivity", "postStoryWithPositions - view dimensions: $viewWidth x $viewHeight")
-        
-        // Build taggedUsers list by reading positions directly from overlay views
-        // Use map instead of mapIndexedNotNull to ensure ALL users are included
-        Log.d("CreateStoryActivity", "Building taggedUsers list from ${selectedTagPeopleList.size} selected users")
-        selectedTagPeopleList.forEachIndexed { index, tagPerson ->
-            Log.d("CreateStoryActivity", "  [$index] User: ${tagPerson.name} (ID: ${tagPerson.id})")
-            Log.d("CreateStoryActivity", "    - Has overlay: ${userTagOverlayViews.containsKey(tagPerson.id)}")
-            Log.d("CreateStoryActivity", "    - Has position: ${userTagPositions.containsKey(tagPerson.id)}")
-        }
-        
-        // Positions are normalized (0.0-1.0) relative to view dimensions
-        // This ensures positions work correctly across all device sizes
-        
-        val taggedUsers = selectedTagPeopleList.mapIndexed { index, tagPerson ->
-            val normalizedX: Float
-            val normalizedY: Float
-            
-            // CRITICAL: Use viewPositions as PRIMARY source - it contains the final position after drag
-            // This is the most reliable source because it's updated immediately when drag ends
-            val overlay = userTagOverlayViews[tagPerson.id]
-            if (overlay != null && viewWidth > 0 && viewHeight > 0) {
-                // Use actual visual bounds (left/top) to get the true top-left position
-                // bounds.left and bounds.top always represent the top-left corner of the view
-                val actualLeft = overlay.left.toFloat()
-                val actualTop = overlay.top.toFloat()
-                
-                // Priority 1: Use viewPositions (contains final position after drag) if available and valid
-                val storedPixelPos = viewPositions[overlay]
-                if (storedPixelPos != null && storedPixelPos.first >= 0f && storedPixelPos.second >= 0f) {
-                    // Use stored position (most reliable after drag - already in top-left coordinates)
-                    normalizedX = (storedPixelPos.first / viewWidth).coerceIn(0f, 1f)
-                    normalizedY = (storedPixelPos.second / viewHeight).coerceIn(0f, 1f)
-                    Log.d("CreateStoryActivity", "✓ Using viewPositions for ${tagPerson.name} (${tagPerson.id}): pixel ($storedPixelPos.first, $storedPixelPos.second), normalized ($normalizedX, $normalizedY)")
-                } else if (actualLeft >= 0f && actualTop >= 0f && actualLeft <= viewWidth && actualTop <= viewHeight) {
-                    // Priority 2: Use actual bounds (top-left corner) - most reliable visual position
-                    normalizedX = (actualLeft / viewWidth).coerceIn(0f, 1f)
-                    normalizedY = (actualTop / viewHeight).coerceIn(0f, 1f)
-                    Log.d("CreateStoryActivity", "✓ Using overlay bounds (top-left) for ${tagPerson.name} (${tagPerson.id}): pixel ($actualLeft, $actualTop), normalized ($normalizedX, $normalizedY)")
-                } else {
-                    // Priority 3: Use normalized stored position
-                    val normalizedPosition = userTagPositions[tagPerson.id]
-                    if (normalizedPosition != null) {
-                        normalizedX = normalizedPosition.first.coerceIn(0f, 1f)
-                        normalizedY = normalizedPosition.second.coerceIn(0f, 1f)
-                        Log.w("CreateStoryActivity", "⚠ Using userTagPositions for ${tagPerson.name}: ($normalizedX, $normalizedY)")
-                    } else {
-                        // Last resort: default with offset
-                        val baseX = 0.25f
-                        val baseY = 0.25f
-                        val offsetY = (index * 0.1f).coerceAtMost(0.5f)
-                        normalizedX = baseX
-                        normalizedY = (baseY + offsetY).coerceAtMost(0.75f).coerceIn(0f, 1f)
-                        Log.e("CreateStoryActivity", "✗ NO POSITION FOUND for ${tagPerson.name} - using default: ($normalizedX, $normalizedY)")
+        // Re-find first user tag overlay if reference is lost or update position if exists
+        if (userTagOverlayView == null && selectedTagPeopleList.isNotEmpty()) {
+            // Try to find the first user tag overlay
+            val parent = binding.photoEditorView
+            for (i in 0 until parent.childCount) {
+                val child = parent.getChildAt(i)
+                val isFirstUserTag = child.getTag(R.id.story_user_tag_first) as? Boolean ?: false
+                if (isFirstUserTag) {
+                    userTagOverlayView = child
+                    val userId = child.getTag(R.id.story_user_tag_id) as? String
+                    if (userId != null && selectedUserTagId == null) {
+                        // Recover user ID and name from selectedTagPeopleList
+                        val tagPerson = selectedTagPeopleList.firstOrNull { it.id == userId }
+                        if (tagPerson != null) {
+                            selectedUserTagId = tagPerson.id
+                            selectedUserTagName = tagPerson.name
+                        }
                     }
-                }
-            } else {
-                // Overlay not found, try stored normalized position
-                val normalizedPosition = userTagPositions[tagPerson.id]
-                if (normalizedPosition != null) {
-                    normalizedX = normalizedPosition.first.coerceIn(0f, 1f)
-                    normalizedY = normalizedPosition.second.coerceIn(0f, 1f)
-                    Log.w("CreateStoryActivity", "⚠ Overlay not found for ${tagPerson.name}, using userTagPositions: ($normalizedX, $normalizedY)")
-                } else {
-                    // Last resort: default with offset
-                    val baseX = 0.25f
-                    val baseY = 0.25f
-                    val offsetY = (index * 0.1f).coerceAtMost(0.5f)
-                    normalizedX = baseX
-                    normalizedY = (baseY + offsetY).coerceAtMost(0.75f).coerceIn(0f, 1f)
-                    Log.e("CreateStoryActivity", "✗ NO OVERLAY OR POSITION for ${tagPerson.name} - using default: ($normalizedX, $normalizedY)")
+                    break
                 }
             }
-            
-            // Send normalized position (0.0-1.0) directly to backend
-            // This ensures positions are consistent across different device sizes (matching location tags)
-            val positionX = normalizedX  // Already normalized (0.0-1.0)
-            val positionY = normalizedY  // Already normalized (0.0-1.0)
-            
-            Log.d("CreateStoryActivity", "Tagged user ${tagPerson.id}: normalized position ($positionX, $positionY) - sending as normalized coordinates")
-            
-            TaggedUser(
-                userTagged = tagPerson.name ?: "",
-                userTaggedId = tagPerson.id,
-                positionX = positionX,
-                positionY = positionY
-            )
         }
         
-        // Pass location position (x/y) to API so it can be stored and used in Story Viewer
+        // Update first user tag position if exists
+        userTagOverlayView?.let { overlay ->
+            updateUserTagPosition(overlay)
+        }
+        
         Log.d("CreateStoryActivity", "Posting story with location - placeName: $selectedLocationLabel, lat: $selectedLocationLat, lng: $selectedLocationLng, x: $selectedLocationX, y: $selectedLocationY")
-        Log.d("CreateStoryActivity", "Posting story with ${taggedUsers.size} tagged users")
-        taggedUsers.forEach { taggedUser ->
-            Log.d("CreateStoryActivity", "  - User: ${taggedUser.userTagged} (${taggedUser.userTaggedId}) at (${taggedUser.positionX}, ${taggedUser.positionY})")
+        Log.d("CreateStoryActivity", "Posting story with user tag - userId: $selectedUserTagId, name: $selectedUserTagName, x: $selectedUserTagX, y: $selectedUserTagY")
+        Log.d("CreateStoryActivity", "Tagged users count: ${selectedTagPeopleList.size}, selectedTagIdList: $selectedTagIdList")
+        
+        // Verify we have the required data
+        if (selectedTagPeopleList.isNotEmpty() && (selectedUserTagId == null || selectedUserTagName == null)) {
+            Log.w("CreateStoryActivity", "⚠ WARNING: User tagged but first user tag data is missing! Using first user from list as fallback.")
+            val firstTagPerson = selectedTagPeopleList.first()
+            if (selectedUserTagId == null) selectedUserTagId = firstTagPerson.id
+            if (selectedUserTagName == null) selectedUserTagName = firstTagPerson.name
+            // Use default position if not set
+            if (selectedUserTagX == null) selectedUserTagX = 0.25f
+            if (selectedUserTagY == null) selectedUserTagY = 0.25f
         }
         
         individualViewModal.createStory(
@@ -1900,7 +1739,10 @@ class CreateStoryActivity : BaseActivity() {
             selectedLocationLng,
             selectedLocationX,  // Normalized x position (0.0-1.0)
             selectedLocationY,  // Normalized y position (0.0-1.0)
-            taggedUsers  // List of all tagged users with positions
+            selectedUserTagId,  // First tagged user ID
+            selectedUserTagName,  // First tagged user name
+            selectedUserTagX,  // Normalized x position (0.0-1.0)
+            selectedUserTagY   // Normalized y position (0.0-1.0)
         )
     }
 
@@ -1932,7 +1774,7 @@ class CreateStoryActivity : BaseActivity() {
 
     /**
      * Create non-editable, movable blue @username overlays directly on the story preview.
-     * These behave like text stickers but can only be removed (via the X button), not edited.
+     * Only tracks the first tagged user for position and API.
      */
     private fun updateStoryTagOverlays() {
         // Remove any existing tag overlays first
@@ -1953,6 +1795,13 @@ class CreateStoryActivity : BaseActivity() {
             }
         }
 
+        // Reset first user tag tracking
+        userTagOverlayView = null
+        selectedUserTagId = null
+        selectedUserTagName = null
+        selectedUserTagX = null
+        selectedUserTagY = null
+
         // Add a new overlay for each selected person
         if (selectedTagPeopleList.isEmpty()) return
 
@@ -1962,34 +1811,31 @@ class CreateStoryActivity : BaseActivity() {
 
             val textStyleBuilder = TextStyleBuilder().apply {
                 withTextColor(ContextCompat.getColor(activity, R.color.blue))
-                // White background for tagged users
-                ContextCompat.getDrawable(activity, R.drawable.story_tag_background_white)
+                ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
                     ?.let { withBackgroundDrawable(it) }
                 ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
             }
 
             photoEditor.addText(displayName, textStyleBuilder)
 
-            // Configure the newly added overlay - use a longer delay and find by text content
+            // Configure the newly added overlay
             binding.photoEditorView.postDelayed({
-                // Find overlay by matching text content to avoid race conditions with multiple adds
-                val overlay = findOverlayByText(displayName) ?: return@postDelayed
+                // Find overlay by text content to ensure we get the correct one when multiple are added
+                val overlay = findOverlayByText(displayName) ?: getLatestTextOverlay() ?: return@postDelayed
                 
-                // Skip if already configured
+                // Skip if already configured as a tag overlay
                 val isAlreadyTagged = overlay.getTag(R.id.story_tag_overlay_view) as? Boolean ?: false
                 if (isAlreadyTagged) return@postDelayed
-
+                
                 overlay.setTag(R.id.story_tag_overlay_view, true)
-                overlay.setTag(R.id.story_user_tag_id, tagPerson.id)
-
+                
                 val textView = overlay.findViewById<TextView>(R.id.tvPhotoEditorText)
                 val editIcon = overlay.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
-
+                
                 textView?.apply {
                     text = displayName
                     setTextColor(ContextCompat.getColor(activity, R.color.blue))
-                    background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_white)
-                    // Match location tag UI: 12sp text size, ellipsize, padding
+                    background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
                     textSize = 12f
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
@@ -2001,8 +1847,20 @@ class CreateStoryActivity : BaseActivity() {
                     )
                 }
                 
-                // Track all user tags for position and API
-                userTagOverlayViews[tagPerson.id] = overlay
+                // Track first user tag for position and API
+                if (index == 0) {
+                    overlay.setTag(R.id.story_user_tag_first, true)
+                    overlay.setTag(R.id.story_user_tag_id, tagPerson.id)  // Store ID in tag for recovery
+                    userTagOverlayView = overlay
+                    selectedUserTagId = tagPerson.id
+                    selectedUserTagName = tagPerson.name
+                    Log.d("CreateStoryActivity", "✓ First user tag tracked - userId: $selectedUserTagId, name: $selectedUserTagName")
+                    // Update position after layout
+                    binding.photoEditorView.post {
+                        updateUserTagPosition(overlay)
+                        Log.d("CreateStoryActivity", "✓ First user tag position updated - x: $selectedUserTagX, y: $selectedUserTagY")
+                    }
+                }
 
                 // Hide edit pencil so user cannot edit the mention text
                 editIcon?.visibility = View.GONE
@@ -2019,11 +1877,6 @@ class CreateStoryActivity : BaseActivity() {
 
                 // Record initial position for position monitoring logic
                 viewPositions[overlay] = Pair(overlay.x, overlay.y)
-                
-                // Update position after setting x/y - use post to ensure layout is complete
-                binding.photoEditorView.post {
-                    updateUserTagPosition(overlay, tagPerson.id)
-                }
                 
                 // Force configureTextOverlay to ensure it's properly set up
                 configureTextOverlay(overlay)
@@ -2144,36 +1997,18 @@ class CreateStoryActivity : BaseActivity() {
     }
     
     /**
-     * Update the stored user tag position (normalized 0.0-1.0) for a tagged user
-     * Captures the top-left corner position of the overlay relative to photoEditorView
+     * Update the stored user tag position (normalized 0.0-1.0) for the first tagged user
+     * Captures the position of the overlay relative to photoEditorView
      */
-    private fun updateUserTagPosition(overlay: View, userId: String) {
+    private fun updateUserTagPosition(overlay: View) {
         val viewWidth = binding.photoEditorView.width.toFloat()
         val viewHeight = binding.photoEditorView.height.toFloat()
-        
         if (viewWidth > 0 && viewHeight > 0) {
-            // Use actual visual bounds (left/top) to get the true top-left position
-            // bounds.left and bounds.top always represent the top-left corner of the view
-            // This ensures consistency regardless of how PhotoEditor internally manages coordinates
-            val overlayX = overlay.left.toFloat()  // Top-left X coordinate
-            val overlayY = overlay.top.toFloat()   // Top-left Y coordinate
-            
-            // Normalize to 0.0-1.0 range relative to photoEditorView dimensions
-            // Y=0 is top, Y=1.0 is bottom (standard Android coordinates)
-            val normalizedX = (overlayX / viewWidth).coerceIn(0f, 1f)
-            val normalizedY = (overlayY / viewHeight).coerceIn(0f, 1f)
-            
-            userTagPositions[userId] = Pair(normalizedX, normalizedY)
-            Log.d("CreateStoryActivity", "Updated user tag position for $userId - overlay top-left bounds: ($overlayX, $overlayY), normalized: ($normalizedX, $normalizedY), view size: ($viewWidth, $viewHeight)")
-            
-            // Update viewPositions map with top-left coordinates for consistency
-            viewPositions[overlay] = Pair(overlayX, overlayY)
+            selectedUserTagX = overlay.x / viewWidth
+            selectedUserTagY = overlay.y / viewHeight
+            Log.d("CreateStoryActivity", "Updated user tag position - x: $selectedUserTagX, y: $selectedUserTagY (overlay.x: ${overlay.x}, overlay.y: ${overlay.y}, width: $viewWidth, height: $viewHeight)")
         } else {
-            Log.w("CreateStoryActivity", "Cannot update user tag position - view dimensions are invalid (width: $viewWidth, height: $viewHeight), will retry")
-            // Retry after a short delay if dimensions aren't ready
-            binding.photoEditorView.postDelayed({
-                updateUserTagPosition(overlay, userId)
-            }, 100)
+            Log.w("CreateStoryActivity", "Cannot update user tag position - view dimensions are invalid (width: $viewWidth, height: $viewHeight)")
         }
     }
     
@@ -2361,12 +2196,15 @@ class CreateStoryActivity : BaseActivity() {
                 val viewParent = view.parent as? ViewGroup
                 viewParent?.removeView(view)
                 
-                // Remove from userTagOverlayViews map using userId tag
-                val userId = view.getTag(R.id.story_user_tag_id) as? String
-                if (userId != null) {
-                    userTagOverlayViews.remove(userId)
-                    userTagPositions.remove(userId)
-                    Log.d("CreateStoryActivity", "User tag overlay removed for user: $userId")
+                // Check if this is the first user tag overlay and clear it if so
+                val isFirstUserTag = view.getTag(R.id.story_user_tag_first) as? Boolean ?: false
+                if (isFirstUserTag && view == userTagOverlayView) {
+                    userTagOverlayView = null
+                    selectedUserTagId = null
+                    selectedUserTagName = null
+                    selectedUserTagX = null
+                    selectedUserTagY = null
+                    Log.d("CreateStoryActivity", "First user tag overlay removed")
                 }
                 Log.d("CreateStoryActivity", "User tag overlay removed from photoEditor before saving")
             } catch (e: Exception) {
