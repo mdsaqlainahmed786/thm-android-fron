@@ -1458,6 +1458,16 @@ class IndividualRepo (private val context: Context){
             return@withContext call.cancelBooking(accessToken,bookingId).execute()
         }
     }
+    suspend fun userCancelBooking(bookingId: String): Response<DeleteModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.userCancelBooking(accessToken,bookingId).execute()
+        }
+    }
     suspend fun sentOtpToNumber(dialCode: String,phoneNumber: String): Response<DeleteModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
