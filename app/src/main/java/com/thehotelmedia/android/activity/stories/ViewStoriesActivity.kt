@@ -76,6 +76,20 @@ class ViewStoriesActivity : BaseActivity() {
 //            val story = Gson().fromJson(jsonString, Stories::class.java)
             val storiesList = Gson().fromJson(jsonString, Array<Stories>::class.java).toList()
             println("sadjfgajsg  Retrieved storiesList: $storiesList")
+            
+            // DEBUG: Log user tagging data from deserialized stories
+            android.util.Log.d("ViewStoriesActivity", "=== DESERIALIZED STORIES DEBUG ===")
+            android.util.Log.d("ViewStoriesActivity", "Total stories: ${storiesList.size}")
+            storiesList.forEachIndexed { userIndex, stories ->
+                android.util.Log.d("ViewStoriesActivity", "User[$userIndex] - id: ${stories.id}, name: ${stories.name}, storiesRef count: ${stories.storiesRef.size}")
+                stories.storiesRef.forEachIndexed { storyIndex, storyRef ->
+                    android.util.Log.d("ViewStoriesActivity", "  Story[$storyIndex] ID: ${storyRef.Id}")
+                    android.util.Log.d("ViewStoriesActivity", "    userTaggedName: '${storyRef.userTaggedName}', userTaggedId: '${storyRef.userTaggedId}'")
+                    android.util.Log.d("ViewStoriesActivity", "    userTaggedPositionX: ${storyRef.userTaggedPositionX}, userTaggedPositionY: ${storyRef.userTaggedPositionY}")
+                    android.util.Log.d("ViewStoriesActivity", "    taggedUsers array size: ${storyRef.taggedUsers?.size ?: 0}")
+                }
+            }
+            android.util.Log.d("ViewStoriesActivity", "===================================")
 
             // Ensure stories inside each user are ordered from oldest to newest
             val chronologicallySortedStories = storiesList.map { stories ->

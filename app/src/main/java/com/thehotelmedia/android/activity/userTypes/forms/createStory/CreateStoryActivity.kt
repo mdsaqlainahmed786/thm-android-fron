@@ -1094,8 +1094,23 @@ class CreateStoryActivity : BaseActivity() {
                     child?.let { view ->
                         val isOverlay = view.findViewById<TextView>(R.id.tvPhotoEditorText) != null
                         if (isOverlay) {
-                            val currentX = view.x
-                            val currentY = view.y
+                            // Use the actual visual position (left/top bounds) to ensure we get top-left coordinates
+                            // overlay.x and overlay.y might not always match left/top if PhotoEditor uses different coordinate system
+                            val actualLeft = view.left.toFloat()
+                            val actualTop = view.top.toFloat()
+                            val overlayX = view.x
+                            val overlayY = view.y
+                            
+                            // Use actual bounds (left/top) as they represent the true visual position
+                            // This ensures consistency - bounds.left/top are always top-left corner
+                            val currentX = actualLeft
+                            val currentY = actualTop
+                            
+                            // Log both for debugging
+                            if (kotlin.math.abs(overlayX - actualLeft) > 1f || kotlin.math.abs(overlayY - actualTop) > 1f) {
+                                Log.d("CreateStoryActivity", "Coordinate mismatch: overlay.x/y=($overlayX, $overlayY) vs bounds.left/top=($actualLeft, $actualTop)")
+                            }
+                            
                             val storedPos = viewPositions[view]
                             
                             // Check if position was reset to center (both X and Y)
@@ -1115,9 +1130,9 @@ class CreateStoryActivity : BaseActivity() {
                                 viewPositions[view] = storedPos
                                 Log.d("CreateStoryActivity", "Restored position for overlay: ($currentX, $currentY) -> (${storedPos.first}, ${storedPos.second})")
                             } else {
-                                // Position is valid - update viewPositions with the NEW position after drag
+                                // Position is valid - update viewPositions with the NEW position after drag (using top-left)
                                 viewPositions[view] = Pair(currentX, currentY)
-                                Log.d("CreateStoryActivity", "Captured final position after drag: ($currentX, $currentY)")
+                                Log.d("CreateStoryActivity", "Captured final position after drag (top-left): ($currentX, $currentY), view.size=(${view.width}, ${view.height})")
                             }
                             
                             removeGravityConstraints(view)
@@ -1716,22 +1731,22 @@ class CreateStoryActivity : BaseActivity() {
         val viewHeight = binding.photoEditorView.height.toFloat()
         if (viewWidth > 0 && viewHeight > 0) {
             userTagOverlayViews.forEach { (userId, overlay) ->
-                // Priority: Use viewPositions if available (most reliable), otherwise read from overlay
+                // Priority: Use viewPositions if available (most reliable), otherwise use actual bounds
                 val pixelPos = viewPositions[overlay]
-                val overlayX = pixelPos?.first ?: overlay.x
-                val overlayY = pixelPos?.second ?: overlay.y
+                val overlayX = pixelPos?.first ?: overlay.left.toFloat()  // Use bounds.left (top-left)
+                val overlayY = pixelPos?.second ?: overlay.top.toFloat()  // Use bounds.top (top-left)
                 
-                if (overlayX >= 0f && overlayY >= 0f) {
-                    // Update viewPositions with current position
+                if (overlayX >= 0f && overlayY >= 0f && overlayX <= viewWidth && overlayY <= viewHeight) {
+                    // Update viewPositions with current position (top-left coordinates)
                     viewPositions[overlay] = Pair(overlayX, overlayY)
                     
-                    // Update normalized position
+                    // Update normalized position (Y=0 is top, Y=1 is bottom)
                     val normalizedX = (overlayX / viewWidth).coerceIn(0f, 1f)
                     val normalizedY = (overlayY / viewHeight).coerceIn(0f, 1f)
                     userTagPositions[userId] = Pair(normalizedX, normalizedY)
-                    Log.d("CreateStoryActivity", "✓ FINAL SYNC position for $userId: pixel ($overlayX, $overlayY), normalized ($normalizedX, $normalizedY), viewSize ($viewWidth, $viewHeight)")
+                    Log.d("CreateStoryActivity", "✓ FINAL SYNC position for $userId: pixel top-left ($overlayX, $overlayY), normalized ($normalizedX, $normalizedY), viewSize ($viewWidth, $viewHeight)")
                 } else {
-                    Log.w("CreateStoryActivity", "⚠ Invalid position for $userId: ($overlayX, $overlayY)")
+                    Log.w("CreateStoryActivity", "⚠ Invalid position for $userId: ($overlayX, $overlayY), viewSize ($viewWidth, $viewHeight)")
                 }
             }
         } else {
@@ -1791,10 +1806,8 @@ class CreateStoryActivity : BaseActivity() {
             Log.d("CreateStoryActivity", "    - Has position: ${userTagPositions.containsKey(tagPerson.id)}")
         }
         
-        // Use a standard reference size for consistent positioning across devices
-        // This ensures positions are relative to a fixed size, making them consistent when viewing
-        val standardReferenceWidth = 1080f  // Standard story width
-        val standardReferenceHeight = 1920f  // Standard story height
+        // Positions are normalized (0.0-1.0) relative to view dimensions
+        // This ensures positions work correctly across all device sizes
         
         val taggedUsers = selectedTagPeopleList.mapIndexed { index, tagPerson ->
             val normalizedX: Float
@@ -1804,36 +1817,38 @@ class CreateStoryActivity : BaseActivity() {
             // This is the most reliable source because it's updated immediately when drag ends
             val overlay = userTagOverlayViews[tagPerson.id]
             if (overlay != null && viewWidth > 0 && viewHeight > 0) {
-                // Priority 1: Use viewPositions (contains final position after drag)
+                // Use actual visual bounds (left/top) to get the true top-left position
+                // bounds.left and bounds.top always represent the top-left corner of the view
+                val actualLeft = overlay.left.toFloat()
+                val actualTop = overlay.top.toFloat()
+                
+                // Priority 1: Use viewPositions (contains final position after drag) if available and valid
                 val storedPixelPos = viewPositions[overlay]
                 if (storedPixelPos != null && storedPixelPos.first >= 0f && storedPixelPos.second >= 0f) {
+                    // Use stored position (most reliable after drag - already in top-left coordinates)
                     normalizedX = (storedPixelPos.first / viewWidth).coerceIn(0f, 1f)
                     normalizedY = (storedPixelPos.second / viewHeight).coerceIn(0f, 1f)
                     Log.d("CreateStoryActivity", "✓ Using viewPositions for ${tagPerson.name} (${tagPerson.id}): pixel ($storedPixelPos.first, $storedPixelPos.second), normalized ($normalizedX, $normalizedY)")
+                } else if (actualLeft >= 0f && actualTop >= 0f && actualLeft <= viewWidth && actualTop <= viewHeight) {
+                    // Priority 2: Use actual bounds (top-left corner) - most reliable visual position
+                    normalizedX = (actualLeft / viewWidth).coerceIn(0f, 1f)
+                    normalizedY = (actualTop / viewHeight).coerceIn(0f, 1f)
+                    Log.d("CreateStoryActivity", "✓ Using overlay bounds (top-left) for ${tagPerson.name} (${tagPerson.id}): pixel ($actualLeft, $actualTop), normalized ($normalizedX, $normalizedY)")
                 } else {
-                    // Priority 2: Read directly from overlay view
-                    val currentOverlayX = overlay.x
-                    val currentOverlayY = overlay.y
-                    if (currentOverlayX >= 0f && currentOverlayY >= 0f) {
-                        normalizedX = (currentOverlayX / viewWidth).coerceIn(0f, 1f)
-                        normalizedY = (currentOverlayY / viewHeight).coerceIn(0f, 1f)
-                        Log.d("CreateStoryActivity", "✓ Using overlay.x/y for ${tagPerson.name} (${tagPerson.id}): pixel ($currentOverlayX, $currentOverlayY), normalized ($normalizedX, $normalizedY)")
+                    // Priority 3: Use normalized stored position
+                    val normalizedPosition = userTagPositions[tagPerson.id]
+                    if (normalizedPosition != null) {
+                        normalizedX = normalizedPosition.first.coerceIn(0f, 1f)
+                        normalizedY = normalizedPosition.second.coerceIn(0f, 1f)
+                        Log.w("CreateStoryActivity", "⚠ Using userTagPositions for ${tagPerson.name}: ($normalizedX, $normalizedY)")
                     } else {
-                        // Priority 3: Use normalized stored position
-                        val normalizedPosition = userTagPositions[tagPerson.id]
-                        if (normalizedPosition != null) {
-                            normalizedX = normalizedPosition.first.coerceIn(0f, 1f)
-                            normalizedY = normalizedPosition.second.coerceIn(0f, 1f)
-                            Log.w("CreateStoryActivity", "⚠ Using userTagPositions for ${tagPerson.name}: ($normalizedX, $normalizedY)")
-                        } else {
-                            // Last resort: default with offset
-                            val baseX = 0.25f
-                            val baseY = 0.25f
-                            val offsetY = (index * 0.1f).coerceAtMost(0.5f)
-                            normalizedX = baseX
-                            normalizedY = (baseY + offsetY).coerceAtMost(0.75f).coerceIn(0f, 1f)
-                            Log.e("CreateStoryActivity", "✗ NO POSITION FOUND for ${tagPerson.name} - using default: ($normalizedX, $normalizedY)")
-                        }
+                        // Last resort: default with offset
+                        val baseX = 0.25f
+                        val baseY = 0.25f
+                        val offsetY = (index * 0.1f).coerceAtMost(0.5f)
+                        normalizedX = baseX
+                        normalizedY = (baseY + offsetY).coerceAtMost(0.75f).coerceIn(0f, 1f)
+                        Log.e("CreateStoryActivity", "✗ NO POSITION FOUND for ${tagPerson.name} - using default: ($normalizedX, $normalizedY)")
                     }
                 }
             } else {
@@ -1854,12 +1869,12 @@ class CreateStoryActivity : BaseActivity() {
                 }
             }
             
-            // Convert normalized position (0.0-1.0) to pixel values based on STANDARD reference size
-            // This ensures positions are consistent across different device sizes
-            val positionX = normalizedX * standardReferenceWidth
-            val positionY = normalizedY * standardReferenceHeight
+            // Send normalized position (0.0-1.0) directly to backend
+            // This ensures positions are consistent across different device sizes (matching location tags)
+            val positionX = normalizedX  // Already normalized (0.0-1.0)
+            val positionY = normalizedY  // Already normalized (0.0-1.0)
             
-            Log.d("CreateStoryActivity", "Tagged user ${tagPerson.id}: normalized ($normalizedX, $normalizedY) -> pixels ($positionX, $positionY) based on standard size ($standardReferenceWidth, $standardReferenceHeight)")
+            Log.d("CreateStoryActivity", "Tagged user ${tagPerson.id}: normalized position ($positionX, $positionY) - sending as normalized coordinates")
             
             TaggedUser(
                 userTagged = tagPerson.name ?: "",
@@ -2137,18 +2152,22 @@ class CreateStoryActivity : BaseActivity() {
         val viewHeight = binding.photoEditorView.height.toFloat()
         
         if (viewWidth > 0 && viewHeight > 0) {
-            // Get the current position of the overlay (top-left corner)
-            // This matches how StoryPagerAdapter positions tags (using x and y for top-left)
-            // Read position directly from the view - it's already relative to photoEditorView
-            val overlayX = overlay.x
-            val overlayY = overlay.y
+            // Use actual visual bounds (left/top) to get the true top-left position
+            // bounds.left and bounds.top always represent the top-left corner of the view
+            // This ensures consistency regardless of how PhotoEditor internally manages coordinates
+            val overlayX = overlay.left.toFloat()  // Top-left X coordinate
+            val overlayY = overlay.top.toFloat()   // Top-left Y coordinate
             
             // Normalize to 0.0-1.0 range relative to photoEditorView dimensions
+            // Y=0 is top, Y=1.0 is bottom (standard Android coordinates)
             val normalizedX = (overlayX / viewWidth).coerceIn(0f, 1f)
             val normalizedY = (overlayY / viewHeight).coerceIn(0f, 1f)
             
             userTagPositions[userId] = Pair(normalizedX, normalizedY)
-            Log.d("CreateStoryActivity", "Updated user tag position for $userId - overlay: ($overlayX, $overlayY), normalized: ($normalizedX, $normalizedY), view size: ($viewWidth, $viewHeight)")
+            Log.d("CreateStoryActivity", "Updated user tag position for $userId - overlay top-left bounds: ($overlayX, $overlayY), normalized: ($normalizedX, $normalizedY), view size: ($viewWidth, $viewHeight)")
+            
+            // Update viewPositions map with top-left coordinates for consistency
+            viewPositions[overlay] = Pair(overlayX, overlayY)
         } else {
             Log.w("CreateStoryActivity", "Cannot update user tag position - view dimensions are invalid (width: $viewWidth, height: $viewHeight), will retry")
             // Retry after a short delay if dimensions aren't ready

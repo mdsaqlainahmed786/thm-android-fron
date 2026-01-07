@@ -609,26 +609,41 @@ class IndividualRepo (private val context: Context){
         val locationPositionXBody = locationX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val locationPositionYBody = locationY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         
-        // Convert taggedUsers list to JSON string
-        val taggedUsersBody = if (taggedUsers.isNotEmpty()) {
-            val taggedUsersJson = Gson().toJson(taggedUsers)
-            android.util.Log.d("IndividualRepo", "taggedUsers JSON: $taggedUsersJson")
-            android.util.Log.d("IndividualRepo", "Creating story with location - placeName: $placeName, lat: $lat, lng: $lng, locationPositionX: $locationX, locationPositionY: $locationY")
-            android.util.Log.d("IndividualRepo", "Creating story with ${taggedUsers.size} tagged users")
-            taggedUsers.forEachIndexed { index, taggedUser ->
-                android.util.Log.d("IndividualRepo", "  [$index] User: ${taggedUser.userTagged} (${taggedUser.userTaggedId}) at (${taggedUser.positionX}, ${taggedUser.positionY})")
+        // Convert taggedUsers to individual form fields - only support single user tagging for now
+        // Take the first tagged user if available, otherwise send null
+        val firstTaggedUser = taggedUsers.firstOrNull()
+        val userTaggedBody = firstTaggedUser?.userTagged?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedIdBody = firstTaggedUser?.userTaggedId?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedPositionXBody = firstTaggedUser?.positionX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        val userTaggedPositionYBody = firstTaggedUser?.positionY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
+        
+        android.util.Log.d("IndividualRepo", "Creating story with location - placeName: $placeName, lat: $lat, lng: $lng, locationPositionX: $locationX, locationPositionY: $locationY")
+        if (firstTaggedUser != null) {
+            android.util.Log.d("IndividualRepo", "Creating story with tagged user: ${firstTaggedUser.userTagged} (${firstTaggedUser.userTaggedId}) at (${firstTaggedUser.positionX}, ${firstTaggedUser.positionY})")
+            if (taggedUsers.size > 1) {
+                android.util.Log.w("IndividualRepo", "Warning: Multiple users tagged (${taggedUsers.size}), but only sending first user: ${firstTaggedUser.userTagged}")
             }
-            taggedUsersJson.toRequestBody("application/json".toMediaTypeOrNull())
         } else {
-            android.util.Log.w("IndividualRepo", "No tagged users to send")
-            null
+            android.util.Log.d("IndividualRepo", "Creating story with no tagged users")
         }
         
         // Make the API call
         return withContext(Dispatchers.IO) {
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
-                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody, locationPositionXBody, locationPositionYBody, taggedUsersBody
+                accessTokenBody, 
+                taggedParts, 
+                imagePart, 
+                videoPart, 
+                placeNameBody, 
+                latBody, 
+                lngBody, 
+                locationPositionXBody, 
+                locationPositionYBody, 
+                userTaggedBody, 
+                userTaggedIdBody, 
+                userTaggedPositionXBody, 
+                userTaggedPositionYBody
             ).execute()
         }
     }

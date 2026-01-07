@@ -52,10 +52,13 @@ class StoriesPagingSource(
                     Log.e(tag, "Error logging raw response: ${e.message}")
                 }
                 
-                // Log location data for debugging
+                // Log location data and user tagging data for debugging
                 Log.d(tag, "myStories count: ${myStories.size}")
                 myStories.forEachIndexed { index, storyRef ->
                     Log.d(tag, "myStories[$index] _id: ${storyRef.Id}, location: ${storyRef.location}, placeName: ${storyRef.location?.placeName}, lat: ${storyRef.location?.lat}, lng: ${storyRef.location?.lng}, locationPositionX: ${storyRef.locationPositionX}, locationPositionY: ${storyRef.locationPositionY}")
+                    // Log user tagging fields
+                    Log.d(tag, "myStories[$index] userTaggedName: '${storyRef.userTaggedName}', userTaggedId: '${storyRef.userTaggedId}', userTaggedPositionX: ${storyRef.userTaggedPositionX}, userTaggedPositionY: ${storyRef.userTaggedPositionY}")
+                    Log.d(tag, "myStories[$index] taggedUsers array size: ${storyRef.taggedUsers?.size ?: 0}, content: ${storyRef.taggedUsers}")
                     // Log all fields of the story to see what's available
                     Log.d(tag, "myStories[$index] full object: $storyRef")
                 }
@@ -94,10 +97,16 @@ class StoriesPagingSource(
                         userTaggedPositionY = myStory.userTaggedPositionY   // Preserve y position (backward compatibility)
                     ).also {
                         // Log to verify all data is being preserved, especially userTaggedId
-                        Log.d(tag, "Converted MyStories to StoriesRef - location: ${it.location}, placeName: ${it.location?.placeName}, lat: ${it.location?.lat}, lng: ${it.location?.lng}, x: ${it.locationPositionX}, y: ${it.locationPositionY}, taggedUsers count: ${it.taggedUsers?.size ?: 0}, userTaggedName: '${it.userTaggedName}', userTaggedId: '${it.userTaggedId}', userTaggedX: ${it.userTaggedPositionX}, userTaggedY: ${it.userTaggedPositionY}")
+                        Log.d(tag, "Converted MyStories to StoriesRef - Story ID: ${it.Id}")
+                        Log.d(tag, "  Location: ${it.location}, placeName: ${it.location?.placeName}, lat: ${it.location?.lat}, lng: ${it.location?.lng}, x: ${it.locationPositionX}, y: ${it.locationPositionY}")
+                        Log.d(tag, "  User Tagging - userTaggedName: '${it.userTaggedName}', userTaggedId: '${it.userTaggedId}', userTaggedX: ${it.userTaggedPositionX}, userTaggedY: ${it.userTaggedPositionY}")
+                        Log.d(tag, "  taggedUsers count: ${it.taggedUsers?.size ?: 0}, content: ${it.taggedUsers}")
                         // Additional debug log specifically for userTaggedId
                         if (it.userTaggedName != null && it.userTaggedId == null) {
                             Log.w(tag, "WARNING: Story has userTaggedName '${it.userTaggedName}' but userTaggedId is NULL! This story may need to be re-created after backend update.")
+                        }
+                        if (it.userTaggedName != null && it.userTaggedId != null) {
+                            Log.d(tag, "✓ Story has valid user tagging data - Name: '${it.userTaggedName}', ID: '${it.userTaggedId}', Position: (${it.userTaggedPositionX}, ${it.userTaggedPositionY})")
                         }
                     }
                 }
