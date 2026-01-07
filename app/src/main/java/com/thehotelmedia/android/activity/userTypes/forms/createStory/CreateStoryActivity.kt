@@ -1421,10 +1421,18 @@ class CreateStoryActivity : BaseActivity() {
         overlay.setTag(R.id.story_text_background_res_id, detectedBackgroundRes)
 
         // For normal text overlays, keep existing behavior (editable with background).
-        // For tag overlays (@username) and location overlays, we want blue, non-editable pill style.
+        // For tag overlays (@username): white background with blue text
+        // For location overlays: blue background with white text
         if (isTagOverlay || isLocationOverlay) {
-            textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
-            textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
+            if (isTagOverlay) {
+                // People tags: white background with blue text
+                textView.setTextColor(ContextCompat.getColor(this, R.color.blue))
+                textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_white)
+            } else {
+                // Location tags: blue background with white text
+                textView.setTextColor(ContextCompat.getColor(this, R.color.white))
+                textView.background = ContextCompat.getDrawable(this, R.drawable.story_tag_background_blue)
+            }
             if (isLocationOverlay) {
                 // Match viewing UI: 12sp text size, ellipsize, padding
                 textView.textSize = 12f
@@ -1693,8 +1701,8 @@ class CreateStoryActivity : BaseActivity() {
 
             val textStyleBuilder = TextStyleBuilder().apply {
                 withTextColor(ContextCompat.getColor(activity, R.color.blue))
-                // Blue pill background for better visibility of the tag
-                ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                // White background for people tags
+                ContextCompat.getDrawable(activity, R.drawable.story_tag_background_white)
                     ?.let { withBackgroundDrawable(it) }
                 ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
             }
@@ -1713,7 +1721,7 @@ class CreateStoryActivity : BaseActivity() {
                 textView?.apply {
                     text = displayName
                     setTextColor(ContextCompat.getColor(activity, R.color.blue))
-                    background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
+                    background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_white)
                     // Match location tag UI: 12sp text size, ellipsize, padding
                     textSize = 12f
                     maxLines = 1
@@ -1783,7 +1791,7 @@ class CreateStoryActivity : BaseActivity() {
         if (displayText.isBlank()) return
 
         val textStyleBuilder = TextStyleBuilder().apply {
-            withTextColor(ContextCompat.getColor(activity, R.color.blue))
+            withTextColor(ContextCompat.getColor(activity, R.color.white))
             ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
                 ?.let { withBackgroundDrawable(it) }
             ResourcesCompat.getFont(activity, R.font.comic_regular)?.let { withTextFont(it) }
@@ -1793,7 +1801,7 @@ class CreateStoryActivity : BaseActivity() {
         binding.photoEditorView.postDelayed({
             val overlay = getLatestTextOverlay() ?: return@postDelayed
             overlay.setTag(R.id.story_location_overlay_view, true)
-
+            
             // Store reference to location overlay
             locationOverlayView = overlay
 
@@ -1802,7 +1810,7 @@ class CreateStoryActivity : BaseActivity() {
 
             textView?.apply {
                 text = displayText
-                setTextColor(ContextCompat.getColor(activity, R.color.blue))
+                setTextColor(ContextCompat.getColor(activity, R.color.white))
                 background = ContextCompat.getDrawable(activity, R.drawable.story_tag_background_blue)
                 // Match viewing UI: 12sp text size
                 textSize = 12f
@@ -1842,7 +1850,7 @@ class CreateStoryActivity : BaseActivity() {
         val sizePx = (16 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
 
         val wrapped = DrawableCompat.wrap(drawable.mutate())
-        DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.blue))
+        DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.white))
         wrapped.setBounds(0, 0, sizePx, sizePx)
 
         textView.setCompoundDrawablesRelative(wrapped, null, null, null)
