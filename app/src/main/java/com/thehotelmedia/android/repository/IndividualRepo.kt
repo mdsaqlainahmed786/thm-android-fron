@@ -1,3 +1,4 @@
+
 package com.thehotelmedia.android.repository
 
 import android.content.Context
@@ -173,11 +174,11 @@ class IndividualRepo (private val context: Context){
         }
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
-            
+
             // Convert strings to RequestBody
             val contentBody = content.toRequestBody("text/plain".toMediaTypeOrNull())
             val feelingsBody = feelings.toRequestBody("text/plain".toMediaTypeOrNull())
-            
+
             // Create location RequestBody if provided
             val placeNameBody = if (placeName.isNotEmpty()) {
                 placeName.toRequestBody("text/plain".toMediaTypeOrNull())
@@ -194,7 +195,7 @@ class IndividualRepo (private val context: Context){
             } else {
                 null
             }
-            
+
             // Create deletedMedia JSON array as RequestBody
             val deletedMediaJson = if (deletedMedia.isNotEmpty()) {
                 val jsonArray = deletedMedia.joinToString(",", "[", "]") { "\"$it\"" }
@@ -202,7 +203,7 @@ class IndividualRepo (private val context: Context){
             } else {
                 null
             }
-            
+
             // Convert media URIs to MultipartBody.Part
             val mediaParts = media.mapIndexed { index, mediaPath ->
                 val file = when {
@@ -222,7 +223,7 @@ class IndividualRepo (private val context: Context){
                 val requestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
                 MultipartBody.Part.createFormData("media", file.name, requestBody)
             }
-            
+
             return@withContext call.updatePost(accessToken, postID, contentBody, feelingsBody, deletedMediaJson, mediaParts, placeNameBody, latBody, lngBody).execute()
         }
     }
@@ -611,33 +612,19 @@ class IndividualRepo (private val context: Context){
         val lngBody = lng?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val locationPositionXBody = locationX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val locationPositionYBody = locationY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
-        
-        // Convert user tag data to RequestBody
         val userTaggedBody = userTaggedName?.toRequestBody("text/plain".toMediaTypeOrNull())
         val userTaggedIdBody = userTaggedId?.toRequestBody("text/plain".toMediaTypeOrNull())
         val userTaggedXBody = userTaggedX?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
         val userTaggedYBody = userTaggedY?.toString()?.toRequestBody("text/plain".toMediaTypeOrNull())
-        
+
         android.util.Log.d("IndividualRepo", "Creating story with location - placeName: $placeName, lat: $lat, lng: $lng, locationPositionX: $locationX, locationPositionY: $locationY")
         android.util.Log.d("IndividualRepo", "Creating story with user tag - userTaggedId: $userTaggedId, userTaggedName: $userTaggedName, userTaggedX: $userTaggedX, userTaggedY: $userTaggedY")
-        
+
         // Make the API call
         return withContext(Dispatchers.IO) {
             val apiService = Retrofit.apiService(context).create(Application::class.java)
             apiService.createStory(
-                accessTokenBody, 
-                taggedParts, 
-                imagePart, 
-                videoPart, 
-                placeNameBody, 
-                latBody, 
-                lngBody, 
-                locationPositionXBody, 
-                locationPositionYBody, 
-                userTaggedBody, 
-                userTaggedIdBody, 
-                userTaggedXBody, 
-                userTaggedYBody
+                accessTokenBody, taggedParts, imagePart, videoPart, placeNameBody, latBody, lngBody, locationPositionXBody, locationPositionYBody, userTaggedBody, userTaggedIdBody, userTaggedXBody, userTaggedYBody
             ).execute()
         }
     }
@@ -1183,7 +1170,7 @@ class IndividualRepo (private val context: Context){
                 "video" -> "video/mp4"
                 else -> "application/octet-stream"
             }
-            
+
             val extension = when {
                 messageType == "image" -> {
                     if (mimeType.contains("png")) "png" else "jpg"
@@ -1469,16 +1456,6 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.cancelBooking(accessToken,bookingId).execute()
-        }
-    }
-    suspend fun userCancelBooking(bookingId: String): Response<DeleteModal> {
-        val accessToken = getAccessToken()
-        if (accessToken.isEmpty()) {
-            throw IllegalStateException("Access token is null or empty")
-        }
-        return withContext(Dispatchers.IO) {
-            val call = Retrofit.apiService(context).create(Application::class.java)
-            return@withContext call.userCancelBooking(accessToken,bookingId).execute()
         }
     }
     suspend fun sentOtpToNumber(dialCode: String,phoneNumber: String): Response<DeleteModal> {
