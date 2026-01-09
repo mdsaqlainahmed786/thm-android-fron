@@ -2501,7 +2501,7 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
-                val response = individualRepo.userCancelBooking(bookingId)
+                val response = individualRepo. userCancelBooking(bookingId)
                 if (response.isSuccessful) {
                     val res = response.body()
                     toastMessageLiveData.postValue(res?.message ?: N_A)

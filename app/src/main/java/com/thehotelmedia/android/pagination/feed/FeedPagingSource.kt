@@ -36,18 +36,28 @@ class FeedPagingSource(
                 val body = response.body()
                 val data = body?.data ?: emptyList()
 
+                // Get current user ID to check if post belongs to the user
+                val currentUserId = repository.getCurrentUserId()
+
                 // Filter out posts from private accounts where user is not following
                 val filteredData = data.filter { post ->
                     val postedBy = post.postedBy
                     if (postedBy == null) {
                         true // Keep posts without postedBy info
                     } else {
+                        // Check if post belongs to current user
+                        val isMyPost = post.userID == currentUserId || 
+                                      postedBy.Id == currentUserId
+                        
                         val isPrivateAccount = postedBy.privateAccount == true || 
                                                postedBy.businessProfileRef?.privateAccount == true
                         val isFollowed = postedBy.isFollowedByMe == true
                         
-                        // Show post if account is not private, OR if private but user is following
-                        !isPrivateAccount || isFollowed
+                        // Show post if:
+                        // 1. It belongs to the current user, OR
+                        // 2. Account is not private, OR
+                        // 3. Account is private but user is following
+                        isMyPost || !isPrivateAccount || isFollowed
                     }
                 }
 

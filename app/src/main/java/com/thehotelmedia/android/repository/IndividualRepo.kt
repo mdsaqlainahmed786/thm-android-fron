@@ -98,6 +98,11 @@ class IndividualRepo (private val context: Context){
         return preferenceManager.getString(PreferenceManager.Keys.COOKIES,"").toString()
     }
 
+    fun getCurrentUserId(): String {
+        val preferenceManager = PreferenceManager.getInstance(context)
+        return preferenceManager.getString(PreferenceManager.Keys.USER_ID,"").toString()
+    }
+
     private val googleApiKey = BuildConfig.MAPS_API_KEY
 
     suspend fun getSubscriptionDetails(): Response<SubscriptionData> {
