@@ -627,6 +627,17 @@ class VideoTrimmerActivity : BaseActivity() {
             return false
         }
         
+        // Check file extension to ensure it's a video file
+        val fileName = videoFile.name.lowercase()
+        val isVideoExtension = fileName.endsWith(".mp4") || fileName.endsWith(".mov") || 
+                               fileName.endsWith(".avi") || fileName.endsWith(".mkv") ||
+                               fileName.endsWith(".3gp") || fileName.endsWith(".webm")
+        
+        if (!isVideoExtension) {
+            Log.e("VideoTrimmerActivity", "File does not have a video extension: $fileName")
+            return false
+        }
+        
         return try {
             val retriever = MediaMetadataRetriever()
             retriever.setDataSource(videoFile.absolutePath)
@@ -638,16 +649,26 @@ class VideoTrimmerActivity : BaseActivity() {
             
             retriever.release()
             
-            // Check frame rate from track format
+            // Check if mimeType indicates it's an image (not a video)
+            if (mimeType.startsWith("image/")) {
+                Log.e("VideoTrimmerActivity", "File is an image, not a video: mimeType=$mimeType")
+                return false
+            }
+            
+            // Check frame rate from track format (optional - only validate if we can extract it)
             var frameRate = 0f
+            var hasVideoTrack = false
             try {
                 val extractor = MediaExtractor()
                 extractor.setDataSource(videoFile.absolutePath)
                 for (i in 0 until extractor.trackCount) {
                     val trackFormat = extractor.getTrackFormat(i)
                     val mime = trackFormat.getString(MediaFormat.KEY_MIME) ?: continue
-                    if (mime.startsWith("video/") && trackFormat.containsKey(MediaFormat.KEY_FRAME_RATE)) {
-                        frameRate = trackFormat.getInteger(MediaFormat.KEY_FRAME_RATE)?.toFloat() ?: 0f
+                    if (mime.startsWith("video/")) {
+                        hasVideoTrack = true
+                        if (trackFormat.containsKey(MediaFormat.KEY_FRAME_RATE)) {
+                            frameRate = trackFormat.getInteger(MediaFormat.KEY_FRAME_RATE)?.toFloat() ?: 0f
+                        }
                         break
                     }
                 }
@@ -656,14 +677,24 @@ class VideoTrimmerActivity : BaseActivity() {
                 Log.w("VideoTrimmerActivity", "Failed to get frame rate for validation: ${e.message}")
             }
             
-            val isValid = duration > 0 && width > 0 && height > 0 && 
-                          mimeType.startsWith("video/") && 
-                          frameRate >= 15f // Minimum 15fps
+            // Core validation: must have video dimensions and duration, and mimeType must be video
+            // Frame rate is optional - only validate if we successfully extracted it
+            val hasValidVideoProperties = duration > 0 && width > 0 && height > 0 && 
+                                         (mimeType.startsWith("video/") || hasVideoTrack)
+            
+            // Frame rate validation is optional - only fail if we extracted it and it's too low
+            val hasValidFrameRate = if (frameRate > 0f) {
+                frameRate >= 10f // Lowered from 15fps to 10fps for more lenient validation
+            } else {
+                true // If we can't extract frame rate, don't fail validation
+            }
+            
+            val isValid = hasValidVideoProperties && hasValidFrameRate
             
             if (!isValid) {
-                Log.w("VideoTrimmerActivity", "Video validation failed: duration=$duration, size=${width}x${height}, mime=$mimeType, frameRate=$frameRate")
+                Log.w("VideoTrimmerActivity", "Video validation failed: duration=$duration, size=${width}x${height}, mime=$mimeType, frameRate=$frameRate, hasVideoTrack=$hasVideoTrack")
             } else {
-                Log.d("VideoTrimmerActivity", "Video validation passed: duration=$duration, size=${width}x${height}, frameRate=$frameRate")
+                Log.d("VideoTrimmerActivity", "Video validation passed: duration=$duration, size=${width}x${height}, mime=$mimeType, frameRate=$frameRate")
             }
             
             isValid
@@ -870,7 +901,11 @@ class VideoTrimmerActivity : BaseActivity() {
                             Log.w("VideoTrimmerActivity", "Failed to get frame rate from output video: ${e.message}")
                         }
                         
-                        if (outputDuration > 0 && outputWidth > 0 && outputHeight > 0 && outputFrameRate >= 15f) {
+                        // Validate output video - frame rate is optional (only validate if extracted)
+                        val hasValidOutput = outputDuration > 0 && outputWidth > 0 && outputHeight > 0 && 
+                                            (outputFrameRate == 0f || outputFrameRate >= 10f) // More lenient frame rate check
+                        
+                        if (hasValidOutput) {
                     val fileSizeMB = outputFile.length() / (1024.0 * 1024.0)
                             Log.d("VideoTrimmerActivity", "Video compositing successful: ${String.format("%.2f", fileSizeMB)} MB, duration=${outputDuration}ms, size=${outputWidth}x${outputHeight}, frameRate=${outputFrameRate}fps")
                             retriever.release()

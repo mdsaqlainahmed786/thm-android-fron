@@ -272,13 +272,20 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         try {
             if (hasMediaAttachment && postId.isNotBlank()) {
                 // Use the new HTTP endpoint to share post with media
+                // Additional validation before making the API call
+                val mediaUrl = sharedMediaUrl.orEmpty()
+                if (mediaUrl.isBlank()) {
+                    Toast.makeText(requireContext(), R.string.share_message_failed, Toast.LENGTH_SHORT).show()
+                    return
+                }
+                
                 currentRecipientUsername = recipientUsername // Store for observer
                 individualViewModal.sharePostMessage(
                     recipientUsername,
                     normalizedType!!,
                     "", // Optional message text
                     postId,
-                    sharedMediaUrl.orEmpty()
+                    mediaUrl
                 )
             } else if (hasMediaAttachment) {
                 // Fallback: direct socket send if no postId (shouldn't happen for post sharing)

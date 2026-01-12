@@ -419,7 +419,47 @@ class FeedAdapter(
     private fun setPostData(post: Data, binding: PostItemsLayoutBinding,isActive: Boolean) {
         try {
             // Media setup
-            val mediaList = post.mediaRef ?: arrayListOf()
+            val rawMediaList = post.mediaRef ?: arrayListOf()
+            
+            // Log all media items for debugging
+            rawMediaList.forEachIndexed { index, mediaRef ->
+                android.util.Log.d("FeedAdapter", "Post ${post.Id} media[$index]: type=${mediaRef.mediaType}, mime=${mediaRef.mimeType}, sourceUrl=${mediaRef.sourceUrl?.take(80)}, thumbnailUrl=${mediaRef.thumbnailUrl?.take(80)}, duration=${mediaRef.duration}")
+            }
+            
+            // Filter out media items with empty or null sourceUrl to prevent blank media display
+            // Also ensure the URL is valid (starts with http:// or https://)
+            // For videos, also check thumbnailUrl if sourceUrl is missing
+            val mediaList = rawMediaList.filter { mediaRef ->
+                val sourceUrl = mediaRef.sourceUrl
+                val thumbnailUrl = mediaRef.thumbnailUrl
+                val duration = mediaRef.duration // Store in local variable to avoid smart cast issue
+                val hasValidSourceUrl = !sourceUrl.isNullOrEmpty() && 
+                    (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://") || 
+                     sourceUrl.startsWith("file://") || sourceUrl.startsWith("content://"))
+                
+                // For videos, also accept if thumbnailUrl exists (some APIs might only provide thumbnailUrl for videos)
+                val isVideo = mediaRef.mediaType?.lowercase() == "video" || 
+                             mediaRef.mimeType?.lowercase()?.startsWith("video") == true ||
+                             (duration != null && duration > 0)
+                
+                val hasValidThumbnailUrl = !thumbnailUrl.isNullOrEmpty() && 
+                    (thumbnailUrl.startsWith("http://") || thumbnailUrl.startsWith("https://"))
+                
+                val isValid = hasValidSourceUrl || (isVideo && hasValidThumbnailUrl)
+                
+                if (!isValid) {
+                    android.util.Log.w("FeedAdapter", "Filtered out media: type=${mediaRef.mediaType}, sourceUrl=${sourceUrl?.take(50)}, thumbnailUrl=${thumbnailUrl?.take(50)}")
+                }
+                
+                isValid
+            } as ArrayList
+            
+            // Log if media items were filtered out for debugging
+            if (rawMediaList.isNotEmpty() && mediaList.isEmpty()) {
+                android.util.Log.w("FeedAdapter", "Post ${post.Id} had ${rawMediaList.size} media items but all were filtered out")
+            } else if (rawMediaList.size != mediaList.size) {
+                android.util.Log.d("FeedAdapter", "Post ${post.Id}: filtered ${rawMediaList.size} -> ${mediaList.size} media items")
+            }
             val postId = post.Id ?: ""
 
         onItemActive(postId, isActive)

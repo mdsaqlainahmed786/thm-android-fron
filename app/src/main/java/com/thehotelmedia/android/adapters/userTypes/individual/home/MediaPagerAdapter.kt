@@ -82,7 +82,32 @@ class MediaPagerAdapter(
         private fun isVideo(mediaItem: MediaRef): Boolean {
             val type = mediaItem.mediaType?.lowercase()
             val mime = mediaItem.mimeType?.lowercase()
-            return type == VIDEO.lowercase() || (mime?.startsWith("video") == true)
+            val sourceUrl = mediaItem.sourceUrl?.lowercase() ?: ""
+            val duration = mediaItem.duration
+            
+            // Check multiple indicators that this is a video:
+            // 1. mediaType is "video"
+            // 2. mimeType starts with "video"
+            // 3. sourceUrl has video file extension
+            // 4. duration is set (videos have duration, images don't)
+            val isVideoByType = type == VIDEO.lowercase() || type == "Video" || type == "VIDEO"
+            val isVideoByMime = mime?.startsWith("video") == true
+            val isVideoByExtension = sourceUrl.endsWith(".mp4") || sourceUrl.endsWith(".mov") || 
+                                     sourceUrl.endsWith(".avi") || sourceUrl.endsWith(".mkv") ||
+                                     sourceUrl.endsWith(".3gp") || sourceUrl.endsWith(".webm") ||
+                                     sourceUrl.contains(".m3u8") // HLS stream
+            val isVideoByDuration = duration != null && duration > 0
+            
+            val result = isVideoByType || isVideoByMime || isVideoByExtension || isVideoByDuration
+            
+            // Log for debugging
+            if (result) {
+                android.util.Log.d("MediaPagerAdapter", "Video detected: type=$type, mime=$mime, hasDuration=$isVideoByDuration, hasVideoExt=$isVideoByExtension, sourceUrl=${mediaItem.sourceUrl?.take(50)}")
+            } else {
+                android.util.Log.d("MediaPagerAdapter", "Not a video: type=$type, mime=$mime, duration=$duration, sourceUrl=${mediaItem.sourceUrl?.take(50)}")
+            }
+            
+            return result
         }
 
         fun bind(mediaItem: MediaRef, position: Int) {
@@ -127,8 +152,38 @@ class MediaPagerAdapter(
             }
 
             if (isVideo(mediaItem)) {
-                val player = VideoPlayerManager.initializePlayer(context, mediaItem.sourceUrl)
-                setupVideoPlayer(mediaItem, player, postId)
+                // Validate sourceUrl before initializing player
+                // For videos, prefer sourceUrl, but fallback to thumbnailUrl if sourceUrl is missing
+                var sourceUrl = mediaItem.sourceUrl
+                if (sourceUrl.isNullOrEmpty()) {
+                    // Some APIs might only provide thumbnailUrl for videos
+                    sourceUrl = mediaItem.thumbnailUrl
+                    android.util.Log.w("MediaPagerAdapter", "Video mediaItem has empty sourceUrl, trying thumbnailUrl: ${sourceUrl?.take(50)}")
+                }
+                
+                if (sourceUrl.isNullOrEmpty()) {
+                    android.util.Log.e("MediaPagerAdapter", "Video mediaItem has both empty sourceUrl and thumbnailUrl, showing placeholder")
+                    setupVideoThumbnail(mediaItem, postId)
+                } else {
+                    // Validate URL format
+                    val isValidUrl = sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://") || 
+                                    sourceUrl.startsWith("file://") || sourceUrl.startsWith("content://")
+                    
+                    if (!isValidUrl) {
+                        android.util.Log.e("MediaPagerAdapter", "Video sourceUrl has invalid format: ${sourceUrl.take(50)}")
+                        setupVideoThumbnail(mediaItem, postId)
+                    } else {
+                        try {
+                            android.util.Log.d("MediaPagerAdapter", "Initializing video player with URL: ${sourceUrl.take(80)}")
+                            val player = VideoPlayerManager.initializePlayer(context, sourceUrl)
+                            setupVideoPlayer(mediaItem, player, postId)
+                        } catch (e: Exception) {
+                            android.util.Log.e("MediaPagerAdapter", "Error initializing video player: ${e.message}", e)
+                            // Fallback to thumbnail if player initialization fails
+                            setupVideoThumbnail(mediaItem, postId)
+                        }
+                    }
+                }
             } else {
                 setupImageView(mediaItem, postId)
             }
@@ -140,7 +195,11 @@ class MediaPagerAdapter(
             postId: String
         ) {
             val sourceUrl = mediaItem.sourceUrl
-            if (sourceUrl.isNullOrEmpty()) return
+            if (sourceUrl.isNullOrEmpty()) {
+                // If sourceUrl is empty, show thumbnail as fallback
+                setupVideoThumbnail(mediaItem, postId)
+                return
+            }
             val id = mediaItem.Id ?: ""
 
             // Hide buffering progress initially
@@ -393,7 +452,19 @@ class MediaPagerAdapter(
             binding.muteIcon.visibility = View.GONE
 //            binding.imageView.loadImageInBackground(context, sourceUrl.orEmpty(), R.drawable.ic_post_placeholder)
 
-            Glide.with(context).load(sourceUrl).placeholder(R.drawable.ic_post_placeholder).error(R.drawable.ic_post_placeholder).into(binding.imageView)
+            // Use thumbnailUrl as fallback if sourceUrl is empty
+            val imageUrl = if (sourceUrl.isNullOrEmpty()) {
+                mediaItem.thumbnailUrl ?: ""
+            } else {
+                sourceUrl
+            }
+            
+            if (imageUrl.isNotEmpty()) {
+                Glide.with(context).load(imageUrl).placeholder(R.drawable.ic_post_placeholder).error(R.drawable.ic_post_placeholder).into(binding.imageView)
+            } else {
+                // If both sourceUrl and thumbnailUrl are empty, show placeholder
+                binding.imageView.setImageResource(R.drawable.ic_post_placeholder)
+            }
 
             // Make imageView clickable and focusable to receive touch events
             binding.imageView.isClickable = true

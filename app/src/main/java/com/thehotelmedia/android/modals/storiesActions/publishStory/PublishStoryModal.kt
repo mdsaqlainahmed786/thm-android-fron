@@ -13,7 +13,7 @@ data class StoryPublishData(
     @SerializedName("_id") val id: String? = null,
     @SerializedName("userID") val userID: String? = null,
     @SerializedName("mediaID") val mediaID: String? = null,
-    @SerializedName("duration") val duration: Int? = null,
+    @SerializedName("duration") val duration: Double? = null,
     @SerializedName("createdAt") val createdAt: String? = null
 )
 

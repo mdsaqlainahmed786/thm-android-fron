@@ -263,7 +263,19 @@ class SavedFeedAdapter(
         try {
         val itemData = getItem(position)
         // Media setup
-            val mediaList = post.mediaRef ?: arrayListOf()
+            val rawMediaList = post.mediaRef ?: arrayListOf()
+            // Filter out media items with empty or null sourceUrl to prevent blank media display
+            // Also ensure the URL is valid (starts with http:// or https://)
+            val mediaList = rawMediaList.filter { mediaRef ->
+                val sourceUrl = mediaRef.sourceUrl
+                !sourceUrl.isNullOrEmpty() && 
+                (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://") || sourceUrl.startsWith("file://") || sourceUrl.startsWith("content://"))
+            } as ArrayList
+            
+            // Log if media items were filtered out for debugging
+            if (rawMediaList.isNotEmpty() && mediaList.isEmpty()) {
+                android.util.Log.w("SavedFeedAdapter", "Post ${post.Id} had ${rawMediaList.size} media items but all were filtered out (empty/invalid sourceUrl)")
+            }
 
         val postId = post.Id ?: ""
 

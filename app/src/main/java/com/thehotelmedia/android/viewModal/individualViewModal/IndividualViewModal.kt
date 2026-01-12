@@ -888,25 +888,63 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
             try {
                 val response = individualRepo.publishPostToStory(postId)
                 if (response.isSuccessful) {
-                    val res = response.body()
-                    toastMessageLiveData.postValue(res?.message ?: N_A)
-                    _publishStoryResult.postValue(res)
-                    Log.wtf(tag, res.toString())
+                    try {
+                        val res = response.body()
+                        if (res != null) {
+                            toastMessageLiveData.postValue(res.message ?: N_A)
+                            _publishStoryResult.postValue(res)
+                            Log.wtf(tag, res.toString())
+                        } else {
+                            // Response body is null
+                            Log.wtf(tag + "NULL_BODY", "Response successful but body is null")
+                            toastMessageLiveData.postValue("Failed to publish post to story")
+                            _publishStoryResult.postValue(null)
+                        }
+                    } catch (e: com.google.gson.JsonSyntaxException) {
+                        // Handle JSON parsing error - API returned string instead of JSON object
+                        // This happens when the API returns a plain string error message with 200 status
+                        Log.wtf(tag + "JSON_ERROR", "JSON parsing failed: ${e.message}. This usually means the API returned a string instead of JSON.")
+                        toastMessageLiveData.postValue("Failed to publish post to story. Please try again.")
+                        _publishStoryResult.postValue(null)
+                    } catch (e: IllegalStateException) {
+                        // Handle "Expected BEGIN_OBJECT but was STRING" error
+                        if (e.message?.contains("BEGIN_OBJECT") == true || e.message?.contains("STRING") == true) {
+                            Log.wtf(tag + "JSON_ERROR", "JSON parsing failed: ${e.message}. API returned string instead of JSON object.")
+                            toastMessageLiveData.postValue("Failed to publish post to story. Please try again.")
+                        } else {
+                            throw e // Re-throw if it's a different IllegalStateException
+                        }
+                        _publishStoryResult.postValue(null)
+                    }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.wtf(tag + "ELSE", "${response.code()} $errorBody")
                     val message = try {
-                        JSONObject(errorBody ?: "{}").optString("message")
+                        // Try to parse as JSON if it starts with {
+                        if (errorBody?.trim()?.startsWith("{") == true) {
+                            val gson = com.google.gson.Gson()
+                            val errorJson = gson.fromJson(errorBody, java.util.HashMap::class.java) as? Map<*, *>
+                            errorJson?.get("message")?.toString()
+                        } else {
+                            // Use plain text error message
+                            errorBody?.takeIf { it.isNotBlank() }
+                        }
                     } catch (e: Exception) {
-                        null
+                        // If parsing fails, use error body as plain text
+                        errorBody?.takeIf { it.isNotBlank() }
                     }
-                    toastMessageLiveData.postValue(message?.takeIf { it.isNotBlank() } ?: response.message())
+                    toastMessageLiveData.postValue(message?.takeIf { it.isNotBlank() } ?: response.message() ?: "Failed to publish post to story")
                     _publishStoryResult.postValue(null)
                 }
             } catch (t: Throwable) {
-                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", "Exception: ${t.message}", t)
+                val errorMessage = when {
+                    t.message?.contains("JSON", ignoreCase = true) == true -> 
+                        "Invalid response from server. Please try again."
+                    else -> t.message ?: "Failed to publish post to story"
+                }
+                toastMessageLiveData.postValue(errorMessage)
                 _publishStoryResult.postValue(null)
-                Log.wtf(tag + "ERROR", t.message.toString())
             }
         }
     }
