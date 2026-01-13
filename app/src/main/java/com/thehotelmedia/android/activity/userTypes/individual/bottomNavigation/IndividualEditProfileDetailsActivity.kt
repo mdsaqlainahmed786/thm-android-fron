@@ -34,6 +34,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
     private lateinit var otpDialogManager: OtpDialogManager
 
     private var fullName : String = ""
+    private var username : String = ""
     private var email : String = ""
     private var dialCode : String = ""
     private var phoneNumber : String = ""
@@ -68,6 +69,10 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
             "Name" -> {
                 binding.doneBtn.toggleEnable(true)
                 updateVisibility(nameVisible = true)
+            }
+            "Username" -> {
+                binding.doneBtn.toggleEnable(true)
+                updateVisibility(usernameVisible = true)
             }
             "Email" -> {
                 binding.doneBtn.toggleEnable(false)
@@ -143,27 +148,36 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
     }
 
     private fun handelEditProfileData(result: EditProfileModal?) {
-        preferenceManager.putString(PreferenceManager.Keys.USER_FULL_NAME,fullName)
-        preferenceManager.putString(PreferenceManager.Keys.USER_DESCRIPTION,bio)
+        // Save username from response if available, otherwise use the input value
+        val updatedUsername = result?.data?.username ?: username
+        val updatedFullName = result?.data?.fullName ?: fullName
+        val updatedBio = result?.data?.bio ?: bio
+        
+        preferenceManager.putString(PreferenceManager.Keys.USER_FULL_NAME, updatedFullName)
+        preferenceManager.putString(PreferenceManager.Keys.USER_USER_NAME, updatedUsername)
+        preferenceManager.putString(PreferenceManager.Keys.USER_DESCRIPTION, updatedBio)
         onBackPressedDispatcher.onBackPressed()
     }
 
     private fun editProfile() {
         fullName = binding.nameEt.text.toString().trim()
+        username = binding.usernameEt.text.toString().trim()
         email = binding.emailEt.text.toString().trim()
         phoneNumber = binding.contactEt.text.toString().trim()
         bio = binding.bioEt.text.toString().trim()
-        individualViewModal.editProfile(fullName,email,dialCode, phoneNumber, bio)
+        individualViewModal.editProfile(username,fullName,email,dialCode, phoneNumber, bio)
     }
 
     private fun updateVisibility(
         nameVisible: Boolean = false,
+        usernameVisible: Boolean = false,
         emailVisible: Boolean = false,
         contactVisible: Boolean = false,
 //        passwordVisible: Boolean = false,
         bioVisible: Boolean = false
     ) {
         binding.nameLayout.visibility = if (nameVisible) View.VISIBLE else View.GONE
+        binding.usernameLayout.visibility = if (usernameVisible) View.VISIBLE else View.GONE
         binding.emailLayout.visibility = if (emailVisible) View.VISIBLE else View.GONE
         binding.contactLayout.visibility = if (contactVisible) View.VISIBLE else View.GONE
 //        binding.passwordLayout.visibility = if (passwordVisible) View.VISIBLE else View.GONE
@@ -172,6 +186,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
 
     private fun getDataSetData() {
         fullName = preferenceManager.getString(PreferenceManager.Keys.USER_FULL_NAME, "").toString()
+        username = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").toString()
         email = preferenceManager.getString(PreferenceManager.Keys.USER_EMAIL, "").toString()
         dialCode = preferenceManager.getString(PreferenceManager.Keys.USER_DIAL_CODE, "").toString()
         phoneNumber = preferenceManager.getString(PreferenceManager.Keys.USER_PHONE_NUMBER, "").toString()
@@ -188,6 +203,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
 //        binding.passwordEt.isEnabled = false
 //        binding.passwordEt.setHint("* * * * * * * * * *")
         binding.nameEt.setText(fullName)
+        binding.usernameEt.setText(username)
         binding.emailEt.setText(email)
         binding.bioEt.setText(bio)
 
@@ -199,6 +215,19 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
             val name = binding.nameEt.text.toString()
             if (name.isEmpty()) {
                 CustomSnackBar.showSnackBar(binding.root,MessageStore.pleaseEnterYourName(this))
+                return false
+            }
+        }
+        // Validate Username
+        if (binding.usernameLayout.visibility == View.VISIBLE) {
+            val username = binding.usernameEt.text.toString().trim()
+            if (username.isEmpty()) {
+                CustomSnackBar.showSnackBar(binding.root,"Please enter your username")
+                return false
+            }
+            // Username validation: alphanumeric and underscore only, 3-30 characters
+            if (!username.matches(Regex("^[a-zA-Z0-9_]{3,30}$"))) {
+                CustomSnackBar.showSnackBar(binding.root,"Username must be 3-30 characters and contain only letters, numbers, and underscores")
                 return false
             }
         }

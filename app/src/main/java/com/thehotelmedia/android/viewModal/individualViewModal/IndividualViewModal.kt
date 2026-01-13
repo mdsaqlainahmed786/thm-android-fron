@@ -581,11 +581,11 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     //Edit Profile
     private val _editProfileResult = MutableLiveData<EditProfileModal>()
     val editProfileResult: LiveData<EditProfileModal> = _editProfileResult
-    fun editProfile(name: String,email: String,dialCode: String,phoneNumber: String,bio: String) {
+    fun editProfile(username: String,name: String,email: String,dialCode: String,phoneNumber: String,bio: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
-                val response = individualRepo.editProfile(name,email,dialCode, phoneNumber, bio)
+                val response = individualRepo.editProfile(username,name,email,dialCode, phoneNumber, bio)
                 if (response.isSuccessful) {
                     val res = response.body()
                     toastMessageLiveData.postValue(res?.message ?: N_A)
@@ -1989,6 +1989,34 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                     val res = response.body()
                     toastMessageLiveData.postValue(res?.message ?: N_A)
                     _deleteCommentResult.postValue(response.body())
+                    Log.wtf(tag, response.body().toString())
+                    _loading.postValue(false)
+                } else {
+                    Log.wtf(tag + "ELSE", response.message().toString())
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
+    //Edit Comment
+    private val _editCommentResult = MutableLiveData<CreateCommentModal>()
+    val editCommentResult: LiveData<CreateCommentModal> = _editCommentResult
+    fun editComment(commentId: String, message: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.editComment(commentId, message)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _editCommentResult.postValue(response.body())
                     Log.wtf(tag, response.body().toString())
                     _loading.postValue(false)
                 } else {

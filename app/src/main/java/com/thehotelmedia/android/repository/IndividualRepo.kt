@@ -266,14 +266,14 @@ class IndividualRepo (private val context: Context){
         }
     }
 
-    suspend fun editProfile(name: String,email: String,dialCode: String,phoneNumber: String,bio: String): Response<EditProfileModal> {
+    suspend fun editProfile(username: String,name: String,email: String,dialCode: String,phoneNumber: String,bio: String): Response<EditProfileModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
             throw IllegalStateException("Access token is null or empty")
         }
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
-            return@withContext call.editProfile(accessToken,name,email,dialCode, phoneNumber, bio).execute()
+            return@withContext call.editProfile(accessToken,username,name,email,dialCode, phoneNumber, bio).execute()
         }
     }
 
@@ -748,6 +748,17 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.deleteComment(accessToken,commentId).execute()
+        }
+    }
+
+    suspend fun editComment(commentId: String, message: String): Response<CreateCommentModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.editComment(accessToken, commentId, message).execute()
         }
     }
 

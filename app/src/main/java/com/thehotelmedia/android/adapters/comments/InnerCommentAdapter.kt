@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.activity.BusinessProfileDetailsActivity
+import com.thehotelmedia.android.bottomSheets.EditCommentBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
 import com.thehotelmedia.android.customClasses.Constants.business_type_individual
 import com.thehotelmedia.android.databinding.CommentsInnerItemBinding
@@ -53,6 +54,8 @@ class InnerCommentAdapter(
         val postId = item.postID ?: ""
         val message = item.message
         val createdAt = item.createdAt.toString()
+        val updatedAt = item.updatedAt?.toString() ?: createdAt
+        val isEdited = updatedAt != createdAt && updatedAt != null
         var likeCount = item.likes ?: 0
         var isLiked = item.likedByMe ?: false
 
@@ -77,7 +80,12 @@ class InnerCommentAdapter(
         Glide.with(context).load(profilePic).placeholder(R.drawable.ic_profile_placeholder).into(binding.imageView)
         binding.userNameTv.text = name
         binding.commentTv.text = message
-        binding.timeTv.text = "(${calculateDaysAgo(createdAt,context)})"
+        val timeText = if (isEdited) {
+            "${calculateDaysAgo(createdAt,context)} (edited)"
+        } else {
+            calculateDaysAgo(createdAt,context)
+        }
+        binding.timeTv.text = "($timeText)"
  /*       binding.likeTv.text = likeCount.toString()
 
         if (isLiked) {
@@ -111,7 +119,7 @@ class InnerCommentAdapter(
             moveToBusinessProfileDetailsActivity(userId)
         }
         binding.menuBtn.setOnClickListener { view ->
-            showMenuDialog(view,id,userId)
+            showMenuDialog(view,id,userId,message)
         }
     }
 
@@ -120,7 +128,7 @@ class InnerCommentAdapter(
             intent.putExtra("USER_ID", userId)
             context.startActivity(intent)
     }
-    private fun showMenuDialog(view: View?, commentId: String, commentUserId: String) {
+    private fun showMenuDialog(view: View?, commentId: String, commentUserId: String, commentMessage: String?) {
         // Inflate the dropdown menu layout
         val inflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val dropdownView = inflater.inflate(R.layout.single_post_menu_dropdown_item, null)
@@ -134,13 +142,20 @@ class InnerCommentAdapter(
         )
 
         // Find TextViews and set click listeners
+        val editBtn: TextView = dropdownView.findViewById(R.id.editBtn)
         val deleteBtn: TextView = dropdownView.findViewById(R.id.deleteBtn)
         val reportBtn: TextView = dropdownView.findViewById(R.id.reportBtn)
 
-        // Show delete option only if the comment belongs to the current user
+        // Show edit/delete options only if the comment belongs to the current user
         val isCommentOwner = commentUserId == ownerUserId
+        editBtn.visibility = if (isCommentOwner) View.VISIBLE else View.GONE
         deleteBtn.visibility = if (isCommentOwner) View.VISIBLE else View.GONE
         reportBtn.visibility = if (isCommentOwner) View.GONE else View.VISIBLE
+
+        editBtn.setOnClickListener {
+            editComment(commentId, commentMessage)
+            popupWindow.dismiss()
+        }
 
         deleteBtn.setOnClickListener {
             deleteComment(commentId)
@@ -175,6 +190,14 @@ class InnerCommentAdapter(
             }
         }
         bottomSheetFragment.show(childFragmentManager, bottomSheetFragment.tag)
+    }
+
+    private fun editComment(commentId: String, currentMessage: String?) {
+        val editSheet = EditCommentBottomSheetFragment.newInstance(currentMessage ?: "")
+        editSheet.onSaveClick = { newMessage ->
+            individualViewModal.editComment(commentId, newMessage)
+        }
+        editSheet.show(childFragmentManager, "EditCommentBottomSheet")
     }
 
     private fun deleteComment(commentId: String) {

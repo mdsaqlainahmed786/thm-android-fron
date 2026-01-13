@@ -162,6 +162,7 @@ interface Application {
     @FormUrlEncoded
     fun editProfile(
         @Header("x-access-token") token: String,
+        @Field("username") username: String,
         @Field("name") name: String,
         @Field("email") email: String,
         @Field("dialCode") dialCode: String,
@@ -360,6 +361,14 @@ interface Application {
         @Header("x-access-token") token: String,
         @Path(value = "id",encoded = true) id: String,
     ): Call<DeleteModal>
+
+    @PATCH("posts/comments"+"/{id}")
+    @FormUrlEncoded
+    fun editComment(
+        @Header("x-access-token") token: String,
+        @Path(value = "id",encoded = true) id: String,
+        @Field("message") message: String,
+    ): Call<CreateCommentModal>
 
     @GET("user/videos"+"/{id}")
     fun getVideos(

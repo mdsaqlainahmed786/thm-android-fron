@@ -147,6 +147,16 @@ class CommentsBottomSheetFragment : BottomSheetDialogFragment() {
             }
         }
 
+        // Observe edit comment result to refresh the list
+        individualViewModal.editCommentResult.observe(viewLifecycleOwner) { result ->
+            if (result != null && result.status == true) {
+                // Refresh comments after successful edit
+                lifecycleScope.launch {
+                    commentsAdapter.refresh()
+                }
+            }
+        }
+
         binding.cancelReplyingBtn.setOnClickListener {
             binding.replyLayout.visibility = View.GONE
             parentId = ""

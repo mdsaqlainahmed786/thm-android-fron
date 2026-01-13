@@ -92,6 +92,38 @@
 
         </androidx.appcompat.widget.LinearLayoutCompat>
         <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/usernameLayout"
+            android:layout_marginTop="@dimen/_12sdp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <TextView
+                android:layout_gravity="center"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Username"
+                android:textColor="@color/text_color_60"
+                android:textSize="14sp"
+                android:fontFamily="@font/comic_regular"/>
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/usernameEt"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/_40sdp"
+                android:layout_marginTop="@dimen/_4sdp"
+                android:background="@drawable/rounded_edit_text_background_selector"
+                android:inputType="text"
+                android:drawableStart="@drawable/ic_name"
+                android:drawablePadding="@dimen/_2sdp"
+                android:hint="Username"
+                android:paddingStart="12dp"
+                android:textColor="@color/text_color"
+                android:textColorHint="@color/text_hint_color"
+                android:textSize="14sp" />
+
+
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+        <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/emailLayout"
             android:layout_marginTop="@dimen/_12sdp"
             android:layout_width="match_parent"
