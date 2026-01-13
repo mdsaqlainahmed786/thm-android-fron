@@ -151,6 +151,7 @@ class UserPostsViewerAdapter(
             setupSaveButton(state)
             setupFollowButton(post, state)
             setupMenuButton(post, state)
+            setupProfileIconClick(post)
 
             binding.reelViewCommentsTv.setOnClickListener {
                 binding.reelCommentBtn.performClick()
@@ -504,6 +505,45 @@ class UserPostsViewerAdapter(
                 // Hide reel menu button for photos
                 binding.reelMenuBtn.visibility = View.GONE
                 binding.reelMenuBtn.setOnClickListener(null)
+            }
+        }
+
+        private fun setupProfileIconClick(post: Data) {
+            val postOwnerId = currentOwnerId.ifBlank { extractOwnerId(post) }
+            
+            // Set up click listener for reel profile icon (videos)
+            binding.reelProfileIv.setOnClickListener {
+                if (postOwnerId.isNotEmpty()) {
+                    val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
+                    intent.putExtra("USER_ID", postOwnerId)
+                    context.startActivity(intent)
+                }
+            }
+            
+            // Set up click listener for photo profile icon (photos)
+            binding.photoProfileIv.setOnClickListener {
+                if (postOwnerId.isNotEmpty()) {
+                    val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
+                    intent.putExtra("USER_ID", postOwnerId)
+                    context.startActivity(intent)
+                }
+            }
+            
+            // Also set up click listener for username text views
+            binding.reelUsernameTv.setOnClickListener {
+                if (postOwnerId.isNotEmpty()) {
+                    val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
+                    intent.putExtra("USER_ID", postOwnerId)
+                    context.startActivity(intent)
+                }
+            }
+            
+            binding.photoUsernameTv.setOnClickListener {
+                if (postOwnerId.isNotEmpty()) {
+                    val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
+                    intent.putExtra("USER_ID", postOwnerId)
+                    context.startActivity(intent)
+                }
             }
         }
 
