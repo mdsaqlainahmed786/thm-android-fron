@@ -5,6 +5,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.repository.IndividualRepo
+import com.thehotelmedia.android.extensions.isPostEmpty
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -40,7 +41,13 @@ class FeedPagingSource(
                 val currentUserId = repository.getCurrentUserId()
 
                 // Filter out posts from private accounts where user is not following
+                // Also filter out empty posts (no content, feelings, or media)
                 val filteredData = data.filter { post ->
+                    // First, filter out empty posts
+                    if (post.isPostEmpty()) {
+                        return@filter false
+                    }
+                    
                     val postedBy = post.postedBy
                     if (postedBy == null) {
                         true // Keep posts without postedBy info

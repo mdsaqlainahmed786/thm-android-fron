@@ -124,6 +124,10 @@ class VideoImageViewer : DarkBaseActivity() {
             handelBackPress()
         }
 
+        binding.topLeftBackBtn.setOnClickListener {
+            handelBackPress()
+        }
+
         mediaType = intent.getStringExtra("MEDIA_TYPE")
         mediaUrl = intent.getStringExtra("MEDIA_URL") ?: ""
         mediaId = intent.getStringExtra("MEDIA_ID") ?: ""
@@ -418,9 +422,9 @@ class VideoImageViewer : DarkBaseActivity() {
 
     private fun updateBookmarkBtn(isSaved: Boolean, bookmarkIv: ImageView) {
         if (isSaved) {
-            bookmarkIv.setImageResource(R.drawable.ic_save_icon)
+            bookmarkIv.setImageResource(R.drawable.ic_save_icon_white)
         } else {
-            bookmarkIv.setImageResource(R.drawable.ic_unsave_icon)
+            bookmarkIv.setImageResource(R.drawable.ic_unsave_icon_white)
         }
     }
 
@@ -558,19 +562,33 @@ class VideoImageViewer : DarkBaseActivity() {
     private suspend fun fetchFeedDataDirectly() = withContext(Dispatchers.IO) {
         val allPosts = mutableListOf<Data>()
         var pageNumber = 1
+        var totalPages: Int? = null
         var hasMorePages = true
         
-        // Fetch multiple pages of feed data
-        while (hasMorePages && pageNumber <= 10) { // Limit to 10 pages to avoid too much data
+        // Fetch all pages of feed data until we reach the total pages
+        while (hasMorePages) {
             try {
                 val response = individualRepo.getFeed(pageNumber, 20, currentLat, currentLng)
                 if (response.isSuccessful) {
-                    val feedData = response.body()?.data ?: emptyList()
+                    val feedModal = response.body()
+                    val feedData = feedModal?.data ?: emptyList()
+                    
+                    // Get totalPages from first response if not set
+                    if (totalPages == null) {
+                        totalPages = feedModal?.totalPages
+                    }
+                    
                     if (feedData.isEmpty()) {
                         hasMorePages = false
                     } else {
                         allPosts.addAll(feedData)
-                        pageNumber++
+                        
+                        // Check if we've reached the last page
+                        if (totalPages != null && totalPages > 0 && pageNumber >= totalPages) {
+                            hasMorePages = false
+                        } else {
+                            pageNumber++
+                        }
                     }
                 } else {
                     hasMorePages = false

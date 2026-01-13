@@ -139,8 +139,7 @@
                     android:id="@+id/reelSaveIv"
                     android:layout_width="30dp"
                     android:layout_height="30dp"
-                    android:src="@drawable/ic_unsave_icon"
-                    android:tint="@color/white" />
+                    android:src="@drawable/ic_unsave_icon_white" />
             </LinearLayout>
 
             <ImageView
@@ -464,8 +463,7 @@
                     android:id="@+id/photoSaveIv"
                     android:layout_width="26dp"
                     android:layout_height="26dp"
-                    android:src="@drawable/ic_unsave_icon"
-                    android:tint="@color/white" />
+                    android:src="@drawable/ic_unsave_icon_white" />
             </LinearLayout>
 
             <TextView

@@ -14,6 +14,22 @@
         android:background="@color/black"
         tools:context=".activity.VideoImageViewer">
 
+        <!-- Back button at top left - always visible -->
+        <ImageView
+            android:id="@+id/topLeftBackBtn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:src="@drawable/ic_back_arrow_white"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Back"
+            android:padding="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/titleLayout"
             android:layout_width="match_parent"
@@ -174,7 +190,7 @@
                     android:layout_width="@dimen/_23sdp"
                     android:layout_height="@dimen/_23sdp"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_unsave_icon" />
+                    android:src="@drawable/ic_unsave_icon_white" />
 
             </LinearLayout>
 

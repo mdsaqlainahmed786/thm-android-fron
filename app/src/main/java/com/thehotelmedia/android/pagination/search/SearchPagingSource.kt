@@ -5,6 +5,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.thehotelmedia.android.modals.search.SearchData
 import com.thehotelmedia.android.repository.IndividualRepo
+import com.thehotelmedia.android.extensions.isPostEmpty
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -41,7 +42,7 @@ class SearchPagingSource(
                 Log.d(tag, "Response code: ${response.code()}")
                 println("sdajfksajfka    ${response.body()}")
 
-                val services = response.body()?.searchData ?: emptyList()
+                val services = response.body()?.searchData?.filter { !it.isPostEmpty() } ?: emptyList()
 
                 val nextKey = if (services.isEmpty()) null else nextPageNumber + 1
 
