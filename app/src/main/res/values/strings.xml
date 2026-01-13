@@ -448,6 +448,7 @@
     <string name="video_file_not_exist">Video file does not exist!</string>
     <string name="permission_required_to_save_video">Permission is required to save videos</string>
     <string name="video_too_long">Video is too long. Maximum duration is 3 minutes.</string>
+    <string name="video_too_large">Video file size exceeds %d MB limit</string>
     <string name="failed_to_save_image">Failed to save image</string>
     <string name="please_add_media">Please add media</string>
     <string name="rate_all_questions">Please rate all questions before proceeding</string>
