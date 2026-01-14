@@ -9,7 +9,9 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:background="@color/black"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp">
 
         <!-- ImageView -->
         <com.thehotelmedia.android.customDialog.ZoomClass
@@ -29,15 +31,22 @@
             android:id="@+id/videoLayout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:visibility="visible">
+            android:visibility="visible"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp">
 
             <com.google.android.exoplayer2.ui.PlayerView
                 android:id="@+id/playerView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
                 app:use_controller="false"
                 app:controller_layout_id="@layout/custom_exo_player_control_view"
                 app:show_timeout="3000"
+                app:resize_mode="zoom"
                 android:background="@color/black" />
 
             <ImageView
