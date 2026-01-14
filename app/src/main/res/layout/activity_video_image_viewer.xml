@@ -27,6 +27,7 @@
             android:focusable="true"
             android:contentDescription="Back"
             android:padding="8dp"
+            android:elevation="100dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -55,7 +56,7 @@
                 android:layout_gravity="center"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text=""
+                android:text="@string/videos"
                 android:textColor="@color/text_color"
                 android:textSize="18sp"
                 android:fontFamily="@font/comic_bold"/>
@@ -87,7 +88,6 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:importantForAccessibility="yes"
-            android:background="#FF0000"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="1.0"
@@ -227,7 +227,6 @@
             android:layout_marginStart="@dimen/_16sdp"
             android:layout_marginEnd="@dimen/_16sdp"
             android:layout_marginBottom="0dp"
-            android:background="#00FF00"
             app:layout_constraintBottom_toBottomOf="@+id/viewPager"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
