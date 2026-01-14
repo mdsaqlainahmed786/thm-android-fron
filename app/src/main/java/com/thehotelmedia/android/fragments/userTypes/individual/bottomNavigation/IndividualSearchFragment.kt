@@ -230,6 +230,8 @@ class IndividualSearchFragment : Fragment() {
                     // Permissions not granted, handle the case
                     lat = DEFAULT_LAT
                     lng = DEFAULT_LNG
+                    // Initialize UI even when location permission is denied
+                    showFilterItemsLayout("")
                 }
             }
 
@@ -245,6 +247,10 @@ class IndividualSearchFragment : Fragment() {
             errorCallback = { errorMessage ->
                 // Handle error callback
                 Toast.makeText(requireContext(), "Error: $errorMessage", Toast.LENGTH_SHORT).show()
+                lat = DEFAULT_LAT
+                lng = DEFAULT_LNG
+                // Initialize UI even when location fetch fails
+                showFilterItemsLayout("")
             }
         )
 
@@ -284,6 +290,10 @@ class IndividualSearchFragment : Fragment() {
                 lat = DEFAULT_LAT
                 lng = DEFAULT_LNG
                 binding.locationEt.setText("No address found!")
+                // Initialize UI when current location geocoding fails
+                if (data == "current") {
+                    showFilterItemsLayout("")
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()

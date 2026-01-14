@@ -42,7 +42,14 @@ class SearchPagingSource(
                 Log.d(tag, "Response code: ${response.code()}")
                 println("sdajfksajfka    ${response.body()}")
 
-                val services = response.body()?.searchData?.filter { !it.isPostEmpty() } ?: emptyList()
+                // Only filter empty posts when searching for posts type
+                // For users/business/events/reviews, don't filter as they don't have post content
+                val rawData = response.body()?.searchData ?: emptyList()
+                val services = if (type == "posts") {
+                    rawData.filter { !it.isPostEmpty() }
+                } else {
+                    rawData
+                }
 
                 val nextKey = if (services.isEmpty()) null else nextPageNumber + 1
 

@@ -13,6 +13,8 @@ import androidx.paging.liveData
 import com.thehotelmedia.android.SocketModals.sendMedia.SendMediaModal
 import com.thehotelmedia.android.UIState.UIState
 import com.thehotelmedia.android.apiService.Retrofit
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LAT
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LNG
 import com.thehotelmedia.android.customClasses.Constants.N_A
 import com.thehotelmedia.android.modals.DeleteModal
 import com.thehotelmedia.android.modals.SharePostModal
@@ -1404,16 +1406,34 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     fun getSearchData(query : String,type : String,businessTypeID : List<String>,initialKm :String,lat :Double,lng :Double): LiveData<PagingData<SearchData>> {
         var currentLat = 0.0
         var currentLng = 0.0
+        var radius = initialKm
+        
+        // Check if location is default (India coordinates) - means real location wasn't obtained
+        val isDefaultLocation = lat == DEFAULT_LAT && lng == DEFAULT_LNG
+        
         if (query.isNotEmpty()){
+            // Text search: always use global search (ignore location)
             currentLat = 0.0
             currentLng = 0.0
-        }else{
-            currentLat = lat
-            currentLng = lng
+        } else {
+            // Empty query: location-based search
+            // If location is default (not obtained) AND searching for users/business, use global search
+            // This prevents searching near India when user is not in India
+            if (isDefaultLocation && (type == "users" || type == "business")) {
+                // Location not available: show global list instead of searching near India
+                // Use global search pattern (matches CollaborationUsersPagingSource)
+                currentLat = 0.0
+                currentLng = 0.0
+                radius = "0"  // Global search (radius 0 means no distance limit)
+            } else {
+                // Use provided location (either real location or default for posts/events/reviews)
+                currentLat = lat
+                currentLng = lng
+            }
         }
         return Pager(
             config = PagingConfig(pageSize = 20),
-            pagingSourceFactory = { SearchPagingSource( query,type,businessTypeID,initialKm,currentLat,currentLng, individualRepo) }
+            pagingSourceFactory = { SearchPagingSource( query,type,businessTypeID,radius,currentLat,currentLng, individualRepo) }
         ).liveData.cachedIn(viewModelScope)
     }
 
