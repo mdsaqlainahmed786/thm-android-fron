@@ -77,6 +77,7 @@ class VideoImageViewer : DarkBaseActivity() {
     private var mediaUrl = ""
     private var mediaId = ""
     private var mediaType: String? = null
+    private var wasPlayingBeforePause = false
 
 
 
@@ -798,17 +799,35 @@ class VideoImageViewer : DarkBaseActivity() {
 
     override fun onPause() {
         super.onPause()
-        exoPlayer?.pause()
+        // Pause playback to stop audio, but don't stop() to keep media loaded for when user returns
+        exoPlayer?.let {
+            wasPlayingBeforePause = it.isPlaying
+            it.playWhenReady = false
+            it.pause()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        exoPlayer?.play()
+        // Resume playback if it was playing before pause
+        exoPlayer?.let {
+            if (wasPlayingBeforePause && mediaType == VIDEO) {
+                it.playWhenReady = true
+                it.play()
+            }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        exoPlayer?.pause()
+        // Stop and release player completely
+        exoPlayer?.let {
+            it.playWhenReady = false
+            it.pause()
+            it.stop()
+            it.release()
+        }
+        exoPlayer = null
     }
 
     private fun updateLikeBtn(postLiked: Boolean, likeIv: ImageView) {

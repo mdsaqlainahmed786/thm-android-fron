@@ -520,13 +520,22 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
     override fun onPause() {
         super.onPause()
-        currentExoPlayer?.pause()
+        // Pause all players to stop audio, but don't stop() to keep media loaded for resume
+        adapter.pauseAllPlayers()
+        currentExoPlayer?.let {
+            it.playWhenReady = false
+            it.pause()
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        // Resume playback if we have an active position
         if (activePosition != RecyclerView.NO_POSITION) {
-            currentExoPlayer?.play()
+            currentExoPlayer?.let {
+                it.playWhenReady = true
+                it.play()
+            }
         }
     }
 

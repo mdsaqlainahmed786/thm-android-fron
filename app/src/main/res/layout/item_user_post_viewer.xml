@@ -162,6 +162,9 @@
             android:layout_marginBottom="28dp"
             android:orientation="vertical"
             android:visibility="gone"
+            android:elevation="8dp"
+            android:clickable="false"
+            android:focusable="false"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/reelActionColumn"
             app:layout_constraintStart_toStartOf="parent">
@@ -169,7 +172,9 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/reelProfileRow"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:focusable="false">
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/reelProfileIv"
@@ -179,6 +184,7 @@
                     android:src="@drawable/ic_profile_placeholder"
                     android:clickable="true"
                     android:focusable="true"
+                    android:elevation="10dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
