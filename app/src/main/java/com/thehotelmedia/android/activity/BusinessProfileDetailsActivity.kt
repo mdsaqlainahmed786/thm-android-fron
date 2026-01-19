@@ -451,7 +451,8 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
 
         val businessTypeRef = result?.data?.businessProfileRef?.businessTypeRef
         businessName = businessTypeRef?.name ?: ""
-        val isHotel = businessName.equals(getString(R.string.hotel), ignoreCase = true)
+        val isHotel = businessName.equals(getString(R.string.hotel), ignoreCase = true) ||
+                businessName.equals(getString(R.string.home_stays), ignoreCase = true)
         // More robust check: check if name contains "restaurant" or matches exactly
         val isRestaurant = businessName.equals(getString(R.string.restaurant), ignoreCase = true) ||
                 businessName.lowercase().trim().contains("restaurant")

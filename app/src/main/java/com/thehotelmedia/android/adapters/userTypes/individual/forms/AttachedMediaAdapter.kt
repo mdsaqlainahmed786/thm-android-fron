@@ -88,7 +88,11 @@ class AttachedMediaAdapter(
             // Hide play icon for images
             binding.playIconImageView.visibility = View.GONE
             // Show edit button for images if callback is provided
-            binding.editBtn.visibility = if (onEditClick != null) View.VISIBLE else View.GONE
+            // Hide edit button for images that have already been edited (contain "edited_image" in path)
+            // Check both the URI string and the path to handle both file:// and content:// URIs
+            val isEditedImage = fileName.contains("edited_image", ignoreCase = true) || 
+                                mediaUri.path?.contains("edited_image", ignoreCase = true) == true
+            binding.editBtn.visibility = if (onEditClick != null && !isEditedImage) View.VISIBLE else View.GONE
         }
 
         // Handle image click for pinch-to-zoom (for images only)
