@@ -88,7 +88,8 @@ class IndividualChatFragment : Fragment() {
         if (isAdded && userName.isNotEmpty()) {
             socketViewModel.reattachListeners()
             // Also ensure socket is connected
-            socketViewModel.connectSocket(userName)
+            val userID = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+            socketViewModel.connectSocket(userName, userID)
         }
     }
     
@@ -113,7 +114,8 @@ class IndividualChatFragment : Fragment() {
         // Ensure fragment is attached before proceeding
         if (isAdded) {
             userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
-            socketViewModel.connectSocket(userName)
+            val userID = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+            socketViewModel.connectSocket(userName, userID)
             // Set up Pager FIRST so it's ready to receive data
             setupChatPager()
             // Enable auto-fetch so CHAT_SCREEN is emitted when socket connects
@@ -244,7 +246,9 @@ class IndividualChatFragment : Fragment() {
     private fun setupRecyclerViews() {
         chatListAdapter = ChatListAdapter(requireContext())
 
-        binding.chatListRv.adapter = chatListAdapter.withLoadStateFooter(footer = LoaderAdapter())
+        binding.chatListRv.adapter = chatListAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { chatListAdapter.retry() }
+        )
         binding.chatListRv.isNestedScrollingEnabled = false
 
 

@@ -67,7 +67,7 @@ class SocketViewModel : ViewModel() {
 
 
 
-    fun connectSocket( username: String) {
+    fun connectSocket(username: String, userID: String) {
 
 //        // Purane connection ko reset karen
 //        if (::socketManager.isInitialized) {
@@ -76,8 +76,8 @@ class SocketViewModel : ViewModel() {
 
         this.userName = username // Store the username
 
-        // Initialize socket with URL and username
-        socketManager = SocketManager.getInstance(socketUrl, userName)
+        // Initialize socket with URL, username, and userID
+        socketManager = SocketManager.getInstance(socketUrl, userName, userID)
         
         // Attach ALL listeners BEFORE initializing socket connection
         // This ensures listeners are ready when connection completes

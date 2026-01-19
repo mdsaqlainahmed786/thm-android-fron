@@ -111,7 +111,7 @@ class ProfileReviewsFragment : Fragment() {
     private fun getReviewData() {
 
         binding.reviewRecyclerView.adapter = reviewAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+            .withLoadStateFooter(footer = LoaderAdapter { reviewAdapter.retry() })
 
         individualViewModal.getReviewData(userId).observe(viewLifecycleOwner) {
             this.lifecycleScope.launch {

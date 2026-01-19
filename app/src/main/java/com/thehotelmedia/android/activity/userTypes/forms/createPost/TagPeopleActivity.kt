@@ -141,7 +141,7 @@ class TagPeopleActivity : BaseActivity() {
         tagPeopleListAdapter = TagPeopleListAdapter(this,::onPeopleSelected, isCollaboration)
 
         binding.tagPeopleRv.adapter = tagPeopleListAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+            .withLoadStateFooter(footer = LoaderAdapter { tagPeopleListAdapter.retry() })
 
         // For collaboration or story tagging, search all users in database; for regular post tagging, use tagged people (followers)
         if (isCollaboration || searchAllUsers) {

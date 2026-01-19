@@ -204,6 +204,13 @@ class IndividualHomeFragment : Fragment() {
             getFeedData("refresh")
         }
 
+        // Let SwipeRefreshLayout decide when pull-to-refresh should be possible based on whether
+        // the RecyclerView can scroll up. This is more reliable than manually toggling
+        // swipeRefreshLayout.isEnabled using fragile top/offset checks.
+        binding.swipeRefreshLayout.setOnChildScrollUpCallback { _, _ ->
+            binding.postRecyclerView.canScrollVertically(-1)
+        }
+
 //        binding.switchThemeButton.setOnClickListener {
 //            ThemeHelper.toggleTheme(requireActivity())
 //            requireActivity().recreate() // Restart activity to apply theme change
@@ -246,26 +253,10 @@ class IndividualHomeFragment : Fragment() {
 //        })
 
 
-        binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                super.onScrolled(recyclerView, dx, dy)
-
-
-                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-                val firstVisibleItemPosition = layoutManager?.findFirstVisibleItemPosition() ?: 0
-
-                val firstItemView = layoutManager?.findViewByPosition(firstVisibleItemPosition)
-                val isTopVisible = firstVisibleItemPosition == 0 && firstItemView?.top == 0
-
-                binding.swipeRefreshLayout.isEnabled = isTopVisible
-
-//                val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-//                val firstVisiblePosition = layoutManager?.findFirstCompletelyVisibleItemPosition() ?: RecyclerView.NO_POSITION
-//
-//                // Ensure the first item is fully visible
-//                binding.swipeRefreshLayout.isEnabled = firstVisiblePosition == 0 && recyclerView.computeVerticalScrollOffset() == 0
-            }
-        })
+        // NOTE: We intentionally do NOT toggle swipeRefreshLayout.isEnabled based on scroll position.
+        // Doing so can accidentally disable pull-to-refresh if the top item isn't aligned to top==0
+        // (e.g., due to padding, decorations, or header layout changes). The child-scroll callback
+        // above handles this reliably.
 
         individualViewModal.toast.observe(viewLifecycleOwner){
             CustomSnackBar.showSnackBar(binding.root,it)
@@ -385,11 +376,15 @@ class IndividualHomeFragment : Fragment() {
     private fun getFeedData(refresh: String) {
 
         if (binding.postRecyclerView.adapter == null) {
-            binding.postRecyclerView.adapter = feedAdapter.withLoadStateFooter(footer = LoaderAdapter())
+            binding.postRecyclerView.adapter = feedAdapter.withLoadStateFooter(
+                footer = LoaderAdapter { feedAdapter.retry() }
+            )
             binding.postRecyclerView.isNestedScrollingEnabled = false
             binding.postRecyclerView.setItemViewCacheSize(10) // Increased cache size for smoother scrolling
             binding.postRecyclerView.setHasFixedSize(false) // Allow RecyclerView to optimize layout
             binding.postRecyclerView.itemAnimator = null
+
+            // (Child scroll callback is configured in initUI for reliability across all states.)
             
             // Continuous scroll detection for video auto-play (similar to ProfilePostsFragment)
             // This fires whenever the RecyclerView scrolls, allowing us to track which post
@@ -406,7 +401,7 @@ class IndividualHomeFragment : Fragment() {
                 }
             }
             
-            // Keep scroll listener for swipe refresh detection and scroll direction tracking
+            // Keep scroll listener only for scroll direction tracking and state
             binding.postRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     super.onScrolled(recyclerView, dx, dy)
@@ -430,21 +425,26 @@ class IndividualHomeFragment : Fragment() {
                     }
                 }
             })
-        }
 
-        individualViewModal.getFeeds(currentLat,currentLng).observe(viewLifecycleOwner) { data ->
-            lifecycleScope.launch {
-                ensureLoadStateListener()
-                feedAdapter.submitData(data)
-                // After initial data load, ensure the first visible post (after header)
-                // is marked active so its video can auto‑play.
-                binding.postRecyclerView.post {
-                    val initialPosition = findMostVisibleItemPosition(binding.postRecyclerView)
-                    if (initialPosition != RecyclerView.NO_POSITION) {
-                        updateActivePosition(initialPosition)
+            // Initial Observation - Only observe ONCE
+            individualViewModal.getFeeds(currentLat,currentLng).observe(viewLifecycleOwner) { data ->
+                lifecycleScope.launch {
+                    ensureLoadStateListener()
+                    feedAdapter.submitData(data)
+                    // After initial data load, ensure the first visible post (after header)
+                    // is marked active so its video can auto‑play.
+                    binding.postRecyclerView.post {
+                        val initialPosition = findMostVisibleItemPosition(binding.postRecyclerView)
+                        if (initialPosition != RecyclerView.NO_POSITION) {
+                            updateActivePosition(initialPosition)
+                        }
                     }
                 }
             }
+        } else {
+             // For subsequent refreshes, just refresh the adapter
+            feedAdapter.refresh()
+            feedAdapter.refreshStories()
         }
     }
 
@@ -514,19 +514,45 @@ class IndividualHomeFragment : Fragment() {
         loadStateListenerAdded = true
 
         feedAdapter.addLoadStateListener { loadState ->
-            val isLoading = loadState.refresh is LoadState.Loading
-            val isEmpty = loadState.refresh is LoadState.NotLoading && feedAdapter.itemCount == 0
+            val refreshState = loadState.refresh
+            val appendState = loadState.append
+            val isLoading = refreshState is LoadState.Loading
+            val isEmpty = refreshState is LoadState.NotLoading && feedAdapter.itemCount == 0
 
             if (isLoading) {
 //                // Show progress bar only for non-refresh loads, if needed
 //                if (!binding.swipeRefreshLayout.isRefreshing) {
 //                    progressBar.show()
 //                }
+                
+                // Add a failsafe to stop refreshing after 10 seconds if it gets stuck
+                if (binding.swipeRefreshLayout.isRefreshing) {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        if (binding.swipeRefreshLayout.isRefreshing) {
+                            binding.swipeRefreshLayout.isRefreshing = false
+                            progressBar.hide()
+                        }
+                    }, 10000) // 10 seconds timeout
+                }
             } else {
                 // Hide progress bar and refresh indicator when loading completes
                 Handler(Looper.getMainLooper()).post {
                     progressBar.hide()
                     binding.swipeRefreshLayout.isRefreshing = false
+
+                    // Handle errors
+                    if (refreshState is LoadState.Error) {
+                        val errorState = refreshState
+                        Toast.makeText(requireContext(), "Error: ${errorState.error.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
+                    // Handle "load more" (append) errors so users don't see a silent spinner.
+                    if (appendState is LoadState.Error) {
+                        Toast.makeText(
+                            requireContext(),
+                            "Error loading more: ${appendState.error.localizedMessage}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
 
                     // After a manual refresh (user pulled to refresh), keep list at the very top.
                     // Guard with isManualRefresh so normal paging loads while scrolling don't jump to top.

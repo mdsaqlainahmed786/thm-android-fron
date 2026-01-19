@@ -100,6 +100,8 @@ class IndividualSearchFragment : Fragment() {
 
     private lateinit var authViewModel: AuthViewModel
     private var searchJob: Job? = null
+    private var currentAdapter: androidx.paging.PagingDataAdapter<*, *>? = null
+    private var isInitialLoad = true
     private val AUTOCOMPLETE_REQUEST_CODE = 1
     private val autocompleteLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val requestCode = AUTOCOMPLETE_REQUEST_CODE
@@ -213,6 +215,8 @@ class IndividualSearchFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Cancel search job if exists
+        searchJob?.cancel()
         // Unregister the receiver to avoid memory leaks
         NotificationDotUtil.unregisterReceiver(requireContext())
     }
@@ -322,7 +326,6 @@ class IndividualSearchFragment : Fragment() {
         binding.searchEt.addTextChangedListener(object : TextWatcher {
 
             override fun afterTextChanged(s: Editable?) {
-
                 // Do something after the text is changed, if necessary
             }
 
@@ -331,14 +334,21 @@ class IndividualSearchFragment : Fragment() {
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-
                 val input = s.toString().trim()
+                val oldQuery = query
                 query = input
-                getAddressFromLatLng(currentLat, currentLng, "current")
-
-
-
-
+                
+                // Cancel previous search job if exists
+                searchJob?.cancel()
+                
+                // Debounce search to avoid too many API calls
+                searchJob = lifecycleScope.launch {
+                    delay(500) // Wait 500ms after user stops typing
+                    // Only refresh if query actually changed and adapter is set
+                    if (oldQuery != query && currentAdapter != null) {
+                        getSearchData()
+                    }
+                }
             }
 
         })
@@ -386,6 +396,7 @@ class IndividualSearchFragment : Fragment() {
 
         binding.applyFilterBtn.setOnClickListener {
             binding.searchEt.text?.clear()
+            query = ""
             showFilterItemsLayout("Apply")
         }
 
@@ -506,29 +517,47 @@ class IndividualSearchFragment : Fragment() {
             business -> {
                 VideoPlayerManager.pausePlayer()
                 type = "business"
+                // Reset scroll position and refresh data
+                binding.itemsRv.scrollToPosition(0)
+                activePosition = 0
                 getSearchData()
             } nearBy -> {
                 VideoPlayerManager.pausePlayer()
                 type = "business"
+                // Reset scroll position and refresh data
+                binding.itemsRv.scrollToPosition(0)
+                activePosition = 0
                 getSearchData()
             }
             users -> {
                 VideoPlayerManager.pausePlayer()
                 type = "users"
+                // Reset scroll position and refresh data
+                binding.itemsRv.scrollToPosition(0)
+                activePosition = 0
                 getSearchData()
             }
             posts -> {
                 type = "posts"
+                // Reset scroll position and refresh data
+                binding.itemsRv.scrollToPosition(0)
+                activePosition = 0
                 getSearchData()
             }
             events -> {
                 VideoPlayerManager.pausePlayer()
                 type = "events"
+                // Reset scroll position and refresh data
+                binding.itemsRv.scrollToPosition(0)
+                activePosition = 0
                 getSearchData()
             }
             reviews -> {
                 VideoPlayerManager.pausePlayer()
                 type = "reviews"
+                // Reset scroll position and refresh data
+                binding.itemsRv.scrollToPosition(0)
+                activePosition = 0
                 getSearchData()
             }
         }
@@ -570,16 +599,43 @@ class IndividualSearchFragment : Fragment() {
     }
 
     private fun getSearchData() {
+        // Remove previous scroll listener to prevent duplicates
+        binding.itemsRv.clearOnScrollListeners()
+        
         val adapter = getAdapterForType(type)
-        binding.itemsRv.adapter = adapter.withLoadStateFooter(LoaderAdapter())
+        currentAdapter = adapter
+        
+        // Reset scroll position to top when refreshing (not on initial load)
+        val shouldResetScroll = !isInitialLoad
+        if (shouldResetScroll) {
+            binding.itemsRv.scrollToPosition(0)
+            activePosition = 0
+        }
+        
+        binding.itemsRv.adapter = adapter.withLoadStateFooter(
+            footer = LoaderAdapter { adapter.retry() }
+        )
         binding.itemsRv.itemAnimator = null
 
-        individualViewModal.getSearchData(query, type,formattedBusinessTags,initialKm.toString(),lat,lng).observe(viewLifecycleOwner) {
-            this.lifecycleScope.launch {
-                isLoading(adapter)
-                adapter.submitData(it)
+        // Observe the search data - each call to getSearchData creates a new LiveData
+        // so we don't need to worry about removing old observers
+        individualViewModal.getSearchData(query, type, formattedBusinessTags, initialKm.toString(), lat, lng)
+            .observe(viewLifecycleOwner) { pagingData ->
+                this.lifecycleScope.launch {
+                    isLoading(adapter)
+                    adapter.submitData(pagingData)
+                    // Ensure scroll position is reset after data is submitted if we're refreshing
+                    if (shouldResetScroll && binding.itemsRv.computeVerticalScrollOffset() > 0) {
+                        binding.itemsRv.post {
+                            binding.itemsRv.scrollToPosition(0)
+                        }
+                    }
+                    // Mark as not initial load after first data submission
+                    if (isInitialLoad) {
+                        isInitialLoad = false
+                    }
+                }
             }
-        }
 
         // Scroll listener to track active item
         binding.itemsRv.addOnScrollListener(object : RecyclerView.OnScrollListener() {

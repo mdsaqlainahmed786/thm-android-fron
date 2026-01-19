@@ -112,7 +112,9 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
         layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
         binding.postsRecyclerView.layoutManager = layoutManager
-        binding.postsRecyclerView.adapter = adapter.withLoadStateFooter(footer = LoaderAdapter())
+        binding.postsRecyclerView.adapter = adapter.withLoadStateFooter(
+            footer = LoaderAdapter { adapter.retry() }
+        )
 
         // Use PagerSnapHelper only for videos/reels (not for photos feed-style)
         if (filterMediaType != "image") {

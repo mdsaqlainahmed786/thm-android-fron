@@ -91,7 +91,9 @@ class SavedPostActivity : BaseActivity() {
             enableStoryShare = false,
             viewerFollowsOwner = false
         )
-        binding.savedPostRv.adapter = savedFeedAdapter.withLoadStateFooter(footer = LoaderAdapter())
+        binding.savedPostRv.adapter = savedFeedAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { savedFeedAdapter.retry() }
+        )
 
         binding.savedPostRv.layoutManager = LinearLayoutManager(this)
         binding.savedPostRv.itemAnimator = null

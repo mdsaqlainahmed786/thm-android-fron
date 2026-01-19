@@ -179,7 +179,9 @@ class ProfilePostsFragment : Fragment() {
             progressBar.show()
             individualViewModal.publishPostToStory(postId)
         }
-        binding.postRecyclerView.adapter = postAdapter.withLoadStateFooter(footer = LoaderAdapter())
+        binding.postRecyclerView.adapter = postAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { postAdapter.retry() }
+        )
         binding.postRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         // Optimize RecyclerView performance
         binding.postRecyclerView.setItemViewCacheSize(20) // Increased cache size for smoother scrolling

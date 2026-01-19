@@ -9,14 +9,31 @@ import androidx.recyclerview.widget.RecyclerView
 import com.thehotelmedia.android.databinding.LoadingItemsBinding
 
 
-class LoaderAdapter : LoadStateAdapter<LoaderAdapter.LoaderViewHolder>() {
+class LoaderAdapter(
+    private val onRetry: (() -> Unit)? = null
+) : LoadStateAdapter<LoaderAdapter.LoaderViewHolder>() {
 
     inner class LoaderViewHolder(val binding: LoadingItemsBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(loadState: LoadState) {
 
-            binding.progress.isVisible = loadState is LoadState.Loading
+            val isLoading = loadState is LoadState.Loading
+            val isError = loadState is LoadState.Error
+
+            binding.progress.isVisible = isLoading
+
+            binding.errorText.isVisible = isError
+            binding.retryButton.isVisible = isError && onRetry != null
+
+            if (isError) {
+                binding.errorText.text = (loadState as LoadState.Error).error.localizedMessage
+                    ?: "Something went wrong. Please try again."
+            }
+
+            binding.retryButton.setOnClickListener {
+                onRetry?.invoke()
+            }
 
         }
 

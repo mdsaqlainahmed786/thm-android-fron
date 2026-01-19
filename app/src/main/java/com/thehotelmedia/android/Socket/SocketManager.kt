@@ -6,7 +6,7 @@ import io.socket.client.Socket
 import kotlinx.coroutines.CompletableDeferred
 import java.net.URISyntaxException
 
-class SocketManager private constructor(private val url: String, private val username: String) {
+class SocketManager private constructor(private val url: String, private val username: String, private val userID: String) {
 
     private val TAG = "SocketManager"
     private var socket: Socket? = null
@@ -17,9 +17,9 @@ class SocketManager private constructor(private val url: String, private val use
         private var instance: SocketManager? = null
 
         // Create a singleton instance
-        fun getInstance(url: String, username: String): SocketManager {
+        fun getInstance(url: String, username: String, userID: String): SocketManager {
             if (instance == null) {
-                instance = SocketManager(url, username)
+                instance = SocketManager(url, username, userID)
             }
             return instance!!
         }
@@ -53,7 +53,10 @@ class SocketManager private constructor(private val url: String, private val use
         try {
             val options = IO.Options().apply {
                 transports = arrayOf("websocket")
-                auth = mapOf("username" to username)
+                auth = mapOf(
+                    "username" to username,
+                    "userID" to userID
+                )
                 reconnection = true
                 reconnectionAttempts = 5  // Reduced number of attempts
                 reconnectionDelay = 2000 // Reduced delay between attempts

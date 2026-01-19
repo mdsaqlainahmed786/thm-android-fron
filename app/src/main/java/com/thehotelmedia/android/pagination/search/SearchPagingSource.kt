@@ -75,9 +75,8 @@ class SearchPagingSource(
     }
 
     override fun getRefreshKey(state: PagingState<Int, SearchData>): Int? {
-        return state.anchorPosition?.let { anchorPosition ->
-            state.closestPageToPosition(anchorPosition)?.prevKey?.plus(1)
-                ?: state.closestPageToPosition(anchorPosition)?.nextKey?.minus(1)
-        }
+        // Always return 1 to start from the beginning on refresh
+        // This prevents the feed from starting in the middle
+        return 1
     }
 }

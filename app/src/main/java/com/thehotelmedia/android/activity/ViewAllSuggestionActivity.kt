@@ -56,10 +56,9 @@ class ViewAllSuggestionActivity : BaseActivity() {
 
     private fun getSuggestionData() {
         suggestionAdapter = SuggestionAdapter(this,individualViewModal,supportFragmentManager,ownerUserid)
-        binding.suggestionRv.adapter = suggestionAdapter
-
-        binding.suggestionRv.adapter = suggestionAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+        binding.suggestionRv.adapter = suggestionAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { suggestionAdapter.retry() }
+        )
 
         individualViewModal.getSuggestion().observe(this) {
             this.lifecycleScope.launch {

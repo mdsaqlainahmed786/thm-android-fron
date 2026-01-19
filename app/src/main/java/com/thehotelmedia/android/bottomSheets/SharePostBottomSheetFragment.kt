@@ -237,7 +237,8 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
             dismissAllowingStateLoss()
             return
         }
-        socketViewModel.connectSocket(userName)
+        val userID = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+        socketViewModel.connectSocket(userName, userID)
         fetchChats(binding.searchEt.text?.toString().orEmpty())
     }
 

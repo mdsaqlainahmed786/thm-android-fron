@@ -20,6 +20,7 @@ class MessageActionBottomSheetFragment : BottomSheetDialogFragment() {
     var onDeleteClick: (() -> Unit)? = null
     var onCopyClick: (() -> Unit)? = null
     var isOwnMessage: Boolean = true
+    var showDeleteOnly: Boolean = false
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val bottomSheetDialog = BottomSheetDialog(requireContext(), R.style.CustomBottomSheetDialogTheme)
@@ -43,11 +44,21 @@ class MessageActionBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     private fun initUI() {
-        if (!isOwnMessage) {
+        if (showDeleteOnly) {
+            // Show only delete button for media messages (only if own message)
+            binding.copyBtn.visibility = View.GONE
             binding.editBtn.visibility = View.GONE
-            binding.deleteBtn.visibility = View.GONE
-            // Also hide the spacers if necessary, but visibility GONE usually handles layout well if correctly packed.
-            // In Linear layout, it should be fine.
+            binding.deleteBtn.visibility = if (isOwnMessage) View.VISIBLE else View.GONE
+        } else {
+            // Show all buttons for text messages, but hide edit/delete if not own message
+            if (!isOwnMessage) {
+                binding.editBtn.visibility = View.GONE
+                binding.deleteBtn.visibility = View.GONE
+            } else {
+                binding.editBtn.visibility = View.VISIBLE
+                binding.deleteBtn.visibility = View.VISIBLE
+            }
+            binding.copyBtn.visibility = View.VISIBLE
         }
 
         binding.copyBtn.setOnClickListener {
@@ -67,9 +78,10 @@ class MessageActionBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     companion object {
-        fun newInstance(isOwnMessage: Boolean = true): MessageActionBottomSheetFragment {
+        fun newInstance(isOwnMessage: Boolean = true, showDeleteOnly: Boolean = false): MessageActionBottomSheetFragment {
             val fragment = MessageActionBottomSheetFragment()
             fragment.isOwnMessage = isOwnMessage
+            fragment.showDeleteOnly = showDeleteOnly
             return fragment
         }
     }

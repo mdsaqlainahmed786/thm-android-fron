@@ -224,7 +224,9 @@ class CommentsBottomSheetFragment : BottomSheetDialogFragment() {
         commentsAdapter = CommentsAdapter(requireContext(),::onReplyClick,individualViewModal,childFragmentManager,ownerUserId)
 
         if (binding.commentsRv.adapter == null) {
-            binding.commentsRv.adapter = commentsAdapter.withLoadStateFooter(footer = LoaderAdapter())
+            binding.commentsRv.adapter = commentsAdapter.withLoadStateFooter(
+                footer = LoaderAdapter { commentsAdapter.retry() }
+            )
         }
 
         individualViewModal.getComments(postId).observe(viewLifecycleOwner) {

@@ -129,7 +129,9 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
     }
 
     override fun onResume() {
-        socketViewModel.connectSocket(myUserName)
+        myUserName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
+        val userID = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+        socketViewModel.connectSocket(myUserName, userID)
         fetchConversationData()
         super.onResume()
     }
@@ -154,6 +156,7 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
      * Initialize the UI components and set up listeners.
      */
     private fun initializeUI() {
+        preferenceManager = PreferenceManager.getInstance(this)
         val individualRepo = IndividualRepo(this)
         individualViewModal = ViewModelProvider(this, ViewModelFactory(null, individualRepo, null))[IndividualViewModal::class.java]
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -316,7 +319,9 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
             },
             onMessageAction = { message, action ->
                 if (action == "show_menu") {
-                    showMessageContextMenu(message)
+                    showMessageContextMenu(message, showDeleteOnly = false)
+                } else if (action == "show_delete_menu") {
+                    showMessageContextMenu(message, showDeleteOnly = true)
                 }
             }
         )
@@ -533,7 +538,9 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
         socketViewModel.inPrivateChat(userName)
         socketViewModel.messageSeen(userName)
         if (binding.inboxRv.adapter == null) {
-            binding.inboxRv.adapter = chatAdapter.withLoadStateFooter(LoaderAdapter())
+            binding.inboxRv.adapter = chatAdapter.withLoadStateFooter(
+                footer = LoaderAdapter { chatAdapter.retry() }
+            )
             binding.inboxRv.isNestedScrollingEnabled = false
             fetchConversationPagingSource = FetchConversationPagingSource(socketViewModel, userName)
         }
@@ -863,19 +870,22 @@ class InboxScreenActivity : BaseActivity() , BlockUserBottomSheetFragment.Bottom
     /**
      * Show context menu for message actions (Copy/Edit/Delete)
      */
-    private fun showMessageContextMenu(message: Messages) {
+    private fun showMessageContextMenu(message: Messages, showDeleteOnly: Boolean = false) {
         val messageID = message.messageID ?: message.Id ?: return
         val sentByMe = message.sentByMe == true
-        val bottomSheet = MessageActionBottomSheetFragment.newInstance(isOwnMessage = sentByMe)
+        val bottomSheet = MessageActionBottomSheetFragment.newInstance(isOwnMessage = sentByMe, showDeleteOnly = showDeleteOnly)
         
-        bottomSheet.onCopyClick = {
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText("Clipped Message", message.message)
-            clipboard.setPrimaryClip(clip)
-            Toast.makeText(this, "Message copied to clipboard", Toast.LENGTH_SHORT).show()
+        if (!showDeleteOnly) {
+            bottomSheet.onCopyClick = {
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("Clipped Message", message.message)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "Message copied to clipboard", Toast.LENGTH_SHORT).show()
+            }
+            
+            bottomSheet.onEditClick = { showEditMessageDialog(messageID) }
         }
         
-        bottomSheet.onEditClick = { showEditMessageDialog(messageID) }
         bottomSheet.onDeleteClick = { showDeleteMessageConfirmation(messageID) }
         bottomSheet.show(supportFragmentManager, "MessageActionBottomSheet")
     }

@@ -95,7 +95,9 @@ class ViewerFragment : Fragment() {
 
     private fun getViewerData() {
         println("asdfioasdjfa entre $storyId")
-        binding.itemsRv.adapter = viewerStoryAdapter.withLoadStateFooter(footer = LoaderAdapter())
+        binding.itemsRv.adapter = viewerStoryAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { viewerStoryAdapter.retry() }
+        )
         individualViewModal.getViewers(storyId).observe(viewLifecycleOwner) {
             this.lifecycleScope.launch {
                 isLoading()

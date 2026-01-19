@@ -73,7 +73,7 @@ class ProfilePhotosFragment : Fragment() {
         binding.photosRv.recycledViewPool.setMaxRecycledViews(0, 10)
         
         binding.photosRv.adapter = profilePhotosAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+            .withLoadStateFooter(footer = LoaderAdapter { profilePhotosAdapter.retry() })
 
         individualViewModal.getImages(userId).observe(viewLifecycleOwner) {
             this.lifecycleScope.launch {
