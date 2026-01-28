@@ -28,6 +28,10 @@ data class BusinessProfileRef (
     @SerializedName("amenitiesRef"       ) var amenitiesRef       : ArrayList<AmenitiesRef> = arrayListOf(),
     @SerializedName("businessTypeRef"    ) var businessTypeRef    : BusinessTypeRef?        = BusinessTypeRef(),
     @SerializedName("businessSubtypeRef" ) var businessSubtypeRef : BusinessSubtypeRef?     = BusinessSubtypeRef(),
-    @SerializedName("businessAnswerRef"  ) var businessAnswerRef  : ArrayList<BusinessAnswerRef> = arrayListOf()
+    @SerializedName("businessAnswerRef"  ) var businessAnswerRef  : ArrayList<BusinessAnswerRef> = arrayListOf(),
+    // These are only present in business profile fetch response; keep defaults null so we can reliably
+    // detect "missing/unparsed" vs "present".
+    @SerializedName("weatherReport"     ) var weatherReport     : Weather?                = null,
+    @SerializedName("environment"       ) var environment       : Environment?            = null
 
 )

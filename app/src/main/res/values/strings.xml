@@ -649,6 +649,7 @@
     <string name="phone_number_hint">Enter phone number</string>
     <string name="send_otp">Send OTP</string>
     <string name="phone_otp_info">We\'ll send a verification code to this number.</string>
+    <string name="no_user_registered_with_this_mobile_number">No user registered with this mobile Number</string>
     <string name="add_profession">Add Profession</string>
     <string name="try_changing_location">Try changing location!</string>
     <string name="book_table">Book Table</string>

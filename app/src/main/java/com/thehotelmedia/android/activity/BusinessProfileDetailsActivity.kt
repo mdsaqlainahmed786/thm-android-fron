@@ -37,6 +37,7 @@ import com.thehotelmedia.android.adapters.userTypes.individual.profile.QuestionL
 import com.thehotelmedia.android.bottomSheets.BlockUserBottomSheetFragment
 import com.thehotelmedia.android.bottomSheets.ReportBottomSheetFragment
 import com.thehotelmedia.android.customClasses.ColorFilterTransformation
+import com.thehotelmedia.android.customClasses.Constants.N_A
 import com.thehotelmedia.android.customClasses.Constants.OFFICIAL
 import com.thehotelmedia.android.customClasses.Constants.URL_PATTERN
 import com.thehotelmedia.android.customClasses.Constants.business_type_business
@@ -675,27 +676,96 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
             userMediumProfilePic = businessProfilePic?.medium.toString()
             userLargeProfilePic = businessProfilePic?.large.toString()
 
-            val tempMin = result?.data?.weather?.main?.feelsLike ?: 0.0
-            val tempMax = result?.data?.weather?.main?.tempMax ?: 0.0
-            val pm25Value = result?.data?.weather?.airPollution?.list?.getOrNull(0)?.components?.pm25 ?: 0.0
-            val tempMinC = (tempMin - 273.15).roundToInt()
-            val tempMaxC = (tempMax - 273.15).roundToInt()
+            // Get weather data from businessProfileRef.environment (preferred) or weatherReport (fallback)
+            val environment = businessProfile?.environment
+            val weatherReport = businessProfile?.weatherReport
+            
+            // Log weather data to debug temperature issue
+            android.util.Log.wtf("BusinessProfile", "Environment: $environment")
+            android.util.Log.wtf("BusinessProfile", "WeatherReport: $weatherReport")
+            
+            // Try to get temperature from environment first (already in Celsius), then from weatherReport
+            val tempMinC: Int?
+            val tempMaxC: Int?
+            val pm25Value: Double
+            val overallAqi: Int
+            
+            val envHasTemp = environment?.tempMinC != null || environment?.tempMaxC != null
 
-            val overallAqi = pm25Value.toAQI()
+            if (envHasTemp) {
+                // Use environment data (already processed in Celsius)
+                tempMinC = environment?.tempMinC?.roundToInt()
+                tempMaxC = environment?.tempMaxC?.roundToInt()
+                // Prefer AQI index provided by backend
+                overallAqi = environment?.aqiIndex ?: 0
+                // PM2.5 is only available inside weatherReport.airPollution; optional
+                pm25Value = weatherReport?.airPollution?.list?.getOrNull(0)?.components?.pm25 ?: 0.0
+            } else if (weatherReport != null) {
+                // Fallback to weatherReport (values in Kelvin)
+                val tempMin = weatherReport.main?.tempMin ?: 0.0
+                val tempMax = weatherReport.main?.tempMax ?: 0.0
+                tempMinC = if (tempMin > 0.0) (tempMin - 273.15).roundToInt() else null
+                tempMaxC = if (tempMax > 0.0) (tempMax - 273.15).roundToInt() else null
+                pm25Value = weatherReport.airPollution?.list?.getOrNull(0)?.components?.pm25 ?: 0.0
+                // Prefer OpenWeather-style AQI index if present; otherwise compute AQI from PM2.5
+                overallAqi = weatherReport.airPollution?.list
+                    ?.getOrNull(0)
+                    ?.main
+                    ?.aqi
+                    ?: pm25Value.toAQI()
+            } else {
+                // No weather data available
+                tempMinC = null
+                tempMaxC = null
+                pm25Value = 0.0
+                overallAqi = 0
+            }
 
             // Determine the span count and orientation based on the size of amenitiesRef
             val spanCount: Int
             val orientation: Int
 
-            val staticAmenity = AmenitiesRef(
-                Id = "static_id",
-                icon = "static_icon_url",
-                name = "Static Amenity",
-                order = 0,
-                minMaxTemp = "$tempMinC°C - $tempMaxC°C",
-                aqi = overallAqi
-            )
-            amenitiesRef.add(0, staticAmenity)
+            // Build 2 separate chips: Temperature and AQI
+            val tempDisplay = when {
+                tempMinC != null && tempMaxC != null && tempMinC == tempMaxC -> "$tempMinC°C"
+                tempMinC != null && tempMaxC != null -> "$tempMinC°C - $tempMaxC°C"
+                tempMinC != null -> "$tempMinC°C"
+                tempMaxC != null -> "$tempMaxC°C"
+                else -> null
+            }
+
+            // Remove older static items (if any) to prevent duplicates
+            amenitiesRef.removeAll { it.Id == "static_id" || it.Id == "static_temp" || it.Id == "static_aqi" }
+
+            val staticItems = arrayListOf<AmenitiesRef>()
+            if (tempDisplay != null) {
+                staticItems.add(
+                    AmenitiesRef(
+                        Id = "static_temp",
+                        icon = "static_icon_url",
+                        name = "Temperature",
+                        order = 0,
+                        minMaxTemp = tempDisplay,
+                        aqi = null
+                    )
+                )
+            }
+            if (overallAqi > 0) {
+                staticItems.add(
+                    AmenitiesRef(
+                        Id = "static_aqi",
+                        icon = "static_icon_url",
+                        name = "AQI",
+                        order = 1,
+                        minMaxTemp = null,
+                        aqi = overallAqi
+                    )
+                )
+            }
+
+            if (staticItems.isNotEmpty()) {
+                amenitiesRef.addAll(0, staticItems)
+            }
 
 
             if (amenitiesRef.size > 6) {
