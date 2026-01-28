@@ -52,6 +52,7 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     private var initialMediaUrl: String? = null
     private var initialIndex: Int? = null
     private var filterMediaType: String? = null // "image" or "video" to filter posts
+    private var forceReelUi: Boolean = false
     private var currentExoPlayer: ExoPlayer? = null
     private var activePosition: Int = RecyclerView.NO_POSITION
     private lateinit var layoutManager: LinearLayoutManager
@@ -81,6 +82,10 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         initialMediaUrl = intent.getStringExtra("INITIAL_MEDIA_URL")
         initialIndex = if (intent.hasExtra("INITIAL_INDEX")) intent.getIntExtra("INITIAL_INDEX", -1).takeIf { it >= 0 } else null
         filterMediaType = intent.getStringExtra("FILTER_MEDIA_TYPE")
+        // Reels-style UI can be forced via intent, and is also enabled for feed-opened posts.
+        // IMPORTANT: Do NOT enable reels UI for profile Photos/Videos viewers; only feed-opened should use it.
+        val explicitForce = intent.getBooleanExtra("FORCE_REEL_UI", false)
+        forceReelUi = explicitForce || (initialPostId != null && filterMediaType == null)
 
         // Set title based on media filter
         if (filterMediaType == "video") {
@@ -91,6 +96,22 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
         binding.backBtn.setOnClickListener {
             finish()
+        }
+
+        // Reels-style viewer chrome when opened from feed
+        if (forceReelUi) {
+            binding.titleLayout.visibility = View.GONE
+            binding.reelTopOverlay.visibility = View.VISIBLE
+            binding.reelBackBtn.setOnClickListener { finish() }
+            // Edge-to-edge content like reels
+            binding.postsRecyclerView.setPadding(0, 0, 0, 0)
+            // Hide legacy global menu overlay (reels uses in-item menu button)
+            binding.globalMenuBtnContainer.visibility = View.GONE
+            // Dark background
+            binding.main.setBackgroundColor(android.graphics.Color.BLACK)
+            binding.postsRecyclerView.setBackgroundColor(android.graphics.Color.BLACK)
+        } else {
+            binding.reelTopOverlay.visibility = View.GONE
         }
 
         setupRecyclerView()
@@ -107,7 +128,8 @@ class UserPostsViewerActivity : DarkBaseActivity() {
             ::onPostScrolled,
             ::onLikeUpdated,
             ::onCommentUpdated,
-            filterMediaType // Pass filterMediaType to adapter
+            filterMediaType, // Pass filterMediaType to adapter
+            forceReelUi = forceReelUi
         )
 
         layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
@@ -116,8 +138,8 @@ class UserPostsViewerActivity : DarkBaseActivity() {
             footer = LoaderAdapter { adapter.retry() }
         )
 
-        // Use PagerSnapHelper only for videos/reels (not for photos feed-style)
-        if (filterMediaType != "image") {
+        // Use PagerSnapHelper for reels-style paging (videos, and images when forceReelUi is enabled)
+        if (forceReelUi || filterMediaType != "image") {
             snapHelper = PagerSnapHelper()
             snapHelper.attachToRecyclerView(binding.postsRecyclerView)
         }
@@ -125,8 +147,8 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         // Enable nested scrolling for smooth vertical scrolling
         binding.postsRecyclerView.isNestedScrollingEnabled = true
 
-        // Only add snap scroll listener for videos/reels
-        if (filterMediaType != "image") {
+        // Only add snap scroll listener for reels/paging mode
+        if (forceReelUi || filterMediaType != "image") {
             binding.postsRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     super.onScrollStateChanged(recyclerView, newState)
@@ -468,6 +490,10 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         val previous = activePosition
         activePosition = position
         adapter.setActivePosition(position)
+        if (forceReelUi) {
+            val views = adapter.getPostAt(position)?.views ?: 0
+            binding.reelViewsTv.text = formatCount(views)
+        }
         if (previous != RecyclerView.NO_POSITION && previous != position) {
             val previousHolder = binding.postsRecyclerView.findViewHolderForAdapterPosition(previous)
             when (previousHolder) {

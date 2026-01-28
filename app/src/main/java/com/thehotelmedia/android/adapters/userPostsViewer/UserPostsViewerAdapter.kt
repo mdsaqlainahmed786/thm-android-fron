@@ -15,6 +15,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
@@ -50,7 +51,8 @@ class UserPostsViewerAdapter(
     private val onPostScrolled: (Int, ExoPlayer?) -> Unit,
     private val onLikeUpdated: (String, Boolean, Int) -> Unit,
     private val onCommentUpdated: (String, Int) -> Unit,
-    private val filterMediaType: String? = null // "image" for feed-style, "video" or null for reel-style
+    private val filterMediaType: String? = null, // "image" for feed-style, "video" or null for reel-style
+    private val forceReelUi: Boolean = false
 ) : PagingDataAdapter<Data, RecyclerView.ViewHolder>(POST_DIFF_CALLBACK) {
 
     private val exoPlayers = mutableMapOf<String, ExoPlayer>()
@@ -86,6 +88,7 @@ class UserPostsViewerAdapter(
         private var currentPost: Data? = null
         private var isHolderActive: Boolean = false
         private var currentOwnerId: String = ""
+        private var pageChangeCallback: ViewPager2.OnPageChangeCallback? = null
 
         fun bind(post: Data, isActive: Boolean) {
             postId = post.Id ?: ""
@@ -188,6 +191,10 @@ class UserPostsViewerAdapter(
                 MediaItems(mediaType, mediaRef.sourceUrl ?: "", mediaRef.Id ?: "")
             }
 
+            // Prevent leaking callbacks across rebinds
+            pageChangeCallback?.let { binding.mediaViewPager.unregisterOnPageChangeCallback(it) }
+            pageChangeCallback = null
+
             mediaAdapter = VideoImageViewerAdapter(
                 context,
                 mediaItems,
@@ -218,7 +225,36 @@ class UserPostsViewerAdapter(
             exoPlayer.playWhenReady = false
 
             binding.mediaViewPager.adapter = mediaAdapter
-            binding.mediaViewPager.isUserInputEnabled = false
+            val enableSwipe = forceReelUi && mediaItems.size > 1
+            binding.mediaViewPager.isUserInputEnabled = enableSwipe
+
+            if (enableSwipe) {
+                pageChangeCallback = object : ViewPager2.OnPageChangeCallback() {
+                    override fun onPageSelected(position: Int) {
+                        super.onPageSelected(position)
+                        val item = mediaItems.getOrNull(position) ?: return
+                        val isVideo = item.type == MediaType.VIDEO
+                        if (currentMediaIsVideo != isVideo) {
+                            currentMediaIsVideo = isVideo
+                            updateLayoutForMediaType(isVideo)
+                            currentPost?.let {
+                                val timestamp = formatTimestamp(it.createdAt)
+                                bindProfileSection(it, state, timestamp)
+                                bindInfoSection(state.commentCount, it.shared ?: 0, it, timestamp)
+                                setupFollowButton(it, state)
+                                setupMenuButton(it, state)
+                            }
+                        }
+                        // Only prepare/play video pages when this holder is active.
+                        if (isHolderActive && isVideo) {
+                            mediaAdapter?.setCurrentPosition(position)
+                        } else if (!isVideo) {
+                            stopPlayback()
+                        }
+                    }
+                }
+                binding.mediaViewPager.registerOnPageChangeCallback(pageChangeCallback!!)
+            }
         }
 
         private fun startPlayback() {
@@ -248,6 +284,8 @@ class UserPostsViewerAdapter(
             isHolderActive = isActive
             if (currentMediaIsVideo) {
                 if (isActive && itemView.isAttachedToWindow) {
+                    // Ensure player is prepared for the currently selected media page
+                    mediaAdapter?.setCurrentPosition(binding.mediaViewPager.currentItem)
                     startPlayback()
                 } else {
                     stopPlayback()
@@ -461,7 +499,7 @@ class UserPostsViewerAdapter(
             val postOwnerId = currentOwnerId.ifBlank { extractOwnerId(post) }
             currentOwnerId = postOwnerId
             val isSelf = postOwnerId.isBlank() || postOwnerId == ownerUserId
-            if (!currentMediaIsVideo || isSelf) {
+            if (forceReelUi || !currentMediaIsVideo || isSelf) {
                 binding.reelFollowButton.visibility = View.GONE
                 binding.reelFollowButton.setOnClickListener(null)
                 return
@@ -487,7 +525,7 @@ class UserPostsViewerAdapter(
         }
 
         private fun setupMenuButton(post: Data, state: PostState) {
-            if (currentMediaIsVideo) {
+            if (forceReelUi || currentMediaIsVideo) {
                 // For videos: show menu button below save icon
                 binding.reelMenuBtn.visibility = View.VISIBLE
                 binding.reelMenuBtn.setOnClickListener { view ->
@@ -597,14 +635,15 @@ class UserPostsViewerAdapter(
 
         private fun updateLayoutForMediaType(isVideo: Boolean) {
             currentMediaIsVideo = isVideo
-            val reelVisibility = if (isVideo) View.VISIBLE else View.GONE
-            val photoVisibility = if (isVideo) View.GONE else View.VISIBLE
+            val showReel = forceReelUi || isVideo
+            val reelVisibility = if (showReel) View.VISIBLE else View.GONE
+            val photoVisibility = if (showReel) View.GONE else View.VISIBLE
 
             binding.reelTopGradient.visibility = reelVisibility
             binding.reelBottomGradient.visibility = reelVisibility
             binding.reelActionColumn.visibility = reelVisibility
             binding.reelInfoContainer.visibility = reelVisibility
-            if (!isVideo) {
+            if (!showReel) {
                 binding.reelFollowButton.visibility = View.GONE
                 currentExoPlayer?.pause()
             }
@@ -636,6 +675,8 @@ class UserPostsViewerAdapter(
             stopPlayback()
             currentExoPlayer = null
             activePlayer = null
+            pageChangeCallback?.let { binding.mediaViewPager.unregisterOnPageChangeCallback(it) }
+            pageChangeCallback = null
         }
 
         fun refreshLikeState(state: PostState) {
@@ -659,7 +700,7 @@ class UserPostsViewerAdapter(
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (filterMediaType == "image") {
+        return if (!forceReelUi && filterMediaType == "image") {
             VIEW_TYPE_FEED
         } else {
             VIEW_TYPE_REEL

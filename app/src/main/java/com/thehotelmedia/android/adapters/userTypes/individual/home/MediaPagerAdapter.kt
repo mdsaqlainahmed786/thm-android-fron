@@ -23,6 +23,7 @@ import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LNG
 import com.thehotelmedia.android.customClasses.Constants.IMAGE
 import com.thehotelmedia.android.customClasses.Constants.VIDEO
 import com.thehotelmedia.android.databinding.ItemMediaBinding
+import com.thehotelmedia.android.extensions.moveToUserPostsViewer
 import com.thehotelmedia.android.fragments.VideoPlayerManager
 import com.thehotelmedia.android.modals.feeds.feed.MediaRef
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
@@ -47,7 +48,9 @@ class MediaPagerAdapter(
     private val commentCount: Int,
     private val individualViewModal: IndividualViewModal? = null,
     private val onLikeClicked: (isLikedByMe: Boolean, likeCount: Int, commentCount: Int) -> Unit,
-    private val isScrollingDown: Boolean = true // Track scroll direction for buffering control
+    private val isScrollingDown: Boolean = true, // Track scroll direction for buffering control
+    private val postOwnerId: String? = null,
+    private val openPostViewerOnTap: Boolean = false
 ) : RecyclerView.Adapter<MediaPagerAdapter.ViewHolder>() {
 
 
@@ -360,6 +363,12 @@ class MediaPagerAdapter(
                     // requirement that tapping a video opens the viewer.
                     player.pause()
 
+                    // Feed: open reels-style post viewer instead of legacy viewer
+                    if (openPostViewerOnTap && !postOwnerId.isNullOrBlank() && postId.isNotBlank()) {
+                        context.moveToUserPostsViewer(postOwnerId, postId)
+                        return true
+                    }
+
                     val intent = Intent(context, VideoImageViewer::class.java).apply {
                         putExtra("MEDIA_URL", sourceUrl)
                         putExtra("MEDIA_TYPE", VIDEO)
@@ -393,6 +402,12 @@ class MediaPagerAdapter(
                 if (!handled && event.action == MotionEvent.ACTION_UP) {
                     // Fallback: behave the same as a confirmed single tap and open viewer.
                     player.pause()
+
+                        // Feed: open reels-style post viewer instead of legacy viewer
+                        if (openPostViewerOnTap && !postOwnerId.isNullOrBlank() && postId.isNotBlank()) {
+                            context.moveToUserPostsViewer(postOwnerId, postId)
+                            return@setOnTouchListener true
+                        }
 
                     val intent = Intent(context, VideoImageViewer::class.java).apply {
                         putExtra("MEDIA_URL", sourceUrl)
@@ -521,7 +536,13 @@ class MediaPagerAdapter(
                 }
 
                 override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                    // Single tap - open viewer
+                    // Feed: open reels-style post viewer instead of legacy viewer
+                    if (openPostViewerOnTap && !postOwnerId.isNullOrBlank() && postId.isNotBlank()) {
+                        context.moveToUserPostsViewer(postOwnerId, postId)
+                        return true
+                    }
+
+                    // Single tap - open legacy viewer
                     val intent = Intent(context, VideoImageViewer::class.java).apply {
                         putExtra("MEDIA_URL", sourceUrl)
                         putExtra("MEDIA_TYPE", IMAGE)
@@ -578,6 +599,12 @@ class MediaPagerAdapter(
                 override fun onDown(e: MotionEvent): Boolean = true
 
                 override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                    // Feed: open reels-style post viewer instead of legacy viewer
+                    if (openPostViewerOnTap && !postOwnerId.isNullOrBlank() && postId.isNotBlank()) {
+                        context.moveToUserPostsViewer(postOwnerId, postId)
+                        return true
+                    }
+
                     // Open full‑screen VIDEO viewer from thumbnail
                     val intent = Intent(context, VideoImageViewer::class.java).apply {
                         putExtra("MEDIA_URL", sourceUrl)

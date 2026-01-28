@@ -501,6 +501,7 @@ class FeedAdapter(
             // isActive flag (which controls video autoplay vs. thumbnail-only) is
             // in sync with the current adapter position.
             // Pass scroll direction to control buffering indicator visibility
+            val tapOwnerId = post.userID ?: post.postedBy?.Id ?: ""
             mediaPagerAdapter = MediaPagerAdapter(
                 context, 
                 mediaList, 
@@ -520,7 +521,9 @@ class FeedAdapter(
                     // Update MediaPagerAdapter's internal state so double-tap works correctly
                     mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
                 },
-                isScrollingDown
+                isScrollingDown,
+                postOwnerId = tapOwnerId,
+                openPostViewerOnTap = true
             )
             binding.viewPager.adapter = mediaPagerAdapter
             // Reset to first media item when adapter changes to ensure proper binding
@@ -529,9 +532,8 @@ class FeedAdapter(
             
             // Add click listener to open post viewer
             binding.mediaLayout.setOnClickListener {
-                val userId = post.userID ?: post.postedBy?.Id ?: ""
-                if (userId.isNotEmpty()) {
-                    context.moveToUserPostsViewer(userId, postId)
+                if (tapOwnerId.isNotEmpty()) {
+                    context.moveToUserPostsViewer(tapOwnerId, postId)
                 }
             }
         }else{

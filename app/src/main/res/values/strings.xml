@@ -114,6 +114,8 @@
 
 
     <string name="app_name" translatable="false">THM</string>
+    <string name="back">Back</string>
+    <string name="views">Views</string>
     <string name="onboard_heading_one">Find the Best\nHotels</string>
     <string name="onboard_heading_two">Rate and Review\nHotels</string>
     <string name="onboard_heading_three">Share Your\nMoments</string>

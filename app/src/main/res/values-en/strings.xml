@@ -1,5 +1,7 @@
 <resources>
 
+    <string name="back">Back</string>
+    <string name="views">Views</string>
 
     <string-array name="feelings_list">
         <item>😊 Feeling Happy</item>
