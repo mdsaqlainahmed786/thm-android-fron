@@ -36,6 +36,7 @@ import android.graphics.Matrix
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.widget.FrameLayout
+import android.widget.Toast
 import android.graphics.Paint
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
@@ -145,6 +146,16 @@ class VideoTrimmerActivity : BaseActivity() {
             return
         }
 
+        // Check video duration for stories (must be <= 15 seconds)
+        if (from == "CreateStory") {
+            val durationInSeconds = getVideoDurationInSeconds(videoUri!!)
+            if (durationInSeconds == null || durationInSeconds > 15) {
+                Toast.makeText(this, "Unable to add story is more than 15 seconds", Toast.LENGTH_SHORT).show()
+                finish()
+                return
+            }
+        }
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             checkStoragePermission()
         }
@@ -237,6 +248,19 @@ class VideoTrimmerActivity : BaseActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_WRITE_PERMISSION && grantResults.isNotEmpty() && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
             CustomSnackBar.showSnackBar(binding.root, MessageStore.permissionRequiredToSaveVideo(this))
+        }
+    }
+
+    private fun getVideoDurationInSeconds(uri: Uri): Long? {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(this, uri)
+            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            retriever.release()
+            durationStr?.toLongOrNull()?.div(1000) // Convert milliseconds to seconds
+        } catch (e: Exception) {
+            Log.e("VideoTrimmerActivity", "Error getting video duration: ${e.message}", e)
+            null
         }
     }
 
