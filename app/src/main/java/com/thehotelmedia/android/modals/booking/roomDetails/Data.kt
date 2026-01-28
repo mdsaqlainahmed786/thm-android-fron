@@ -1,6 +1,9 @@
 package com.thehotelmedia.android.modals.booking.roomDetails
 
+import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
+import com.thehotelmedia.android.utils.gson.StringListFlexibleAdapter
+import com.thehotelmedia.android.utils.gson.StringOrObjectIdAdapter
 
 
 data class Data (
@@ -11,8 +14,12 @@ data class Data (
   @SerializedName("children"          ) var children          : Int?                     = null,
   @SerializedName("maxOccupancy"      ) var maxOccupancy      : Int?                     = null,
   @SerializedName("availability"      ) var availability      : Boolean?                 = null,
+  // Some backend deployments return amenities as a list of objects instead of strings.
+  @JsonAdapter(StringListFlexibleAdapter::class)
   @SerializedName("amenities"         ) var amenities         : ArrayList<String>        = arrayListOf(),
   @SerializedName("roomType"          ) var roomType          : String?                  = null,
+  // Some backend deployments return businessProfileID as an object (e.g. { _id: "..." }).
+  @JsonAdapter(StringOrObjectIdAdapter::class)
   @SerializedName("businessProfileID" ) var businessProfileID : String?                  = null,
   @SerializedName("title"             ) var title             : String?                  = null,
   @SerializedName("description"       ) var description       : String?                  = null,

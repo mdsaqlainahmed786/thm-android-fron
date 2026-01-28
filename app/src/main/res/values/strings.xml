@@ -445,6 +445,7 @@
     <string name="free_subscription">This is free subscription</string>
     <string name="please_enter_your_name">Please enter your name</string>
     <string name="please_enter_your_bio">Please enter your bio</string>
+    <string name="bio_max_length">Bio can be at most %1$d characters</string>
     <string name="video_file_not_exist">Video file does not exist!</string>
     <string name="permission_required_to_save_video">Permission is required to save videos</string>
     <string name="video_too_long">Video is too long. Maximum duration is 3 minutes.</string>

@@ -444,7 +444,8 @@
             android:name=".activity.authentication.business.BusinessTypeDetailsActivity"
             android:configChanges="uiMode"
             android:exported="false"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
         <activity
             android:name=".activity.authentication.business.SelectBusinessTypeActivity"
             android:configChanges="uiMode"

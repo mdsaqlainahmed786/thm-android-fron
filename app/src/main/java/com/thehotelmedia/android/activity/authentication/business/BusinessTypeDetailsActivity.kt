@@ -8,6 +8,7 @@ import android.location.Geocoder
 import android.os.Bundle
 import android.util.Log
 import android.util.Patterns
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -93,6 +94,8 @@ class BusinessTypeDetailsActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Ensure the window resizes when the IME (keyboard) is shown so the form can scroll above it.
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         binding = ActivityBusinessTypeDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         initPlaces()

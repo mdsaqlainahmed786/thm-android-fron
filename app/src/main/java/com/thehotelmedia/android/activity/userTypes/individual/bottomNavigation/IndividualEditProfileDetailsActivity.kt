@@ -3,9 +3,11 @@ package com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputFilter
 import android.view.View
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
+import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
 import com.thehotelmedia.android.customClasses.CustomProgressBar
@@ -26,6 +28,11 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
     private var from : String = ""
     private var description : String = ""
     private var isPasswordVisible = false
+    private var isIndividualUser: Boolean = false
+
+    companion object {
+        private const val BIO_MAX_LENGTH = 100
+    }
 
     private val activity = this@IndividualEditProfileDetailsActivity
 
@@ -55,6 +62,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
         otpDialogManager = OtpDialogManager(this)
 
         preferenceManager = PreferenceManager.getInstance(activity)
+        isIndividualUser = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "").toString() == "Individual"
         getDataSetData()
 
         binding.emailEt.setEmailTextWatcher()
@@ -86,6 +94,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
             "Bio" -> {
                 binding.doneBtn.toggleEnable(true)
                 updateVisibility(bioVisible = true)
+                setupBioLimitIfNeeded()
             }
         }
 
@@ -164,8 +173,14 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
         username = binding.usernameEt.text.toString().trim()
         email = binding.emailEt.text.toString().trim()
         phoneNumber = binding.contactEt.text.toString().trim()
-        bio = binding.bioEt.text.toString().trim()
+        bio = binding.bioEt.text.toString().trim().let { if (isIndividualUser) it.take(BIO_MAX_LENGTH) else it }
         individualViewModal.editProfile(username,fullName,email,dialCode, phoneNumber, bio)
+    }
+
+    private fun setupBioLimitIfNeeded() {
+        // Requirement: Bio should be limited to 100 chars ONLY for individual users (not business users)
+        if (!isIndividualUser) return
+        binding.bioEt.filters = arrayOf(InputFilter.LengthFilter(BIO_MAX_LENGTH))
     }
 
     private fun updateVisibility(
@@ -205,7 +220,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
         binding.nameEt.setText(fullName)
         binding.usernameEt.setText(username)
         binding.emailEt.setText(email)
-        binding.bioEt.setText(bio)
+        binding.bioEt.setText(if (isIndividualUser) bio.take(BIO_MAX_LENGTH) else bio)
 
     }
 
@@ -260,6 +275,10 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
             val bio = binding.bioEt.text.toString()
             if (bio.isEmpty()) {
                 CustomSnackBar.showSnackBar(binding.root,MessageStore.pleaseEnterYourBio(this))
+                return false
+            }
+            if (isIndividualUser && bio.length > BIO_MAX_LENGTH) {
+                CustomSnackBar.showSnackBar(binding.root, getString(R.string.bio_max_length, BIO_MAX_LENGTH))
                 return false
             }
         }
