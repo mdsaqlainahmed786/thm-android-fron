@@ -60,6 +60,32 @@ class OtpDialogManager(private val context: Context) {
     }
 
     /**
+     * Verify an already-entered phone number: send OTP immediately and open the verify dialog.
+     * This is useful when the number is already collected in a screen and we only need OTP-gating.
+     */
+    fun startPhoneVerificationForNumber(
+        dialCode: String,
+        phoneNumber: String,
+        dismissOnSuccess: Boolean = true,
+        onOtpVerified: (String, String) -> Unit
+    ) {
+        val safeDialCode = dialCode.takeIf { it.isNotBlank() } ?: selectedCountryCode
+        val safePhoneNumber = phoneNumber.trim()
+        if (safePhoneNumber.isEmpty()) {
+            context.showToast("Enter a valid phone number")
+            return
+        }
+
+        dismissDialogOnSuccess = dismissOnSuccess
+        currentDialCode = safeDialCode
+        currentPhoneNumber = safePhoneNumber
+        onCodeSentCallback = { sentDialCode, sentPhoneNumber ->
+            showVerifyOtpDialog(sentDialCode, sentPhoneNumber, onOtpVerified)
+        }
+        startPhoneNumberVerification(isResend = false)
+    }
+
+    /**
      * Show Send OTP Dialog
      */
     private fun showSendOtpDialog(

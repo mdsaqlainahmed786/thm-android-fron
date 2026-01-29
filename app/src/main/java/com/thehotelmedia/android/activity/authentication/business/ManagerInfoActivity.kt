@@ -10,6 +10,7 @@ import android.view.MotionEvent
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.widget.AppCompatEditText
+import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.ViewModelProvider
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
@@ -18,6 +19,7 @@ import com.thehotelmedia.android.activity.authentication.individual.ValidationRe
 import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.customClasses.CustomSnackBar
 import com.thehotelmedia.android.customClasses.MessageStore
+import com.thehotelmedia.android.customDialog.OtpDialogManager
 import com.thehotelmedia.android.databinding.ActivityManagerInfoBinding
 import com.thehotelmedia.android.extensions.setEmailTextWatcher
 import com.thehotelmedia.android.modals.authentication.business.businessSignUp.BusinessSignUpModal
@@ -30,6 +32,7 @@ class ManagerInfoActivity : BaseActivity() {
     private var selectedCountryCode : String = "+91"
 
     private var isPasswordVisible = false
+    private lateinit var otpDialogManager: OtpDialogManager
 
     private lateinit var businessName: String
     private lateinit var businessDialCode: String
@@ -53,6 +56,14 @@ class ManagerInfoActivity : BaseActivity() {
     private lateinit var authViewModel: AuthViewModel
     private val activity = this@ManagerInfoActivity
 
+    private var isBusinessPhoneVerified: Boolean = false
+    private var verifiedBusinessDialCode: String = ""
+    private var verifiedBusinessPhoneNumber: String = ""
+
+    private var isManagerPhoneVerified: Boolean = false
+    private var verifiedManagerDialCode: String = ""
+    private var verifiedManagerPhoneNumber: String = ""
+
 
 
 
@@ -70,6 +81,7 @@ class ManagerInfoActivity : BaseActivity() {
         val authRepo = AuthRepo(activity)
         authViewModel = ViewModelProvider(activity, ViewModelFactory(authRepo))[AuthViewModel::class.java]
         val progressBar = CustomProgressBar(activity) // 'this' refers to the context
+        otpDialogManager = OtpDialogManager(activity)
         binding.emailEt.setEmailTextWatcher()
 
 
@@ -93,6 +105,10 @@ class ManagerInfoActivity : BaseActivity() {
         latitude = intent.getDoubleExtra("LATITUDE", 0.0)
         longitude = intent.getDoubleExtra("LONGITUDE", 0.0)
 
+        isBusinessPhoneVerified = intent.getBooleanExtra("BUSINESS_PHONE_VERIFIED", false)
+        verifiedBusinessDialCode = intent.getStringExtra("VERIFIED_BUSINESS_DIAL_CODE").orEmpty()
+        verifiedBusinessPhoneNumber = intent.getStringExtra("VERIFIED_BUSINESS_PHONE_NUMBER").orEmpty()
+
 
 
         setPasswordEt()
@@ -104,6 +120,7 @@ class ManagerInfoActivity : BaseActivity() {
             binding.countryFlagImageView.setImageResource(binding.countryCodePicker.selectedCountryFlagResourceId)
             println("Selected Country Code: $selectedCountryCode")
             // Optionally, set the selected country code to the EditText
+            resetManagerPhoneVerification()
         }
 
         binding.contactEt.setOnFocusChangeListener { _, hasFocus ->
@@ -115,6 +132,12 @@ class ManagerInfoActivity : BaseActivity() {
                 binding.contactLayout.setBackgroundResource(R.drawable.rounded_edit_text_background_normal)
             }
         }
+        binding.contactEt.addTextChangedListener {
+            val current = it?.toString()?.trim().orEmpty()
+            if (isManagerPhoneVerified && current != verifiedManagerPhoneNumber) {
+                resetManagerPhoneVerification()
+            }
+        }
 
 
         binding.backBtn.setOnClickListener {
@@ -123,7 +146,28 @@ class ManagerInfoActivity : BaseActivity() {
         binding.nextBtn.setOnClickListener {
             val result = validateFields(binding.nameEt, binding.emailEt, binding.passwordEt, binding.contactEt)
             if (result.isValid) {
-                businessSignUp()
+                // Safety: Manager screen should only be reachable after business phone OTP verification.
+                if (!isBusinessPhoneVerified || verifiedBusinessPhoneNumber.isBlank() || verifiedBusinessDialCode.isBlank()) {
+                    CustomSnackBar.showSnackBar(binding.root, "Please verify the business contact number first.")
+                    return@setOnClickListener
+                }
+
+                val dialCode = selectedCountryCode
+                val phoneNumber = binding.contactEt.text.toString().trim()
+                if (isManagerPhoneVerified && verifiedManagerDialCode == dialCode && verifiedManagerPhoneNumber == phoneNumber) {
+                    businessSignUp()
+                } else {
+                    otpDialogManager.startPhoneVerificationForNumber(
+                        dialCode = dialCode,
+                        phoneNumber = phoneNumber,
+                        dismissOnSuccess = true
+                    ) { verifiedDialCode, verifiedPhone ->
+                        isManagerPhoneVerified = true
+                        verifiedManagerDialCode = verifiedDialCode
+                        verifiedManagerPhoneNumber = verifiedPhone
+                        businessSignUp()
+                    }
+                }
 
             } else {
                 CustomSnackBar.showSnackBar(binding.root, result.errorMessage.toString())
@@ -276,14 +320,22 @@ private fun validatePassword(editText: EditText): ValidationResult {
     }
 
     private fun businessSignUp() {
+        if (!isManagerPhoneVerified || verifiedManagerDialCode.isBlank() || verifiedManagerPhoneNumber.isBlank()) {
+            CustomSnackBar.showSnackBar(binding.root, "Please verify your contact number.")
+            return
+        }
         val name = binding.nameEt.text.toString().trim()
         val email = binding.emailEt.text.toString().trim()
         val password = binding.passwordEt.text.toString().trim()
-        val contactNumber = binding.contactEt.text.toString().trim()
-        selectedCountryCode
-        authViewModel.businessSignUp(email,name,password,selectedCountryCode,contactNumber,businessName,businessEmail,businessDialCode,
+        authViewModel.businessSignUp(email,name,password,verifiedManagerDialCode,verifiedManagerPhoneNumber,businessName,businessEmail,businessDialCode,
             businessPhoneNumber,selectedBusinessId,selectedSubBusinessId,businessDescription,businessWebsiteLink,businessGst,street,city,state,country,
             zipcode,latitude.toString(),longitude.toString(),"business",placeID)
+    }
+
+    private fun resetManagerPhoneVerification() {
+        isManagerPhoneVerified = false
+        verifiedManagerDialCode = ""
+        verifiedManagerPhoneNumber = ""
     }
 
 
