@@ -104,9 +104,32 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
                 dialCode = finalDialCode
                 phoneNumber = finalPhoneNumber
 
+                // Update the EditText field with the new verified phone number
+                binding.contactEt.setText(finalPhoneNumber)
+                
+                // Update country code picker if dial code changed
+                if (finalDialCode.isNotEmpty()) {
+                    try {
+                        binding.countryCodePicker.setCountryForPhoneCode(finalDialCode.replace("+", "").toInt())
+                        val flagResId = binding.countryCodePicker.selectedCountryFlagResourceId
+                        binding.countryFlagImageView.setImageResource(flagResId)
+                    } catch (e: Exception) {
+                        // Handle invalid dial code
+                    }
+                }
+
                 preferenceManager.putString(PreferenceManager.Keys.USER_DIAL_CODE, finalDialCode)
                 preferenceManager.putString(PreferenceManager.Keys.USER_PHONE_NUMBER, finalPhoneNumber)
-                onBackPressedDispatcher.onBackPressed()
+                
+                // Automatically update the profile with the new verified phone number
+                // Get current values to preserve other fields
+                val currentUsername = binding.usernameEt.text.toString().trim().ifEmpty { username }
+                val currentName = binding.nameEt.text.toString().trim().ifEmpty { fullName }
+                val currentEmail = binding.emailEt.text.toString().trim().ifEmpty { email }
+                val currentBio = binding.bioEt.text.toString().trim().ifEmpty { bio }
+                
+                // Call editProfile API with the new verified phone number
+                individualViewModal.editProfile(currentUsername, currentName, currentEmail, finalDialCode, finalPhoneNumber, currentBio)
             }
         }
 
@@ -161,10 +184,14 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
         val updatedUsername = result?.data?.username ?: username
         val updatedFullName = result?.data?.fullName ?: fullName
         val updatedBio = result?.data?.bio ?: bio
+        val updatedDialCode = result?.data?.dialCode ?: dialCode
+        val updatedPhoneNumber = result?.data?.phoneNumber ?: phoneNumber
         
         preferenceManager.putString(PreferenceManager.Keys.USER_FULL_NAME, updatedFullName)
         preferenceManager.putString(PreferenceManager.Keys.USER_USER_NAME, updatedUsername)
         preferenceManager.putString(PreferenceManager.Keys.USER_DESCRIPTION, updatedBio)
+        preferenceManager.putString(PreferenceManager.Keys.USER_DIAL_CODE, updatedDialCode)
+        preferenceManager.putString(PreferenceManager.Keys.USER_PHONE_NUMBER, updatedPhoneNumber)
         onBackPressedDispatcher.onBackPressed()
     }
 
