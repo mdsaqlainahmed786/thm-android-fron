@@ -538,7 +538,7 @@ class UserPostsViewerActivity : DarkBaseActivity() {
             var attempts = 0
             var lastItemCount = 0
             var foundPosition = -1
-            val preferIndex = viewerMode != ViewerMode.POSTS
+            val preferMediaId = fallbackIndex == null || fallbackIndex < 0 // -1 means force ID matching
             
             // Try both media matching and index-based scrolling in parallel
             while (attempts < 80) { // Max 8 seconds total
@@ -546,21 +546,18 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                 if (itemCount > 0) {
                     var position = -1
                     
-                    // If we're in profile media mode, the grid index is the most reliable signal.
-                    if (preferIndex && fallbackIndex != null && fallbackIndex >= 0) {
+                    // Strategy 1: Always try media ID/URL first (most reliable)
+                    if (mediaId != null && mediaId.isNotEmpty()) {
+                        position = adapter.findPostPositionByMediaId(mediaId)
+                    }
+                    if (position < 0 && mediaUrl != null && mediaUrl.isNotEmpty()) {
+                        position = adapter.findPostPositionByMediaUrl(mediaUrl)
+                    }
+                    
+                    // Strategy 2: If media matching fails and we have a valid index (>= 0), use it
+                    // Skip if fallbackIndex is -1 (force ID matching only)
+                    if (position < 0 && !preferMediaId && fallbackIndex != null && fallbackIndex >= 0) {
                         position = fallbackIndex.coerceIn(0, itemCount - 1)
-                    } else {
-                        // Strategy 1: Try to find by media ID/URL (best for posts, where ordering may differ)
-                        if (mediaId != null && mediaId.isNotEmpty()) {
-                            position = adapter.findPostPositionByMediaId(mediaId)
-                        }
-                        if (position < 0 && mediaUrl != null && mediaUrl.isNotEmpty()) {
-                            position = adapter.findPostPositionByMediaUrl(mediaUrl)
-                        }
-                        // Strategy 2: If media matching fails and we have an index, use it (best-effort)
-                        if (position < 0 && fallbackIndex != null && fallbackIndex >= 0) {
-                            position = fallbackIndex.coerceIn(0, itemCount - 1)
-                        }
                     }
                     
                     if (position >= 0) {
@@ -596,9 +593,10 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                 attempts++
             }
             
-            // Final fallback: use index if available, otherwise show first item
+            // Final fallback: use index if available and valid (>= 0), otherwise show first item
+            // Skip if fallbackIndex is -1 (indicates we should only match by ID)
             if (foundPosition < 0) {
-                val finalPosition = if (fallbackIndex != null && fallbackIndex >= 0 && adapter.itemCount > 0) {
+                val finalPosition = if (!preferMediaId && fallbackIndex != null && fallbackIndex >= 0 && adapter.itemCount > 0) {
                     fallbackIndex.coerceIn(0, adapter.itemCount - 1)
                 } else {
                     0

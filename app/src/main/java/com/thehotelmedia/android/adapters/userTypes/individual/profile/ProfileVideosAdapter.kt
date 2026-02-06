@@ -53,10 +53,10 @@ class ProfileVideosAdapter (private val context: Context, private val userId: St
             binding.root.setOnClickListener {
                 if (userId.isNotEmpty()) {
                     // Launch UserPostsViewerActivity with video filter - only scroll through videos
-                    // Pass media ID, sourceUrl, and position index for best-effort matching
+                    // Pass media ID and sourceUrl for exact matching - don't pass position to avoid pagination issues
                     val mediaId = item.Id ?: ""
-                    val clickPos = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: position
-                    context.moveToUserPostsViewer(userId, null, "video", mediaId, mediaUri, clickPos)
+                    // Pass -1 as position to force ID/URL matching instead of position fallback
+                    context.moveToUserPostsViewer(userId, null, "video", mediaId, mediaUri, -1)
                 } else {
                     // Fallback to old viewer if userId not available
                     context.moveToViewer(VIDEO, mediaUri)
