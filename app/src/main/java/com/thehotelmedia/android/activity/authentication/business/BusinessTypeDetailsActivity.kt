@@ -8,10 +8,12 @@ import android.location.Geocoder
 import android.os.Bundle
 import android.util.Log
 import android.util.Patterns
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.ViewModelProvider
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
@@ -28,6 +30,7 @@ import com.thehotelmedia.android.adapters.dropDown.Businesses
 import com.thehotelmedia.android.customClasses.CustomProgressBar
 import com.thehotelmedia.android.customClasses.CustomSnackBar
 import com.thehotelmedia.android.customClasses.MessageStore
+import com.thehotelmedia.android.customDialog.OtpDialogManager
 import com.thehotelmedia.android.databinding.ActivityBusinessTypeDetailsBinding
 import com.thehotelmedia.android.extensions.hideKeyboard
 import com.thehotelmedia.android.extensions.setEmailTextWatcher
@@ -48,6 +51,7 @@ class BusinessTypeDetailsActivity : BaseActivity() {
     private lateinit var tagAdapter: TagAdapter
     private val AUTOCOMPLETE_REQUEST_CODE = 1
     private lateinit var authViewModel: AuthViewModel
+    private lateinit var otpDialogManager: OtpDialogManager
     private val tag: String = "BUSINESS_TYPE_DETAILS"
     private var geocoder: Geocoder? = null
     private var apiKey: String? = null
@@ -61,6 +65,10 @@ class BusinessTypeDetailsActivity : BaseActivity() {
     private var placeID = ""
     private var newLatitude = 0.0
     private var newLongitude = 0.0
+
+    private var isBusinessPhoneVerified: Boolean = false
+    private var verifiedBusinessDialCode: String = ""
+    private var verifiedBusinessPhoneNumber: String = ""
 
     private val autocompleteLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val requestCode = AUTOCOMPLETE_REQUEST_CODE
@@ -93,6 +101,8 @@ class BusinessTypeDetailsActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Ensure the window resizes when the IME (keyboard) is shown so the form can scroll above it.
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         binding = ActivityBusinessTypeDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         initPlaces()
@@ -103,6 +113,7 @@ class BusinessTypeDetailsActivity : BaseActivity() {
         val authRepo = AuthRepo(this)
         authViewModel = ViewModelProvider(this, ViewModelFactory(authRepo)).get(AuthViewModel::class.java)
         val progressBar = CustomProgressBar(this)
+        otpDialogManager = OtpDialogManager(this)
         binding.emailEt.setEmailTextWatcher()
 
         selectedBusinessType = intent.getStringExtra("SELECTED_BUSINESS_TYPE") ?: ""
@@ -133,6 +144,7 @@ class BusinessTypeDetailsActivity : BaseActivity() {
             selectedCountryCode = binding.countryCodePicker.selectedCountryCodeWithPlus
             binding.countryFlagImageView.setImageResource(binding.countryCodePicker.selectedCountryFlagResourceId)
             Log.d(tag, "Selected Country Code: $selectedCountryCode")
+            resetBusinessPhoneVerification()
         }
 
         binding.contactEt.setOnFocusChangeListener { _, hasFocus ->
@@ -140,6 +152,13 @@ class BusinessTypeDetailsActivity : BaseActivity() {
                 if (hasFocus) R.drawable.rounded_edit_text_background_focused
                 else R.drawable.rounded_edit_text_background_normal
             )
+        }
+        binding.contactEt.addTextChangedListener {
+            // If user edits the phone number, require re-verification.
+            val current = it?.toString()?.trim().orEmpty()
+            if (isBusinessPhoneVerified && current != verifiedBusinessPhoneNumber) {
+                resetBusinessPhoneVerification()
+            }
         }
 
         binding.backBtn.setOnClickListener {
@@ -156,9 +175,21 @@ class BusinessTypeDetailsActivity : BaseActivity() {
             val description = binding.descriptionEt.text.toString().trim()
 
             if (isValid(name,phoneNumber,webSiteLink,email,description,gst)) {
-
-                moveToManagerInfoActivity(name,phoneNumber,webSiteLink,email,gst,description)
-
+                val dialCode = selectedCountryCode
+                if (isBusinessPhoneVerified && verifiedBusinessDialCode == dialCode && verifiedBusinessPhoneNumber == phoneNumber) {
+                    moveToManagerInfoActivity(name, phoneNumber, webSiteLink, email, gst, description)
+                } else {
+                    otpDialogManager.startPhoneVerificationForNumber(
+                        dialCode = dialCode,
+                        phoneNumber = phoneNumber,
+                        dismissOnSuccess = true
+                    ) { verifiedDialCode, verifiedPhone ->
+                        isBusinessPhoneVerified = true
+                        verifiedBusinessDialCode = verifiedDialCode
+                        verifiedBusinessPhoneNumber = verifiedPhone
+                        moveToManagerInfoActivity(name, verifiedPhone, webSiteLink, email, gst, description)
+                    }
+                }
 
             }
 
@@ -222,6 +253,9 @@ class BusinessTypeDetailsActivity : BaseActivity() {
                 intent.putExtra("PLACED_ID", placeID)
                 intent.putExtra("LATITUDE", newLatitude)
                 intent.putExtra("LONGITUDE", newLongitude)
+                intent.putExtra("BUSINESS_PHONE_VERIFIED", isBusinessPhoneVerified)
+                intent.putExtra("VERIFIED_BUSINESS_DIAL_CODE", verifiedBusinessDialCode)
+                intent.putExtra("VERIFIED_BUSINESS_PHONE_NUMBER", verifiedBusinessPhoneNumber)
                 startActivity(intent)
     }
 
@@ -345,6 +379,12 @@ class BusinessTypeDetailsActivity : BaseActivity() {
         }
 
         return true
+    }
+
+    private fun resetBusinessPhoneVerification() {
+        isBusinessPhoneVerified = false
+        verifiedBusinessDialCode = ""
+        verifiedBusinessPhoneNumber = ""
     }
 
 }

@@ -162,6 +162,7 @@ interface Application {
     @FormUrlEncoded
     fun editProfile(
         @Header("x-access-token") token: String,
+        @Field("username") username: String,
         @Field("name") name: String,
         @Field("email") email: String,
         @Field("dialCode") dialCode: String,
@@ -360,6 +361,14 @@ interface Application {
         @Header("x-access-token") token: String,
         @Path(value = "id",encoded = true) id: String,
     ): Call<DeleteModal>
+
+    @PATCH("posts/comments"+"/{id}")
+    @FormUrlEncoded
+    fun editComment(
+        @Header("x-access-token") token: String,
+        @Path(value = "id",encoded = true) id: String,
+        @Field("message") message: String,
+    ): Call<CreateCommentModal>
 
     @GET("user/videos"+"/{id}")
     fun getVideos(
@@ -641,15 +650,11 @@ interface Application {
         @Part mediaType: MultipartBody.Part
     ): Call<SendMediaModal>
 
-    @Multipart
+    @retrofit2.http.Headers("Content-Type: application/json")
     @POST("user/messaging/share-post-message")
     fun sharePostMessage(
-        @Header("x-access-token") token: RequestBody,
-        @Part("username") username: RequestBody,
-        @Part("messageType") messageType: RequestBody,
-        @Part("message") message: RequestBody?,
-        @Part("postID") postID: RequestBody,
-        @Part mediaType: MultipartBody.Part
+        @Header("x-access-token") token: String,
+        @retrofit2.http.Body body: Map<String, @JvmSuppressWildcards Any>
     ): Call<SendMediaModal>
 
     @POST("user/report" + "/{id}")

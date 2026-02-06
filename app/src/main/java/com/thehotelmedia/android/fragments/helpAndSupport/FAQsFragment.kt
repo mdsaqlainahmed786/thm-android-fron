@@ -114,7 +114,9 @@ class FAQsFragment : Fragment() {
     }
 
     private fun getFaqData() {
-        binding.itemsRv.adapter = faqRecyclerAdapter.withLoadStateFooter(footer = LoaderAdapter())
+        binding.itemsRv.adapter = faqRecyclerAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { faqRecyclerAdapter.retry() }
+        )
         individualViewModal.getFaq(query,type).observe(viewLifecycleOwner) {
             this.lifecycleScope.launch {
                 isLoading()

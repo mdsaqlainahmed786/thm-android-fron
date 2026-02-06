@@ -13,6 +13,7 @@ data class Data (
     @SerializedName("postID"            ) var postID            : String?              = null,
     @SerializedName("message"           ) var message           : String?               = null,
     @SerializedName("createdAt"         ) var createdAt         : String?               = null,
+    @SerializedName("updatedAt"         ) var updatedAt         : String?               = null,
     @SerializedName("repliesRef"        ) var repliesRef        : ArrayList<RepliesRef> = arrayListOf(),
     @SerializedName("commentedBy"       ) var commentedBy       : CommentedBy?        = CommentedBy(),
     @SerializedName("likes"             ) var likes             : Int?                 = null,

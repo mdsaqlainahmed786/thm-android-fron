@@ -14,12 +14,31 @@
         android:background="@color/black"
         tools:context=".activity.VideoImageViewer">
 
+        <!-- Back button at top left - always visible -->
+        <ImageView
+            android:id="@+id/topLeftBackBtn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:src="@drawable/ic_back_arrow_white"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Back"
+            android:padding="8dp"
+            android:elevation="100dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/titleLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/black"
             android:orientation="horizontal"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -37,7 +56,7 @@
                 android:layout_gravity="center"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text=""
+                android:text="@string/videos"
                 android:textColor="@color/text_color"
                 android:textSize="18sp"
                 android:fontFamily="@font/comic_bold"/>
@@ -73,7 +92,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="1.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/titleLayout" />
+            app:layout_constraintTop_toTopOf="@+id/titleLayout" />
 
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/postBtnLayout"
@@ -174,7 +193,7 @@
                     android:layout_width="@dimen/_23sdp"
                     android:layout_height="@dimen/_23sdp"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_unsave_icon" />
+                    android:src="@drawable/ic_unsave_icon_white" />
 
             </LinearLayout>
 
@@ -207,7 +226,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/_16sdp"
             android:layout_marginEnd="@dimen/_16sdp"
-            android:layout_marginBottom="@dimen/_16sdp"
+            android:layout_marginBottom="0dp"
             app:layout_constraintBottom_toBottomOf="@+id/viewPager"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -217,6 +236,9 @@
                 android:layout_width="@dimen/_40sdp"
                 android:layout_height="@dimen/_40sdp"
                 android:scaleType="centerCrop"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.App.CornerSize50Percent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"

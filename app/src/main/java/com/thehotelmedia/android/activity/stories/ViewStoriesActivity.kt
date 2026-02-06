@@ -68,8 +68,9 @@ class ViewStoriesActivity : BaseActivity() {
 // Convert JSON string back to list
         val jsonString = intent.getStringExtra("StoriesJson")
         val myUserName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
+        val userID = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
 
-        socketViewModel.connectSocket(myUserName)
+        socketViewModel.connectSocket(myUserName, userID)
         // Check if the JSON string exists
         if (jsonString != null) {
             // Convert the JSON string back to a Stories object

@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -587,6 +588,21 @@ class CreatePostActivity : BaseActivity() {
         }
     }
     private fun checkVideoDurationAndTrim(uri: Uri) {
+        // Check video file size first (100 MB limit)
+        val fileSizeBytes = getVideoFileSize(uri)
+        if (fileSizeBytes == null) {
+            Log.e("CreatePostActivity", "Failed to retrieve video file size")
+            CustomSnackBar.showSnackBar(binding.root, getString(R.string.video_file_not_exist))
+            return
+        }
+        
+        val maxSizeBytes = 100L * 1024 * 1024 // 100 MB in bytes
+        if (fileSizeBytes > maxSizeBytes) {
+            // Video is too large, reject it
+            CustomSnackBar.showSnackBar(binding.root, getString(R.string.video_too_large, 100))
+            return
+        }
+        
         val durationMillis = getVideoDurationMillis(uri)
         
         if (durationMillis == null) {
@@ -608,6 +624,78 @@ class CreatePostActivity : BaseActivity() {
         // Launch the video trimmer with the saved video URI
         if (savedVideoUri != null) {
             showVideoTrimmer(savedVideoUri)
+        }
+    }
+    
+    /**
+     * Helper method to get video file size from URI
+     * Handles both content:// URIs and file:// URIs
+     * @param uri The video URI
+     * @return File size in bytes, or null if extraction fails
+     */
+    private fun getVideoFileSize(uri: Uri): Long? {
+        return try {
+            when {
+                uri.scheme == "content" -> {
+                    // For content:// URIs, query the OpenableColumns.SIZE
+                    contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                            if (sizeIndex >= 0) {
+                                val size = cursor.getLong(sizeIndex)
+                                if (size > 0) {
+                                    return@use size
+                                }
+                            }
+                        }
+                        null
+                    } ?: run {
+                        // Fallback: try to get size from file if URI can be converted
+                        val filePath = getDataFromContentUri(uri, null, null)
+                        if (filePath != null) {
+                            val file = File(filePath)
+                            if (file.exists()) {
+                                file.length()
+                            } else {
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    }
+                }
+                uri.scheme == "file" -> {
+                    // For file:// URIs, use the file path directly
+                    val filePath = uri.path
+                    if (filePath != null) {
+                        val file = File(filePath)
+                        if (file.exists()) {
+                            file.length()
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
+                else -> {
+                    // Try to get file path from URI
+                    val filePath = uri.path
+                    if (filePath != null) {
+                        val file = File(filePath)
+                        if (file.exists()) {
+                            file.length()
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("CreatePostActivity", "Error getting video file size: ${e.message}", e)
+            null
         }
     }
     

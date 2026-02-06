@@ -1,6 +1,8 @@
 package com.thehotelmedia.android.modals.booking.checkIn
 
+import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
+import com.thehotelmedia.android.utils.gson.StringListFlexibleAdapter
 
 
 data class AvailableRooms (
@@ -11,6 +13,8 @@ data class AvailableRooms (
   @SerializedName("children"      ) var children      : Int?                    = null,
   @SerializedName("maxOccupancy"  ) var maxOccupancy  : Int?                    = null,
   @SerializedName("availability"  ) var availability  : Boolean?                = null,
+  // Some backend deployments return amenities as a list of objects instead of strings.
+  @JsonAdapter(StringListFlexibleAdapter::class)
   @SerializedName("amenities"     ) var amenities     : ArrayList<String>       = arrayListOf(),
   @SerializedName("title"         ) var title         : String?                 = null,
   @SerializedName("description"   ) var description   : String?                 = null,

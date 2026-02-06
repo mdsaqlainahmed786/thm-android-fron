@@ -3,9 +3,11 @@ package com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputFilter
 import android.view.View
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
+import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
 import com.thehotelmedia.android.customClasses.CustomProgressBar
@@ -26,6 +28,11 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
     private var from : String = ""
     private var description : String = ""
     private var isPasswordVisible = false
+    private var isIndividualUser: Boolean = false
+
+    companion object {
+        private const val BIO_MAX_LENGTH = 100
+    }
 
     private val activity = this@IndividualEditProfileDetailsActivity
 
@@ -34,6 +41,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
     private lateinit var otpDialogManager: OtpDialogManager
 
     private var fullName : String = ""
+    private var username : String = ""
     private var email : String = ""
     private var dialCode : String = ""
     private var phoneNumber : String = ""
@@ -54,6 +62,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
         otpDialogManager = OtpDialogManager(this)
 
         preferenceManager = PreferenceManager.getInstance(activity)
+        isIndividualUser = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "").toString() == "Individual"
         getDataSetData()
 
         binding.emailEt.setEmailTextWatcher()
@@ -69,6 +78,10 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
                 binding.doneBtn.toggleEnable(true)
                 updateVisibility(nameVisible = true)
             }
+            "Username" -> {
+                binding.doneBtn.toggleEnable(true)
+                updateVisibility(usernameVisible = true)
+            }
             "Email" -> {
                 binding.doneBtn.toggleEnable(false)
                 updateVisibility(emailVisible = true)
@@ -81,6 +94,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
             "Bio" -> {
                 binding.doneBtn.toggleEnable(true)
                 updateVisibility(bioVisible = true)
+                setupBioLimitIfNeeded()
             }
         }
 
@@ -90,9 +104,32 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
                 dialCode = finalDialCode
                 phoneNumber = finalPhoneNumber
 
+                // Update the EditText field with the new verified phone number
+                binding.contactEt.setText(finalPhoneNumber)
+                
+                // Update country code picker if dial code changed
+                if (finalDialCode.isNotEmpty()) {
+                    try {
+                        binding.countryCodePicker.setCountryForPhoneCode(finalDialCode.replace("+", "").toInt())
+                        val flagResId = binding.countryCodePicker.selectedCountryFlagResourceId
+                        binding.countryFlagImageView.setImageResource(flagResId)
+                    } catch (e: Exception) {
+                        // Handle invalid dial code
+                    }
+                }
+
                 preferenceManager.putString(PreferenceManager.Keys.USER_DIAL_CODE, finalDialCode)
                 preferenceManager.putString(PreferenceManager.Keys.USER_PHONE_NUMBER, finalPhoneNumber)
-                onBackPressedDispatcher.onBackPressed()
+                
+                // Automatically update the profile with the new verified phone number
+                // Get current values to preserve other fields
+                val currentUsername = binding.usernameEt.text.toString().trim().ifEmpty { username }
+                val currentName = binding.nameEt.text.toString().trim().ifEmpty { fullName }
+                val currentEmail = binding.emailEt.text.toString().trim().ifEmpty { email }
+                val currentBio = binding.bioEt.text.toString().trim().ifEmpty { bio }
+                
+                // Call editProfile API with the new verified phone number
+                individualViewModal.editProfile(currentUsername, currentName, currentEmail, finalDialCode, finalPhoneNumber, currentBio)
             }
         }
 
@@ -143,27 +180,46 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
     }
 
     private fun handelEditProfileData(result: EditProfileModal?) {
-        preferenceManager.putString(PreferenceManager.Keys.USER_FULL_NAME,fullName)
-        preferenceManager.putString(PreferenceManager.Keys.USER_DESCRIPTION,bio)
+        // Save username from response if available, otherwise use the input value
+        val updatedUsername = result?.data?.username ?: username
+        val updatedFullName = result?.data?.fullName ?: fullName
+        val updatedBio = result?.data?.bio ?: bio
+        val updatedDialCode = result?.data?.dialCode ?: dialCode
+        val updatedPhoneNumber = result?.data?.phoneNumber ?: phoneNumber
+        
+        preferenceManager.putString(PreferenceManager.Keys.USER_FULL_NAME, updatedFullName)
+        preferenceManager.putString(PreferenceManager.Keys.USER_USER_NAME, updatedUsername)
+        preferenceManager.putString(PreferenceManager.Keys.USER_DESCRIPTION, updatedBio)
+        preferenceManager.putString(PreferenceManager.Keys.USER_DIAL_CODE, updatedDialCode)
+        preferenceManager.putString(PreferenceManager.Keys.USER_PHONE_NUMBER, updatedPhoneNumber)
         onBackPressedDispatcher.onBackPressed()
     }
 
     private fun editProfile() {
         fullName = binding.nameEt.text.toString().trim()
+        username = binding.usernameEt.text.toString().trim()
         email = binding.emailEt.text.toString().trim()
         phoneNumber = binding.contactEt.text.toString().trim()
-        bio = binding.bioEt.text.toString().trim()
-        individualViewModal.editProfile(fullName,email,dialCode, phoneNumber, bio)
+        bio = binding.bioEt.text.toString().trim().let { if (isIndividualUser) it.take(BIO_MAX_LENGTH) else it }
+        individualViewModal.editProfile(username,fullName,email,dialCode, phoneNumber, bio)
+    }
+
+    private fun setupBioLimitIfNeeded() {
+        // Requirement: Bio should be limited to 100 chars ONLY for individual users (not business users)
+        if (!isIndividualUser) return
+        binding.bioEt.filters = arrayOf(InputFilter.LengthFilter(BIO_MAX_LENGTH))
     }
 
     private fun updateVisibility(
         nameVisible: Boolean = false,
+        usernameVisible: Boolean = false,
         emailVisible: Boolean = false,
         contactVisible: Boolean = false,
 //        passwordVisible: Boolean = false,
         bioVisible: Boolean = false
     ) {
         binding.nameLayout.visibility = if (nameVisible) View.VISIBLE else View.GONE
+        binding.usernameLayout.visibility = if (usernameVisible) View.VISIBLE else View.GONE
         binding.emailLayout.visibility = if (emailVisible) View.VISIBLE else View.GONE
         binding.contactLayout.visibility = if (contactVisible) View.VISIBLE else View.GONE
 //        binding.passwordLayout.visibility = if (passwordVisible) View.VISIBLE else View.GONE
@@ -172,6 +228,7 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
 
     private fun getDataSetData() {
         fullName = preferenceManager.getString(PreferenceManager.Keys.USER_FULL_NAME, "").toString()
+        username = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").toString()
         email = preferenceManager.getString(PreferenceManager.Keys.USER_EMAIL, "").toString()
         dialCode = preferenceManager.getString(PreferenceManager.Keys.USER_DIAL_CODE, "").toString()
         phoneNumber = preferenceManager.getString(PreferenceManager.Keys.USER_PHONE_NUMBER, "").toString()
@@ -188,8 +245,9 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
 //        binding.passwordEt.isEnabled = false
 //        binding.passwordEt.setHint("* * * * * * * * * *")
         binding.nameEt.setText(fullName)
+        binding.usernameEt.setText(username)
         binding.emailEt.setText(email)
-        binding.bioEt.setText(bio)
+        binding.bioEt.setText(if (isIndividualUser) bio.take(BIO_MAX_LENGTH) else bio)
 
     }
 
@@ -199,6 +257,19 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
             val name = binding.nameEt.text.toString()
             if (name.isEmpty()) {
                 CustomSnackBar.showSnackBar(binding.root,MessageStore.pleaseEnterYourName(this))
+                return false
+            }
+        }
+        // Validate Username
+        if (binding.usernameLayout.visibility == View.VISIBLE) {
+            val username = binding.usernameEt.text.toString().trim()
+            if (username.isEmpty()) {
+                CustomSnackBar.showSnackBar(binding.root,"Please enter your username")
+                return false
+            }
+            // Username validation: alphanumeric and underscore only, 3-30 characters
+            if (!username.matches(Regex("^[a-zA-Z0-9_]{3,30}$"))) {
+                CustomSnackBar.showSnackBar(binding.root,"Username must be 3-30 characters and contain only letters, numbers, and underscores")
                 return false
             }
         }
@@ -231,6 +302,10 @@ class IndividualEditProfileDetailsActivity : BaseActivity() {
             val bio = binding.bioEt.text.toString()
             if (bio.isEmpty()) {
                 CustomSnackBar.showSnackBar(binding.root,MessageStore.pleaseEnterYourBio(this))
+                return false
+            }
+            if (isIndividualUser && bio.length > BIO_MAX_LENGTH) {
+                CustomSnackBar.showSnackBar(binding.root, getString(R.string.bio_max_length, BIO_MAX_LENGTH))
                 return false
             }
         }

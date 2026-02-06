@@ -118,10 +118,9 @@ class NotificationActivity : BaseActivity() {
             ::onCollaborationDeclineClick,
             ownerUserId
         )
-        binding.notificationRv.adapter = notificationAdapter
-
-        binding.notificationRv.adapter = notificationAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+        binding.notificationRv.adapter = notificationAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { notificationAdapter.retry() }
+        )
 
         individualViewModal.getNotification().observe(this) {
             this.lifecycleScope.launch {

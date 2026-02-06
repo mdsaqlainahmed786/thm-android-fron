@@ -82,6 +82,9 @@ class SavedFeedAdapter(
     var onStoryShareRequested: ((String) -> Unit)? = null
     private val sharedStoryPostIds = mutableSetOf<String>()
     private var dotsIndicator: SpringDotsIndicator? = null
+    
+    // Track which posts have expanded text (read more clicked)
+    private val expandedPosts = mutableSetOf<String>()
     companion object {
         private const val VIEW_TYPE_POST = 0
         private const val VIEW_TYPE_REVIEW = 1
@@ -263,7 +266,19 @@ class SavedFeedAdapter(
         try {
         val itemData = getItem(position)
         // Media setup
-            val mediaList = post.mediaRef ?: arrayListOf()
+            val rawMediaList = post.mediaRef ?: arrayListOf()
+            // Filter out media items with empty or null sourceUrl to prevent blank media display
+            // Also ensure the URL is valid (starts with http:// or https://)
+            val mediaList = rawMediaList.filter { mediaRef ->
+                val sourceUrl = mediaRef.sourceUrl
+                !sourceUrl.isNullOrEmpty() && 
+                (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://") || sourceUrl.startsWith("file://") || sourceUrl.startsWith("content://"))
+            } as ArrayList
+            
+            // Log if media items were filtered out for debugging
+            if (rawMediaList.isNotEmpty() && mediaList.isEmpty()) {
+                android.util.Log.w("SavedFeedAdapter", "Post ${post.Id} had ${rawMediaList.size} media items but all were filtered out (empty/invalid sourceUrl)")
+            }
 
         val postId = post.Id ?: ""
 
@@ -594,7 +609,7 @@ class SavedFeedAdapter(
             CoroutineScope(Dispatchers.IO).launch {
                 val taggedRefString = generateTaggedRefString(taggedPeople)
                 withContext(Dispatchers.Main) {
-                    setDescriptionTextAndClick(binding, content, feelings, taggedRefString, location,taggedPeople,lat,lng)
+                    setDescriptionTextAndClick(binding, content, feelings, taggedRefString, location,taggedPeople,lat,lng, postId)
                 }
             }
             binding.allDescriptionTv.visibility =View.VISIBLE
@@ -1023,10 +1038,10 @@ class SavedFeedAdapter(
         }
     }
 
-    private fun setDescriptionTextAndClick(binding: PostItemsLayoutBinding,description: String,feeling: String,people: String,location: String,taggedPeople: ArrayList<TaggedRef>,lat: Double, lng: Double) {
+    private fun setDescriptionTextAndClick(binding: PostItemsLayoutBinding,description: String,feeling: String,people: String,location: String,taggedPeople: ArrayList<TaggedRef>,lat: Double, lng: Double, postId: String) {
         val textColor = ContextCompat.getColor(context, R.color.blue_50)
-
         val bgColor = ContextCompat.getColor(context, R.color.transparent)
+        val readMoreColor = ContextCompat.getColor(context, R.color.blue_50)
 
         val parts = mutableListOf<String>()
         if (description.isNotEmpty()) parts.add(description)
@@ -1034,22 +1049,38 @@ class SavedFeedAdapter(
         if (people.isNotEmpty()) parts.add("with $people")
         if (location.isNotEmpty()) parts.add("at $location")
 
-// Join the non-empty parts with a separator
+        // Join the non-empty parts with a separator
         val finalText = parts.joinToString(" - ")
-//        val finalText = "$description - $feeling - with $peoples - at $location"
-        val spannableString = SpannableString(finalText)
-
-        // Get the start and end indices of each portion of text
-        val feelingStart = finalText.indexOf(feeling)
-        val feelingEnd = feelingStart + feeling.length
-        val peoplesStart = finalText.indexOf(people)
-        val peoplesEnd = peoplesStart + people.length
-        val locationStart = finalText.indexOf(location)
-        val locationEnd = locationStart + location.length
-
+        val isExpanded = expandedPosts.contains(postId)
+        
+        // Use character-based truncation for reliability
+        // Approximate 2-3 lines = ~40-50 characters (adjust based on your font size)
+        val maxCharsForTruncation = 40
+        val needsTruncation = finalText.length > maxCharsForTruncation
+        
+        val displayText = if (needsTruncation && !isExpanded) {
+            // Truncate text and add ellipsis
+            finalText.substring(0, maxCharsForTruncation).trimEnd() + "..."
+        } else {
+            finalText
+        }
+        
+        // Set max lines based on expanded state
+        binding.allDescriptionTv.maxLines = if (isExpanded) Int.MAX_VALUE else 3
+        binding.allDescriptionTv.ellipsize = null
+        
+        val spannableString = SpannableString(displayText)
+        
+        // Get the start and end indices of each portion of text (from displayText, not finalText)
+        val feelingStart = if (feeling.isNotEmpty()) displayText.indexOf(feeling) else -1
+        val feelingEnd = if (feelingStart >= 0) feelingStart + feeling.length else -1
+        val peoplesStart = if (people.isNotEmpty()) displayText.indexOf(people) else -1
+        val peoplesEnd = if (peoplesStart >= 0) peoplesStart + people.length else -1
+        val locationStart = if (location.isNotEmpty()) displayText.indexOf(location) else -1
+        val locationEnd = if (locationStart >= 0) locationStart + location.length else -1
 
         // Use the default Kotlin URL regex
-        val matcher = Constants.URL_PATTERN_MATCHER.matcher(finalText)
+        val matcher = Constants.URL_PATTERN_MATCHER.matcher(displayText)
 
         // Highlight and make URLs clickable
         while (matcher.find()) {
@@ -1072,55 +1103,113 @@ class SavedFeedAdapter(
             }, urlStart, urlEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 
-
         // Set color and clickable span for feeling
-        spannableString.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
+        if (feelingStart >= 0 && feelingEnd > feelingStart) {
+            spannableString.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
 //                Toast.makeText(context, "Feeling", Toast.LENGTH_SHORT).show()
-            }
+                }
 
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = textColor // Set text color
-                ds.isUnderlineText = false // Remove underline
-                ds.bgColor = bgColor // Ensure background color is transparent
-            }
-        }, feelingStart, feelingEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = textColor // Set text color
+                    ds.isUnderlineText = false // Remove underline
+                    ds.bgColor = bgColor // Ensure background color is transparent
+                }
+            }, feelingStart, feelingEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
 
         // Set color and clickable span for peoples
-        spannableString.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
+        if (peoplesStart >= 0 && peoplesEnd > peoplesStart) {
+            spannableString.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
 //                Toast.makeText(context, "peoples", Toast.LENGTH_SHORT).show()
-                // Convert the taggedPeople list to JSON
-                val taggedPeopleJson = Gson().toJson(taggedPeople)
+                    // Convert the taggedPeople list to JSON
+                    val taggedPeopleJson = Gson().toJson(taggedPeople)
 
-                // Pass the JSON to the BottomSheetFragment
-                val bottomSheetFragment = TagPeopleBottomSheetFragment.newInstance(taggedPeopleJson)
-                bottomSheetFragment.show(parentFragmentManager, "TagPeopleBottomSheet")
-            }
+                    // Pass the JSON to the BottomSheetFragment
+                    val bottomSheetFragment = TagPeopleBottomSheetFragment.newInstance(taggedPeopleJson)
+                    bottomSheetFragment.show(parentFragmentManager, "TagPeopleBottomSheet")
+                }
 
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = textColor // Set text color
-                ds.isUnderlineText = false // Remove underline
-                ds.bgColor = bgColor // Ensure background color is transparent
-            }
-        }, peoplesStart, peoplesEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = textColor // Set text color
+                    ds.isUnderlineText = false // Remove underline
+                    ds.bgColor = bgColor // Ensure background color is transparent
+                }
+            }, peoplesStart, peoplesEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
 
         // Set color and clickable span for location
-        spannableString.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
+        if (locationStart >= 0 && locationEnd > locationStart) {
+            spannableString.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
 //                Toast.makeText(context, "Location", Toast.LENGTH_SHORT).show()
-                context.openGoogleMaps(lat, lng)
-            }
+                    context.openGoogleMaps(lat, lng)
+                }
 
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = textColor // Set text color
-                ds.isUnderlineText = false // Remove underline
-                ds.bgColor = bgColor // Ensure background color is transparent
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = textColor // Set text color
+                    ds.isUnderlineText = false // Remove underline
+                    ds.bgColor = bgColor // Ensure background color is transparent
+                }
+            }, locationStart, locationEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        
+        // Add "Read more" / "Read less" functionality
+        if (needsTruncation) {
+            val readMoreText = if (isExpanded) " Read less" else " Read more"
+            val fullSpannableText = SpannableString(displayText + readMoreText)
+            
+            // Copy all existing spans to the new spannable
+            val spans = spannableString.getSpans(0, spannableString.length, Any::class.java)
+            spans.forEach { span ->
+                val start = spannableString.getSpanStart(span)
+                val end = spannableString.getSpanEnd(span)
+                val flags = spannableString.getSpanFlags(span)
+                fullSpannableText.setSpan(span, start, end, flags)
             }
-        }, locationStart, locationEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            
+            // Add clickable span for "Read more" / "Read less"
+            val readMoreStart = displayText.length
+            val readMoreEnd = fullSpannableText.length
+            
+            fullSpannableText.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    // Toggle expanded state
+                    if (isExpanded) {
+                        expandedPosts.remove(postId)
+                    } else {
+                        expandedPosts.add(postId)
+                    }
+                    // Find the position and notify item changed
+                    var foundPosition = -1
+                    for (i in 0 until itemCount) {
+                        val item = getItem(i)
+                        if (item?.Id == postId) {
+                            foundPosition = i
+                            break
+                        }
+                    }
+                    if (foundPosition >= 0) {
+                        notifyItemChanged(foundPosition)
+                    }
+                }
 
-        // Set the spannable text and make the TextView clickable
-        binding.allDescriptionTv.text = spannableString
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = readMoreColor // Set the link color
+                    ds.isUnderlineText = false // No underline
+                    ds.bgColor = bgColor // Ensure background color is transparent
+                }
+            }, readMoreStart, readMoreEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            
+            binding.allDescriptionTv.text = fullSpannableText
+        } else {
+            binding.allDescriptionTv.text = spannableString
+        }
+        
+        // Set max lines after setting text
+        binding.allDescriptionTv.maxLines = if (isExpanded) Int.MAX_VALUE else 3
+        
         binding.allDescriptionTv.setBackgroundResource(R.drawable.transparent_background)
         binding.allDescriptionTv.movementMethod = LinkMovementMethod.getInstance()
     }

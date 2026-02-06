@@ -12,6 +12,7 @@ data class RepliesRef (
     @SerializedName("message"           ) var message           : String?      = null,
     @SerializedName("parentID"          ) var parentID          : String?      = null,
     @SerializedName("createdAt"         ) var createdAt         : String?      = null,
+    @SerializedName("updatedAt"         ) var updatedAt         : String?      = null,
     @SerializedName("commentedBy"       ) var commentedBy       : CommentedBy? = CommentedBy(),
     @SerializedName("likes"             ) var likes             : Int?         = null,
     @SerializedName("likedByMe"         ) var likedByMe         : Boolean?     = null

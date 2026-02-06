@@ -226,7 +226,9 @@ class PostPreviewActivity : BaseActivity() {
         )
 
         if (binding.commentsRv.adapter == null) {
-            binding.commentsRv.adapter = commentsAdapter.withLoadStateFooter(footer = LoaderAdapter())
+            binding.commentsRv.adapter = commentsAdapter.withLoadStateFooter(
+                footer = LoaderAdapter { commentsAdapter.retry() }
+            )
         }
 
         individualViewModal.getComments(postId).observe(this) {

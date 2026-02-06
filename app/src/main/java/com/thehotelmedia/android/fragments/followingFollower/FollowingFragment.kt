@@ -70,10 +70,9 @@ class FollowingFragment : Fragment() {
 
     private fun getFollowingData() {
         profileAdapter = ProfilesAdapter(requireContext(), ::onMenuClicked, "FollowingScreen")
-        binding.itemsRv.adapter = profileAdapter
-
-        binding.itemsRv.adapter = profileAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+        binding.itemsRv.adapter = profileAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { profileAdapter.retry() }
+        )
 
 
         individualViewModal.getFollowingData(userId).observe(viewLifecycleOwner) {

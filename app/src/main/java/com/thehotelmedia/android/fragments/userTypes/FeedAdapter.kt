@@ -145,6 +145,9 @@ class FeedAdapter(
     private val selectedIds = mutableListOf<String>()
     private val handlerMap = mutableMapOf<String, Job>()
     
+    // Track which posts have expanded text (read more clicked)
+    private val expandedPosts = mutableSetOf<String>()
+    
     // Reference to story adapter for refreshing stories
     private var storyAdapter: StoryAdapter? = null
     
@@ -227,7 +230,9 @@ class FeedAdapter(
             if (this@FeedAdapter.storyAdapter == null) {
                 val adapter = StoryAdapter(context, headerUserProfilePic)
                 this@FeedAdapter.storyAdapter = adapter
-                binding.recyclerView.adapter = adapter.withLoadStateFooter(footer = LoaderAdapter())
+                binding.recyclerView.adapter = adapter.withLoadStateFooter(
+                    footer = LoaderAdapter { adapter.retry() }
+                )
                 
                 // Observe stories only once when adapter is first created
                 // This prevents re-submitting data that might filter out viewed stories
@@ -250,6 +255,7 @@ class FeedAdapter(
                     }
                 }
             }
+
         }
         
         fun refreshStoryRings() {
@@ -419,7 +425,47 @@ class FeedAdapter(
     private fun setPostData(post: Data, binding: PostItemsLayoutBinding,isActive: Boolean) {
         try {
             // Media setup
-            val mediaList = post.mediaRef ?: arrayListOf()
+            val rawMediaList = post.mediaRef ?: arrayListOf()
+            
+            // Log all media items for debugging
+            rawMediaList.forEachIndexed { index, mediaRef ->
+                android.util.Log.d("FeedAdapter", "Post ${post.Id} media[$index]: type=${mediaRef.mediaType}, mime=${mediaRef.mimeType}, sourceUrl=${mediaRef.sourceUrl?.take(80)}, thumbnailUrl=${mediaRef.thumbnailUrl?.take(80)}, duration=${mediaRef.duration}")
+            }
+            
+            // Filter out media items with empty or null sourceUrl to prevent blank media display
+            // Also ensure the URL is valid (starts with http:// or https://)
+            // For videos, also check thumbnailUrl if sourceUrl is missing
+            val mediaList = rawMediaList.filter { mediaRef ->
+                val sourceUrl = mediaRef.sourceUrl
+                val thumbnailUrl = mediaRef.thumbnailUrl
+                val duration = mediaRef.duration // Store in local variable to avoid smart cast issue
+                val hasValidSourceUrl = !sourceUrl.isNullOrEmpty() && 
+                    (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://") || 
+                     sourceUrl.startsWith("file://") || sourceUrl.startsWith("content://"))
+                
+                // For videos, also accept if thumbnailUrl exists (some APIs might only provide thumbnailUrl for videos)
+                val isVideo = mediaRef.mediaType?.lowercase() == "video" || 
+                             mediaRef.mimeType?.lowercase()?.startsWith("video") == true ||
+                             (duration != null && duration > 0)
+                
+                val hasValidThumbnailUrl = !thumbnailUrl.isNullOrEmpty() && 
+                    (thumbnailUrl.startsWith("http://") || thumbnailUrl.startsWith("https://"))
+                
+                val isValid = hasValidSourceUrl || (isVideo && hasValidThumbnailUrl)
+                
+                if (!isValid) {
+                    android.util.Log.w("FeedAdapter", "Filtered out media: type=${mediaRef.mediaType}, sourceUrl=${sourceUrl?.take(50)}, thumbnailUrl=${thumbnailUrl?.take(50)}")
+                }
+                
+                isValid
+            } as ArrayList
+            
+            // Log if media items were filtered out for debugging
+            if (rawMediaList.isNotEmpty() && mediaList.isEmpty()) {
+                android.util.Log.w("FeedAdapter", "Post ${post.Id} had ${rawMediaList.size} media items but all were filtered out")
+            } else if (rawMediaList.size != mediaList.size) {
+                android.util.Log.d("FeedAdapter", "Post ${post.Id}: filtered ${rawMediaList.size} -> ${mediaList.size} media items")
+            }
             val postId = post.Id ?: ""
 
         onItemActive(postId, isActive)
@@ -455,6 +501,7 @@ class FeedAdapter(
             // isActive flag (which controls video autoplay vs. thumbnail-only) is
             // in sync with the current adapter position.
             // Pass scroll direction to control buffering indicator visibility
+            val tapOwnerId = post.userID ?: post.postedBy?.Id ?: ""
             mediaPagerAdapter = MediaPagerAdapter(
                 context, 
                 mediaList, 
@@ -474,7 +521,9 @@ class FeedAdapter(
                     // Update MediaPagerAdapter's internal state so double-tap works correctly
                     mediaPagerAdapter.updateLikeBtn(updatedIsLikedByMe, updatedLikeCount)
                 },
-                isScrollingDown
+                isScrollingDown,
+                postOwnerId = tapOwnerId,
+                openPostViewerOnTap = true
             )
             binding.viewPager.adapter = mediaPagerAdapter
             // Reset to first media item when adapter changes to ensure proper binding
@@ -483,9 +532,8 @@ class FeedAdapter(
             
             // Add click listener to open post viewer
             binding.mediaLayout.setOnClickListener {
-                val userId = post.userID ?: post.postedBy?.Id ?: ""
-                if (userId.isNotEmpty()) {
-                    context.moveToUserPostsViewer(userId, postId)
+                if (tapOwnerId.isNotEmpty()) {
+                    context.moveToUserPostsViewer(tapOwnerId, postId)
                 }
             }
         }else{
@@ -771,7 +819,7 @@ class FeedAdapter(
             CoroutineScope(Dispatchers.IO).launch {
                 val taggedRefString = generateTaggedRefString(post.taggedRef)
                 withContext(Dispatchers.Main) {
-                    setDescriptionTextAndClick(binding, content, feelings, taggedRefString, location,taggedPeople,lat,lng)
+                    setDescriptionTextAndClick(binding, content, feelings, taggedRefString, location,taggedPeople,lat,lng, postId)
                 }
             }
             binding.allDescriptionTv.visibility =View.VISIBLE
@@ -1243,11 +1291,12 @@ class FeedAdapter(
         location: String,
         taggedPeople: ArrayList<TaggedRef>,
         lat: Double,
-        lng: Double
+        lng: Double,
+        postId: String
     ) {
         val textColor = ContextCompat.getColor(context, R.color.blue_50)
-
         val bgColor = ContextCompat.getColor(context, R.color.transparent)
+        val readMoreColor = ContextCompat.getColor(context, R.color.blue_50)
 
         val parts = mutableListOf<String>()
         if (description.isNotEmpty()) parts.add(description)
@@ -1255,23 +1304,39 @@ class FeedAdapter(
         if (people.isNotEmpty()) parts.add("with $people")
         if (location.isNotEmpty()) parts.add("at $location")
 
-// Join the non-empty parts with a separator
+        // Join the non-empty parts with a separator
         val finalText = parts.joinToString(" - ")
-//        val finalText = "$description - $feeling - with $peoples - at $location"
-        val spannableString = SpannableString(finalText)
-
-        // Get the start and end indices of each portion of text
-        val feelingStart = finalText.indexOf(feeling)
-        val feelingEnd = feelingStart + feeling.length
-        val peoplesStart = finalText.indexOf(people)
-        val peoplesEnd = peoplesStart + people.length
-        val locationStart = finalText.indexOf(location)
-        val locationEnd = locationStart + location.length
-
+        val isExpanded = expandedPosts.contains(postId)
+        
+        // Use a lower character threshold for better detection (approximately 2-3 lines)
+        // Font size is 11sp, so ~40-50 chars should be around 2-3 lines on mobile
+        // Using 40 to ensure read more appears for most posts with substantial content
+        val maxCharsForTruncation = 40
+        val needsTruncation = finalText.length > maxCharsForTruncation
+        
+        val displayText = if (needsTruncation && !isExpanded) {
+            // Truncate text and add ellipsis
+            finalText.substring(0, maxCharsForTruncation).trimEnd() + "..."
+        } else {
+            finalText
+        }
+        
+        // Set max lines based on expanded state
+        binding.allDescriptionTv.maxLines = if (isExpanded) Int.MAX_VALUE else 3
+        binding.allDescriptionTv.ellipsize = null
+        
+        val spannableString = SpannableString(displayText)
+        
+        // Get the start and end indices of each portion of text (from displayText, not finalText)
+        val feelingStart = if (feeling.isNotEmpty()) displayText.indexOf(feeling) else -1
+        val feelingEnd = if (feelingStart >= 0) feelingStart + feeling.length else -1
+        val peoplesStart = if (people.isNotEmpty()) displayText.indexOf(people) else -1
+        val peoplesEnd = if (peoplesStart >= 0) peoplesStart + people.length else -1
+        val locationStart = if (location.isNotEmpty()) displayText.indexOf(location) else -1
+        val locationEnd = if (locationStart >= 0) locationStart + location.length else -1
 
         // Use the default Kotlin URL regex
-//        val matcher = Patterns.WEB_URL.matcher(finalText)
-        val matcher = Constants.URL_PATTERN_MATCHER.matcher(finalText)
+        val matcher = Constants.URL_PATTERN_MATCHER.matcher(displayText)
 
         // Highlight and make URLs clickable
         while (matcher.find()) {
@@ -1281,7 +1346,6 @@ class FeedAdapter(
 
             spannableString.setSpan(object : ClickableSpan() {
                 override fun onClick(widget: View) {
-
                     // Open the URL in Chrome
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     context.startActivity(intent)
@@ -1295,55 +1359,112 @@ class FeedAdapter(
             }, urlStart, urlEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 
-
-
         // Set color and clickable span for feeling
-        spannableString.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
+        if (feelingStart >= 0 && feelingEnd > feelingStart) {
+            spannableString.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
 //                Toast.makeText(context, "Feeling", Toast.LENGTH_SHORT).show()
-            }
+                }
 
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = textColor // Set text color
-                ds.isUnderlineText = false // Remove underline
-                ds.bgColor = bgColor // Ensure background color is transparent
-            }
-        }, feelingStart, feelingEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = textColor // Set text color
+                    ds.isUnderlineText = false // Remove underline
+                    ds.bgColor = bgColor // Ensure background color is transparent
+                }
+            }, feelingStart, feelingEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
 
         // Set color and clickable span for peoples
-        spannableString.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
-                // Convert the taggedPeople list to JSON
-                val taggedPeopleJson = Gson().toJson(taggedPeople)
+        if (peoplesStart >= 0 && peoplesEnd > peoplesStart) {
+            spannableString.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    // Convert the taggedPeople list to JSON
+                    val taggedPeopleJson = Gson().toJson(taggedPeople)
 
-                // Pass the JSON to the BottomSheetFragment
-                val bottomSheetFragment = TagPeopleBottomSheetFragment.newInstance(taggedPeopleJson)
-                bottomSheetFragment.show(parentFragmentManager, "TagPeopleBottomSheet")
-            }
+                    // Pass the JSON to the BottomSheetFragment
+                    val bottomSheetFragment = TagPeopleBottomSheetFragment.newInstance(taggedPeopleJson)
+                    bottomSheetFragment.show(parentFragmentManager, "TagPeopleBottomSheet")
+                }
 
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = textColor // Set text color
-                ds.isUnderlineText = false // Remove underline
-                ds.bgColor = bgColor // Ensure background color is transparent
-            }
-        }, peoplesStart, peoplesEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = textColor // Set text color
+                    ds.isUnderlineText = false // Remove underline
+                    ds.bgColor = bgColor // Ensure background color is transparent
+                }
+            }, peoplesStart, peoplesEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
 
         // Set color and clickable span for location
-        spannableString.setSpan(object : ClickableSpan() {
-            override fun onClick(widget: View) {
+        if (locationStart >= 0 && locationEnd > locationStart) {
+            spannableString.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
 //                Toast.makeText(context, "Location", Toast.LENGTH_SHORT).show()
-                context.openGoogleMaps(lat, lng)
-            }
+                    context.openGoogleMaps(lat, lng)
+                }
 
-            override fun updateDrawState(ds: TextPaint) {
-                ds.color = textColor // Set text color
-                ds.isUnderlineText = false // Remove underline
-                ds.bgColor = bgColor // Ensure background color is transparent
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = textColor // Set text color
+                    ds.isUnderlineText = false // Remove underline
+                    ds.bgColor = bgColor // Ensure background color is transparent
+                }
+            }, locationStart, locationEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        
+        // Add "Read more" / "Read less" functionality
+        if (needsTruncation || isExpanded) {
+            val readMoreText = if (isExpanded) " Read less" else " Read more"
+            val fullSpannableText = SpannableString(displayText + readMoreText)
+            
+            // Copy all existing spans to the new spannable
+            val spans = spannableString.getSpans(0, spannableString.length, Any::class.java)
+            spans.forEach { span ->
+                val start = spannableString.getSpanStart(span)
+                val end = spannableString.getSpanEnd(span)
+                val flags = spannableString.getSpanFlags(span)
+                fullSpannableText.setSpan(span, start, end, flags)
             }
-        }, locationStart, locationEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            
+            // Add clickable span for "Read more" / "Read less"
+            val readMoreStart = displayText.length
+            val readMoreEnd = fullSpannableText.length
+            
+            fullSpannableText.setSpan(object : ClickableSpan() {
+                override fun onClick(widget: View) {
+                    // Toggle expanded state
+                    if (isExpanded) {
+                        expandedPosts.remove(postId)
+                    } else {
+                        expandedPosts.add(postId)
+                    }
+                    // Find the position and notify item changed
+                    var foundPosition = -1
+                    for (i in 0 until itemCount) {
+                        val item = getItem(i)
+                        if (item?.Id == postId) {
+                            foundPosition = i + 1 // +1 because of header
+                            break
+                        }
+                    }
+                    if (foundPosition >= 0) {
+                        notifyItemChanged(foundPosition)
+                    }
+                }
 
-        // Set the spannable text and make the TextView clickable
-        binding.allDescriptionTv.text = spannableString
+                override fun updateDrawState(ds: TextPaint) {
+                    ds.color = readMoreColor // Set the link color
+                    ds.isUnderlineText = false // No underline
+                    ds.bgColor = bgColor // Ensure background color is transparent
+                }
+            }, readMoreStart, readMoreEnd, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            
+            binding.allDescriptionTv.text = fullSpannableText
+        } else {
+            binding.allDescriptionTv.text = spannableString
+        }
+        
+        // Set max lines after setting text
+        binding.allDescriptionTv.maxLines = if (isExpanded) Int.MAX_VALUE else 3
+        
         binding.allDescriptionTv.setBackgroundResource(R.drawable.transparent_background)
         binding.allDescriptionTv.movementMethod = LinkMovementMethod.getInstance()
     }

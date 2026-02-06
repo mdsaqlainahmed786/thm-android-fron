@@ -74,7 +74,7 @@ class ProfileVideosFragment : Fragment() {
         binding.videosRv.recycledViewPool.setMaxRecycledViews(0, 10)
 
         binding.videosRv.adapter = videoAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+            .withLoadStateFooter(footer = LoaderAdapter { videoAdapter.retry() })
 
         individualViewModal.getVideos(userId).observe(viewLifecycleOwner) {
             this.lifecycleScope.launch {

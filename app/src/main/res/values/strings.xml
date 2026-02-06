@@ -114,6 +114,8 @@
 
 
     <string name="app_name" translatable="false">THM</string>
+    <string name="back">Back</string>
+    <string name="views">Views</string>
     <string name="onboard_heading_one">Find the Best\nHotels</string>
     <string name="onboard_heading_two">Rate and Review\nHotels</string>
     <string name="onboard_heading_three">Share Your\nMoments</string>
@@ -445,9 +447,11 @@
     <string name="free_subscription">This is free subscription</string>
     <string name="please_enter_your_name">Please enter your name</string>
     <string name="please_enter_your_bio">Please enter your bio</string>
+    <string name="bio_max_length">Bio can be at most %1$d characters</string>
     <string name="video_file_not_exist">Video file does not exist!</string>
     <string name="permission_required_to_save_video">Permission is required to save videos</string>
     <string name="video_too_long">Video is too long. Maximum duration is 3 minutes.</string>
+    <string name="video_too_large">Video file size exceeds %d MB limit</string>
     <string name="failed_to_save_image">Failed to save image</string>
     <string name="please_add_media">Please add media</string>
     <string name="rate_all_questions">Please rate all questions before proceeding</string>
@@ -489,6 +493,7 @@
     <string name="km_distance_form_your_location">km Distance form your location</string>
     <string name="delete">Delete</string>
     <string name="edit">Edit</string>
+    <string name="edit_comment">Edit Comment</string>
     <string name="cancel">Cancel</string>
     <string name="max_media_selection_error">You can\'t select more than %1$d media</string>
     <string name="download_failed">Download Failed</string>
@@ -646,6 +651,7 @@
     <string name="phone_number_hint">Enter phone number</string>
     <string name="send_otp">Send OTP</string>
     <string name="phone_otp_info">We\'ll send a verification code to this number.</string>
+    <string name="no_user_registered_with_this_mobile_number">No user registered with this mobile Number</string>
     <string name="add_profession">Add Profession</string>
     <string name="try_changing_location">Try changing location!</string>
     <string name="book_table">Book Table</string>

@@ -266,14 +266,14 @@ class IndividualRepo (private val context: Context){
         }
     }
 
-    suspend fun editProfile(name: String,email: String,dialCode: String,phoneNumber: String,bio: String): Response<EditProfileModal> {
+    suspend fun editProfile(username: String,name: String,email: String,dialCode: String,phoneNumber: String,bio: String): Response<EditProfileModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
             throw IllegalStateException("Access token is null or empty")
         }
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
-            return@withContext call.editProfile(accessToken,name,email,dialCode, phoneNumber, bio).execute()
+            return@withContext call.editProfile(accessToken,username,name,email,dialCode, phoneNumber, bio).execute()
         }
     }
 
@@ -600,10 +600,34 @@ class IndividualRepo (private val context: Context){
             null
         }
         val videoPart = if (videoFile != null && videoFile.exists()) {
-            val videoExtension = MimeTypeMap.getFileExtensionFromUrl(videoFile.toURI().toString())
-            val videoMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(videoExtension) ?: "video/*"
-            val videoRequestFile = videoFile.asRequestBody(videoMimeType.toMediaTypeOrNull())
-            MultipartBody.Part.createFormData("videos", videoFile.name, videoRequestFile)
+            // Validate that the file is actually a video, not an image
+            val fileName = videoFile.name.lowercase()
+            val isVideoExtension = fileName.endsWith(".mp4") || fileName.endsWith(".mov") || 
+                                   fileName.endsWith(".avi") || fileName.endsWith(".mkv") ||
+                                   fileName.endsWith(".3gp") || fileName.endsWith(".webm")
+            
+            if (!isVideoExtension) {
+                android.util.Log.e("IndividualRepo", "File does not have a video extension: $fileName")
+                null
+            } else {
+                // Double-check MIME type to ensure it's a video
+                val videoExtension = MimeTypeMap.getFileExtensionFromUrl(videoFile.toURI().toString())
+                val detectedMimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(videoExtension) ?: "video/*"
+                
+                // If detected MIME type is an image, reject it
+                if (detectedMimeType.startsWith("image/")) {
+                    android.util.Log.e("IndividualRepo", "File has image MIME type but should be video: $detectedMimeType")
+                    null
+                } else {
+                    val videoMimeType = if (detectedMimeType.startsWith("video/")) {
+                        detectedMimeType
+                    } else {
+                        "video/mp4" // Default to video/mp4 if detection fails
+                    }
+                    val videoRequestFile = videoFile.asRequestBody(videoMimeType.toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData("videos", videoFile.name, videoRequestFile)
+                }
+            }
         } else {
             null
         }
@@ -724,6 +748,17 @@ class IndividualRepo (private val context: Context){
         return withContext(Dispatchers.IO) {
             val call = Retrofit.apiService(context).create(Application::class.java)
             return@withContext call.deleteComment(accessToken,commentId).execute()
+        }
+    }
+
+    suspend fun editComment(commentId: String, message: String): Response<CreateCommentModal> {
+        val accessToken = getAccessToken()
+        if (accessToken.isEmpty()) {
+            throw IllegalStateException("Access token is null or empty")
+        }
+        return withContext(Dispatchers.IO) {
+            val call = Retrofit.apiService(context).create(Application::class.java)
+            return@withContext call.editComment(accessToken, commentId, message).execute()
         }
     }
 
@@ -1216,53 +1251,72 @@ class IndividualRepo (private val context: Context){
             throw IllegalStateException("Access token is null or empty")
         }
 
+        // Validate required fields
+        if (username.isBlank()) {
+            Log.e("IndividualRepo", "sharePostMessage: Username is blank")
+            throw IllegalArgumentException("Username is required and cannot be empty")
+        }
+        if (messageType.isBlank()) {
+            Log.e("IndividualRepo", "sharePostMessage: Message type is blank")
+            throw IllegalArgumentException("Message type is required and cannot be empty")
+        }
+        if (postID.isBlank()) {
+            Log.e("IndividualRepo", "sharePostMessage: Post ID is blank")
+            throw IllegalArgumentException("Post ID is required and cannot be empty")
+        }
+
+        Log.d("IndividualRepo", "sharePostMessage called with - username: $username, messageType: $messageType, postID: $postID")
+
         return withContext(Dispatchers.IO) {
-            // Download the media file from URL
-            val mediaFile = downloadMediaFile(mediaUrl, messageType)
-
             try {
-                // Convert strings to RequestBody
-                val accessTokenBody = accessToken.toRequestBody("text/plain".toMediaTypeOrNull())
-                val userNameBody = username.toRequestBody("text/plain".toMediaTypeOrNull())
-                val messageTypeBody = messageType.toRequestBody("text/plain".toMediaTypeOrNull())
-                val messageBody = (message ?: "").toRequestBody("text/plain".toMediaTypeOrNull())
-                val postIDBody = postID.toRequestBody("text/plain".toMediaTypeOrNull())
+                // Trim and validate required fields
+                val trimmedUsername = username.trim()
+                val trimmedMessageType = messageType.trim()
+                val trimmedPostID = postID.trim()
+                val trimmedMessage = message?.trim() ?: ""
 
-                // Create media part
-                val mediaPart: MultipartBody.Part = when (messageType) {
-                    "image" -> {
-                        val mimeType = "image/jpeg"
-                        val requestFile = mediaFile.asRequestBody(mimeType.toMediaTypeOrNull())
-                        MultipartBody.Part.createFormData("media", mediaFile.name, requestFile)
-                    }
-                    "video" -> {
-                        val mimeType = "video/mp4"
-                        val requestFile = mediaFile.asRequestBody(mimeType.toMediaTypeOrNull())
-                        MultipartBody.Part.createFormData("media", mediaFile.name, requestFile)
-                    }
-                    else -> throw IllegalArgumentException("Unsupported message type: $messageType")
+                // Double-check values are not empty after trimming
+                require(trimmedUsername.isNotBlank()) { "Username cannot be blank after trimming" }
+                require(trimmedMessageType.isNotBlank()) { "Message type cannot be blank after trimming" }
+                require(trimmedPostID.isNotBlank()) { "Post ID cannot be blank after trimming" }
+
+                // Create JSON request body
+                val requestBody = mutableMapOf<String, Any>(
+                    "username" to trimmedUsername,
+                    "messageType" to trimmedMessageType,
+                    "postID" to trimmedPostID
+                )
+
+                // Add optional message field if provided
+                if (trimmedMessage.isNotBlank()) {
+                    requestBody["message"] = trimmedMessage
                 }
 
-                // Make the API call
+                // Log the values being sent
+                Log.d("IndividualRepo", "Sending sharePostMessage JSON request:")
+                Log.d("IndividualRepo", "  - username: $trimmedUsername")
+                Log.d("IndividualRepo", "  - messageType: $trimmedMessageType")
+                Log.d("IndividualRepo", "  - postID: $trimmedPostID")
+                Log.d("IndividualRepo", "  - message: $trimmedMessage")
+                Log.d("IndividualRepo", "  - requestBody: ${Gson().toJson(requestBody)}")
+
+                // Make the API call with JSON body
                 val call = Retrofit.apiService(context).create(Application::class.java)
                 val response = call.sharePostMessage(
-                    accessTokenBody,
-                    userNameBody,
-                    messageTypeBody,
-                    messageBody,
-                    postIDBody,
-                    mediaPart
+                    accessToken,
+                    requestBody
                 ).execute()
 
-                // Delete temporary file after upload
-                mediaFile.delete()
+                // Log response
+                Log.d("IndividualRepo", "sharePostMessage response - code: ${response.code()}, isSuccessful: ${response.isSuccessful}")
+                if (!response.isSuccessful) {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("IndividualRepo", "sharePostMessage error response: $errorBody")
+                }
 
                 response
             } catch (e: Exception) {
-                // Ensure file is deleted even on error
-                if (mediaFile.exists()) {
-                    mediaFile.delete()
-                }
+                Log.e("IndividualRepo", "sharePostMessage exception: ${e.message}", e)
                 throw e
             }
         }

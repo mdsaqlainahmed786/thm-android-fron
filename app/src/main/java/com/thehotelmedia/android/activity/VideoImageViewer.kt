@@ -77,6 +77,7 @@ class VideoImageViewer : DarkBaseActivity() {
     private var mediaUrl = ""
     private var mediaId = ""
     private var mediaType: String? = null
+    private var wasPlayingBeforePause = false
 
 
 
@@ -121,6 +122,10 @@ class VideoImageViewer : DarkBaseActivity() {
         mediaDownloadManager = MediaDownloadManager(this)
 
         binding.backBtn.setOnClickListener {
+            handelBackPress()
+        }
+
+        binding.topLeftBackBtn.setOnClickListener {
             handelBackPress()
         }
 
@@ -418,9 +423,9 @@ class VideoImageViewer : DarkBaseActivity() {
 
     private fun updateBookmarkBtn(isSaved: Boolean, bookmarkIv: ImageView) {
         if (isSaved) {
-            bookmarkIv.setImageResource(R.drawable.ic_save_icon)
+            bookmarkIv.setImageResource(R.drawable.ic_save_icon_white)
         } else {
-            bookmarkIv.setImageResource(R.drawable.ic_unsave_icon)
+            bookmarkIv.setImageResource(R.drawable.ic_unsave_icon_white)
         }
     }
 
@@ -558,19 +563,33 @@ class VideoImageViewer : DarkBaseActivity() {
     private suspend fun fetchFeedDataDirectly() = withContext(Dispatchers.IO) {
         val allPosts = mutableListOf<Data>()
         var pageNumber = 1
+        var totalPages: Int? = null
         var hasMorePages = true
         
-        // Fetch multiple pages of feed data
-        while (hasMorePages && pageNumber <= 10) { // Limit to 10 pages to avoid too much data
+        // Fetch all pages of feed data until we reach the total pages
+        while (hasMorePages) {
             try {
                 val response = individualRepo.getFeed(pageNumber, 20, currentLat, currentLng)
                 if (response.isSuccessful) {
-                    val feedData = response.body()?.data ?: emptyList()
+                    val feedModal = response.body()
+                    val feedData = feedModal?.data ?: emptyList()
+                    
+                    // Get totalPages from first response if not set
+                    if (totalPages == null) {
+                        totalPages = feedModal?.totalPages
+                    }
+                    
                     if (feedData.isEmpty()) {
                         hasMorePages = false
                     } else {
                         allPosts.addAll(feedData)
-                        pageNumber++
+                        
+                        // Check if we've reached the last page
+                        if (totalPages != null && totalPages > 0 && pageNumber >= totalPages) {
+                            hasMorePages = false
+                        } else {
+                            pageNumber++
+                        }
                     }
                 } else {
                     hasMorePages = false
@@ -780,17 +799,35 @@ class VideoImageViewer : DarkBaseActivity() {
 
     override fun onPause() {
         super.onPause()
-        exoPlayer?.pause()
+        // Pause playback to stop audio, but don't stop() to keep media loaded for when user returns
+        exoPlayer?.let {
+            wasPlayingBeforePause = it.isPlaying
+            it.playWhenReady = false
+            it.pause()
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        exoPlayer?.play()
+        // Resume playback if it was playing before pause
+        exoPlayer?.let {
+            if (wasPlayingBeforePause && mediaType == VIDEO) {
+                it.playWhenReady = true
+                it.play()
+            }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        exoPlayer?.pause()
+        // Stop and release player completely
+        exoPlayer?.let {
+            it.playWhenReady = false
+            it.pause()
+            it.stop()
+            it.release()
+        }
+        exoPlayer = null
     }
 
     private fun updateLikeBtn(postLiked: Boolean, likeIv: ImageView) {

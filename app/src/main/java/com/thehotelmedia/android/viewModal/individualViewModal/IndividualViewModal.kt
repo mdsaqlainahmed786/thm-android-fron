@@ -13,6 +13,8 @@ import androidx.paging.liveData
 import com.thehotelmedia.android.SocketModals.sendMedia.SendMediaModal
 import com.thehotelmedia.android.UIState.UIState
 import com.thehotelmedia.android.apiService.Retrofit
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LAT
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LNG
 import com.thehotelmedia.android.customClasses.Constants.N_A
 import com.thehotelmedia.android.modals.DeleteModal
 import com.thehotelmedia.android.modals.SharePostModal
@@ -581,11 +583,11 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     //Edit Profile
     private val _editProfileResult = MutableLiveData<EditProfileModal>()
     val editProfileResult: LiveData<EditProfileModal> = _editProfileResult
-    fun editProfile(name: String,email: String,dialCode: String,phoneNumber: String,bio: String) {
+    fun editProfile(username: String,name: String,email: String,dialCode: String,phoneNumber: String,bio: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _loading.postValue(true)
             try {
-                val response = individualRepo.editProfile(name,email,dialCode, phoneNumber, bio)
+                val response = individualRepo.editProfile(username,name,email,dialCode, phoneNumber, bio)
                 if (response.isSuccessful) {
                     val res = response.body()
                     toastMessageLiveData.postValue(res?.message ?: N_A)
@@ -888,25 +890,66 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
             try {
                 val response = individualRepo.publishPostToStory(postId)
                 if (response.isSuccessful) {
-                    val res = response.body()
-                    toastMessageLiveData.postValue(res?.message ?: N_A)
-                    _publishStoryResult.postValue(res)
-                    Log.wtf(tag, res.toString())
+                    try {
+                        val res = response.body()
+                        if (res != null) {
+                            toastMessageLiveData.postValue(res.message ?: N_A)
+                            _publishStoryResult.postValue(res)
+                            Log.wtf(tag, res.toString())
+                        } else {
+                            // Response body is null
+                            Log.wtf(tag + "NULL_BODY", "Response successful but body is null")
+                            toastMessageLiveData.postValue("Failed to publish post to story")
+                            _publishStoryResult.postValue(null)
+                        }
+                    } catch (e: com.google.gson.JsonSyntaxException) {
+                        // Handle JSON parsing error - API returned unexpected format
+                        // This happens when the API returns a different format than expected (e.g., object instead of array for videos)
+                        Log.wtf(tag + "JSON_ERROR", "JSON parsing failed: ${e.message}. API returned unexpected JSON format.")
+                        toastMessageLiveData.postValue("Failed to publish post to story. Please try again.")
+                        _publishStoryResult.postValue(null)
+                    } catch (e: IllegalStateException) {
+                        // Handle JSON parsing errors - API returned unexpected format
+                        if (e.message?.contains("BEGIN_OBJECT") == true || 
+                            e.message?.contains("BEGIN_ARRAY") == true || 
+                            e.message?.contains("STRING") == true ||
+                            e.message?.contains("Expected") == true) {
+                            Log.wtf(tag + "JSON_ERROR", "JSON parsing failed: ${e.message}. API returned unexpected JSON format.")
+                            toastMessageLiveData.postValue("Failed to publish post to story. Please try again.")
+                            _publishStoryResult.postValue(null)
+                        } else {
+                            throw e // Re-throw if it's a different IllegalStateException
+                        }
+                    }
                 } else {
                     val errorBody = response.errorBody()?.string()
                     Log.wtf(tag + "ELSE", "${response.code()} $errorBody")
                     val message = try {
-                        JSONObject(errorBody ?: "{}").optString("message")
+                        // Try to parse as JSON if it starts with {
+                        if (errorBody?.trim()?.startsWith("{") == true) {
+                            val gson = com.google.gson.Gson()
+                            val errorJson = gson.fromJson(errorBody, java.util.HashMap::class.java) as? Map<*, *>
+                            errorJson?.get("message")?.toString()
+                        } else {
+                            // Use plain text error message
+                            errorBody?.takeIf { it.isNotBlank() }
+                        }
                     } catch (e: Exception) {
-                        null
+                        // If parsing fails, use error body as plain text
+                        errorBody?.takeIf { it.isNotBlank() }
                     }
-                    toastMessageLiveData.postValue(message?.takeIf { it.isNotBlank() } ?: response.message())
+                    toastMessageLiveData.postValue(message?.takeIf { it.isNotBlank() } ?: response.message() ?: "Failed to publish post to story")
                     _publishStoryResult.postValue(null)
                 }
             } catch (t: Throwable) {
-                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", "Exception: ${t.message}", t)
+                val errorMessage = when {
+                    t.message?.contains("JSON", ignoreCase = true) == true -> 
+                        "Invalid response from server. Please try again."
+                    else -> t.message ?: "Failed to publish post to story"
+                }
+                toastMessageLiveData.postValue(errorMessage)
                 _publishStoryResult.postValue(null)
-                Log.wtf(tag + "ERROR", t.message.toString())
             }
         }
     }
@@ -1363,16 +1406,34 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
     fun getSearchData(query : String,type : String,businessTypeID : List<String>,initialKm :String,lat :Double,lng :Double): LiveData<PagingData<SearchData>> {
         var currentLat = 0.0
         var currentLng = 0.0
+        var radius = initialKm
+        
+        // Check if location is default (India coordinates) - means real location wasn't obtained
+        val isDefaultLocation = lat == DEFAULT_LAT && lng == DEFAULT_LNG
+        
         if (query.isNotEmpty()){
+            // Text search: always use global search (ignore location)
             currentLat = 0.0
             currentLng = 0.0
-        }else{
-            currentLat = lat
-            currentLng = lng
+        } else {
+            // Empty query: location-based search
+            // If location is default (not obtained) AND searching for users/business, use global search
+            // This prevents searching near India when user is not in India
+            if (isDefaultLocation && (type == "users" || type == "business")) {
+                // Location not available: show global list instead of searching near India
+                // Use global search pattern (matches CollaborationUsersPagingSource)
+                currentLat = 0.0
+                currentLng = 0.0
+                radius = "0"  // Global search (radius 0 means no distance limit)
+            } else {
+                // Use provided location (either real location or default for posts/events/reviews)
+                currentLat = lat
+                currentLng = lng
+            }
         }
         return Pager(
             config = PagingConfig(pageSize = 20),
-            pagingSourceFactory = { SearchPagingSource( query,type,businessTypeID,initialKm,currentLat,currentLng, individualRepo) }
+            pagingSourceFactory = { SearchPagingSource( query,type,businessTypeID,radius,currentLat,currentLng, individualRepo) }
         ).liveData.cachedIn(viewModelScope)
     }
 
@@ -1948,6 +2009,34 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                     val res = response.body()
                     toastMessageLiveData.postValue(res?.message ?: N_A)
                     _deleteCommentResult.postValue(response.body())
+                    Log.wtf(tag, response.body().toString())
+                    _loading.postValue(false)
+                } else {
+                    Log.wtf(tag + "ELSE", response.message().toString())
+                    toastMessageLiveData.postValue(response.message())
+                    _loading.postValue(false)
+                }
+
+            } catch (t: Throwable) {
+                _loading.postValue(false)
+                toastMessageLiveData.postValue(t.message)
+                Log.wtf(tag + "ERROR", t.message.toString())
+            }
+        }
+    }
+
+    //Edit Comment
+    private val _editCommentResult = MutableLiveData<CreateCommentModal>()
+    val editCommentResult: LiveData<CreateCommentModal> = _editCommentResult
+    fun editComment(commentId: String, message: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
+            try {
+                val response = individualRepo.editComment(commentId, message)
+                if (response.isSuccessful) {
+                    val res = response.body()
+                    toastMessageLiveData.postValue(res?.message ?: N_A)
+                    _editCommentResult.postValue(response.body())
                     Log.wtf(tag, response.body().toString())
                     _loading.postValue(false)
                 } else {

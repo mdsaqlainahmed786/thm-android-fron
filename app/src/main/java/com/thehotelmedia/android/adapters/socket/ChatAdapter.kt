@@ -261,9 +261,11 @@ class ChatAdapter(
 
         // Add long-press listener for text messages to show context menu
         val isTextMessage = type == "text"
+        val isMediaMessage = type == IMAGE || type == VIDEO
+        
         if (!isDeleted && isTextMessage) {
             val longClickListener = View.OnLongClickListener {
-                // Show context menu
+                // Show context menu for text messages
                 if (onMessageAction != null) {
                     onMessageAction.invoke(message, "show_menu")
                 }
@@ -272,10 +274,24 @@ class ChatAdapter(
             binding.root.setOnLongClickListener(longClickListener)
             binding.messageLayout.setOnLongClickListener(longClickListener)
             binding.chatMessageText.setOnLongClickListener(longClickListener)
+        } else if (!isDeleted && isMediaMessage) {
+            // Add long-press listener for image/video messages to show delete-only menu
+            val longClickListener = View.OnLongClickListener {
+                // Show delete-only menu for media messages
+                if (onMessageAction != null) {
+                    onMessageAction.invoke(message, "show_delete_menu")
+                }
+                true
+            }
+            binding.root.setOnLongClickListener(longClickListener)
+            binding.mediaLayout.setOnLongClickListener(longClickListener)
+            binding.chatMediaIv.setOnLongClickListener(longClickListener)
         } else {
             binding.root.setOnLongClickListener(null)
             binding.messageLayout.setOnLongClickListener(null)
             binding.chatMessageText.setOnLongClickListener(null)
+            binding.mediaLayout.setOnLongClickListener(null)
+            binding.chatMediaIv.setOnLongClickListener(null)
         }
 
         binding.root.setOnClickListener {

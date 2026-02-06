@@ -28,30 +28,28 @@ class AmenitiesAdapter(
 //                .placeholder(R.drawable.ic_profile_placeholder)
 //                .into(binding.imageView)
 
-            if (position == 0) {
-                switchJob?.cancel()
-                switchJob = CoroutineScope(Dispatchers.Main).launch {
-                    var showTemp = true
-                    while (isActive) {
-                        if (showTemp) {
-                            binding.titleTv.text = item.minMaxTemp ?: N_A
-                            binding.imageView.setImageResource(R.drawable.temprature) // your custom temp icon
-                        } else {
-                            binding.titleTv.text = "AQI: ${item.aqi ?: N_A}"
-                            binding.imageView.setImageResource(R.drawable.ic_aqi) // your custom AQI icon
-                        }
-                        showTemp = !showTemp
-                        delay(5000)
-                    }
+            // Stop any previous coroutine (older version toggled temp/aqi)
+            switchJob?.cancel()
+
+            when (item.Id) {
+                "static_temp" -> {
+                    val tempText = item.minMaxTemp?.takeIf { it.isNotBlank() && it != N_A }
+                    binding.titleTv.text = tempText ?: N_A
+                    binding.imageView.setImageResource(R.drawable.temprature)
                 }
-            } else {
-                // For other positions, show just name
-                binding.titleTv.text = item.name
-                // Set static data
-                Glide.with(context)
-                    .load(item.icon)
-                    .placeholder(R.drawable.ic_profile_placeholder)
-                    .into(binding.imageView)
+                "static_aqi" -> {
+                    val aqiText = item.aqi?.takeIf { it > 0 }?.toString()
+                    binding.titleTv.text = if (aqiText != null) "AQI $aqiText" else N_A
+                    binding.imageView.setImageResource(R.drawable.ic_aqi)
+                }
+                else -> {
+                    // For other positions, show just name/icon from backend
+                    binding.titleTv.text = item.name
+                    Glide.with(context)
+                        .load(item.icon)
+                        .placeholder(R.drawable.ic_profile_placeholder)
+                        .into(binding.imageView)
+                }
             }
         }
 

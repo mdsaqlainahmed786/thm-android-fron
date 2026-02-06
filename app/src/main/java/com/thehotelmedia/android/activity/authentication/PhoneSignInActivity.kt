@@ -82,8 +82,15 @@ class PhoneSignInActivity : BaseActivity() {
         }
 
         authViewModel.toast.observe(this) {
-            if (!it.isNullOrEmpty()) {
-                CustomSnackBar.showSnackBar(binding.root, it)
+            val msg = it?.trim().orEmpty()
+            if (msg.isNotEmpty()) {
+                val displayMsg =
+                    if (msg.equals("Not Found", ignoreCase = true)) {
+                        getString(com.thehotelmedia.android.R.string.no_user_registered_with_this_mobile_number)
+                    } else {
+                        msg
+                    }
+                CustomSnackBar.showSnackBar(binding.root, displayMsg)
             }
         }
     }

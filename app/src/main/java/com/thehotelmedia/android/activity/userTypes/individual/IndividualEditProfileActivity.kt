@@ -172,6 +172,9 @@ class IndividualEditProfileActivity : BaseActivity() {
         binding.editNameBtn.setOnClickListener {
             moveToEditDetails("Name","Enter your full name below, and we'll use it to personalize your experience.")
         }
+        binding.editUsernameBtn.setOnClickListener {
+            moveToEditDetails("Username", "Choose a unique username. This will be visible to other users.")
+        }
         binding.editEmailBtn.setOnClickListener {
             moveToEditDetails("Email", "Please provide your email address below, and we'll use it to send you important updates and notifications.")
         }
@@ -233,6 +236,7 @@ class IndividualEditProfileActivity : BaseActivity() {
         val fullName = preferenceManager.getString(PreferenceManager.Keys.USER_FULL_NAME,"")
         val profilePic = preferenceManager.getString(PreferenceManager.Keys.USER_MEDIUM_PROFILE_PIC,"")
         email = preferenceManager.getString(PreferenceManager.Keys.USER_EMAIL,"").toString()
+        val username = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME,"").toString()
         val dialCode = preferenceManager.getString(PreferenceManager.Keys.USER_DIAL_CODE,"")
         val phoneNumber = preferenceManager.getString(PreferenceManager.Keys.USER_PHONE_NUMBER,"")
         val bio = preferenceManager.getString(PreferenceManager.Keys.USER_DESCRIPTION,"-----")
@@ -260,6 +264,7 @@ class IndividualEditProfileActivity : BaseActivity() {
         Glide.with(activity).load(profilePic).placeholder(R.drawable.ic_profile_placeholder).into(binding.profileIv)
         binding.categoryTv.text = businessName
         binding.fullNameTv.text = fullName
+        binding.usernameTv.text = if (username.isNotEmpty()) username else "---"
         binding.emailTv.text = email
         binding.contactNumberTv.text = "$dialCode $phoneNumber"
         binding.bioTv.text = bio

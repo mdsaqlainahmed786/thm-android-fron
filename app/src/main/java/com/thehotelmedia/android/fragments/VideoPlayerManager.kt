@@ -33,10 +33,21 @@ object VideoPlayerManager {
         currentExoPlayer?.apply {
             stop() // Stop any ongoing playback
             clearMediaItems() // Clear previous media items
-            sourceUrl?.let {
-                val mediaItem = MediaItem.fromUri(it)
-                setMediaItem(mediaItem)
-                prepare()
+            // Validate sourceUrl before setting media item
+            if (!sourceUrl.isNullOrEmpty() && 
+                (sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://") || 
+                 sourceUrl.startsWith("file://") || sourceUrl.startsWith("content://"))) {
+                try {
+                    val mediaItem = MediaItem.fromUri(sourceUrl)
+                    setMediaItem(mediaItem)
+                    prepare()
+                } catch (e: Exception) {
+                    android.util.Log.e("VideoPlayerManager", "Error creating MediaItem from URL: $sourceUrl", e)
+                    // Clear media items if URL is invalid
+                    clearMediaItems()
+                }
+            } else {
+                android.util.Log.w("VideoPlayerManager", "Invalid or empty sourceUrl: $sourceUrl")
             }
         }
 

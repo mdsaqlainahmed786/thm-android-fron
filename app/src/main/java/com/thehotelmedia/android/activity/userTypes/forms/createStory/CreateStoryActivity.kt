@@ -76,6 +76,7 @@ import ja.burhanrashid52.photoeditor.PhotoEditor
 import ja.burhanrashid52.photoeditor.PhotoFilter
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.ViewType
+import android.media.MediaMetadataRetriever
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -140,6 +141,11 @@ class CreateStoryActivity : BaseActivity() {
             val mediaUri = result.data?.getStringExtra(CustomCameraActivity.RESULT_MEDIA_URI)?.let { Uri.parse(it) } ?: return@registerForActivityResult
             val mediaType = result.data?.getStringExtra(CustomCameraActivity.RESULT_MEDIA_TYPE)
             if (mediaType == CustomCameraActivity.MEDIA_TYPE_VIDEO) {
+                // Check video duration before showing preview
+                if (!isVideoDurationValid(mediaUri)) {
+                    Toast.makeText(this, "Unable to add story is more than 15 seconds", Toast.LENGTH_SHORT).show()
+                    return@registerForActivityResult
+                }
                 showVideoPreview(mediaUri)
             } else {
                 startCropActivity(mediaUri)
@@ -511,6 +517,11 @@ class CreateStoryActivity : BaseActivity() {
         }
         // Check if the MIME type starts with "video/"
         else if (mimeType?.startsWith("video/") == true) {
+            // Check video duration before showing preview
+            if (!isVideoDurationValid(uri)) {
+                Toast.makeText(this, "Unable to add story is more than 15 seconds", Toast.LENGTH_SHORT).show()
+                return
+            }
             showVideoPreview(uri)
         }
     }
@@ -802,6 +813,24 @@ class CreateStoryActivity : BaseActivity() {
             return
         }
         showVideoTrimmer(savedVideoUri, null, emptyList())
+    }
+
+    private fun getVideoDurationInSeconds(uri: Uri): Long? {
+        return try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(this, uri)
+            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            retriever.release()
+            durationStr?.toLongOrNull()?.div(1000) // Convert milliseconds to seconds
+        } catch (e: Exception) {
+            Log.e("CreateStoryActivity", "Error getting video duration: ${e.message}", e)
+            null
+        }
+    }
+
+    private fun isVideoDurationValid(uri: Uri): Boolean {
+        val durationInSeconds = getVideoDurationInSeconds(uri) ?: return false
+        return durationInSeconds <= 15
     }
 
     private fun saveVideo(uri: Uri): Uri? {

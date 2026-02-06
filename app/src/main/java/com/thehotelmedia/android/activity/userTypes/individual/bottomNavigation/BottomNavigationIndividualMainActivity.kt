@@ -413,7 +413,8 @@ class BottomNavigationIndividualMainActivity : BaseActivity() {
 
     override fun onResume() {
         println("SocketManager    connectSocket(  $userName  )  ")
-        socketViewModel.connectSocket(userName)
+        val userID = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+        socketViewModel.connectSocket(userName, userID)
         super.onResume()
     }
 

@@ -360,6 +360,26 @@ private fun startCropActivity(uri: Uri) {
         return bitmap
     }
 
+    private fun hideAllEditIcons() {
+        try {
+            val parent = binding.photoEditorView ?: return
+            val childCount = parent.childCount
+            for (index in 0 until childCount) {
+                try {
+                    val child = parent.getChildAt(index) ?: continue
+                    val editIcon = child.findViewById<ImageView>(R.id.imgPhotoEditorEdit)
+                    editIcon?.visibility = View.GONE
+                } catch (e: Exception) {
+                    Log.e("EditImageActivity", "Error hiding edit icon at index $index: ${e.message}")
+                    // Continue with next child
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("EditImageActivity", "Error in hideAllEditIcons: ${e.message}", e)
+            // Don't crash if hiding icons fails, just log the error
+        }
+    }
+
     private fun saveEditedImage() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             if (!checkStoragePermission()) {
@@ -370,37 +390,45 @@ private fun startCropActivity(uri: Uri) {
 
         progressBar.show()
         binding.photoEditorView.postDelayed({
-            val newDir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "edited_images").apply {
-                if (!exists()) mkdirs()
-            }
+            // Hide all edit icons before saving
+            hideAllEditIcons()
+            
+            // Give a small delay to ensure UI updates are complete
+            binding.photoEditorView.postDelayed({
+                val newDir = File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "edited_images").apply {
+                    if (!exists()) mkdirs()
+                }
 
-            val file = File(newDir, "edited_image_${System.currentTimeMillis()}.jpg")
+                val file = File(newDir, "edited_image_${System.currentTimeMillis()}.jpg")
 
-            // Save the edited image
-            photoEditor.saveAsFile(file.absolutePath, object : PhotoEditor.OnSaveListener {
-                override fun onSuccess(imagePath: String) {
-                    Log.d("EditImageActivity", "Image saved at $imagePath")
+                // Save the edited image
+                photoEditor.saveAsFile(file.absolutePath, object : PhotoEditor.OnSaveListener {
+                    override fun onSuccess(imagePath: String) {
+                        progressBar.hide()
+                        Log.d("EditImageActivity", "Image saved at $imagePath")
 
-                    // Create a URI for the saved image
-                    val editedImageUri = FileProvider.getUriForFile(
-                        this@EditImageActivity,
-                        "${packageName}.provider",
-                        file
-                    )
+                        // Create a URI for the saved image
+                        val editedImageUri = FileProvider.getUriForFile(
+                            this@EditImageActivity,
+                            "${packageName}.provider",
+                            file
+                        )
 
-                    // Return the URI as a result
-                    val resultIntent = Intent().apply {
-                        putExtra("edited_image_uri", editedImageUri.toString())
+                        // Return the URI as a result
+                        val resultIntent = Intent().apply {
+                            putExtra("edited_image_uri", editedImageUri.toString())
+                        }
+                        setResult(Activity.RESULT_OK, resultIntent)
+                        finish()  // Close activity
                     }
-                    setResult(Activity.RESULT_OK, resultIntent)
-                    finish()  // Close activity
-                }
 
-                override fun onFailure(exception: Exception) {
-                    Toast.makeText(this@EditImageActivity, "Failed to save image", Toast.LENGTH_SHORT).show()
-                    Log.e("EditImageActivity", "Error: ${exception.message}", exception)
-                }
-            })
+                    override fun onFailure(exception: Exception) {
+                        progressBar.hide()
+                        Toast.makeText(this@EditImageActivity, "Failed to save image", Toast.LENGTH_SHORT).show()
+                        Log.e("EditImageActivity", "Error: ${exception.message}", exception)
+                    }
+                })
+            }, 100) // Small delay after hiding icons
         }, 300)
     }
 

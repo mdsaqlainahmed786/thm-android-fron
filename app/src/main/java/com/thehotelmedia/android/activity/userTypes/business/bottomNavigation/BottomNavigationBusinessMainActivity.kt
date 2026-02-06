@@ -412,7 +412,8 @@ class BottomNavigationBusinessMainActivity : BaseActivity() {
     }
 
     override fun onResume() {
-        socketViewModel.connectSocket(userName)
+        val userID = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty()
+        socketViewModel.connectSocket(userName, userID)
         super.onResume()
     }
 

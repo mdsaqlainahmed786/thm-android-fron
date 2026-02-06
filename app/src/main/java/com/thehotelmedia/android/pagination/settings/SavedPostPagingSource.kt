@@ -5,6 +5,7 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.repository.IndividualRepo
+import com.thehotelmedia.android.extensions.isPostEmpty
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -37,7 +38,7 @@ class SavedPostPagingSource(
             return if (response.isSuccessful) {
                 Log.d(tag, "Response code: ${response.code()}")
 
-                val services = response.body()?.data ?: emptyList()
+                val services = response.body()?.data?.filter { !it.isPostEmpty() } ?: emptyList()
 
                 val nextKey = if (services.isEmpty()) null else nextPageNumber + 1
 

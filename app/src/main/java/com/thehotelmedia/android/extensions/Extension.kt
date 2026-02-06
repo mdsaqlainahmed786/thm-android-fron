@@ -1436,3 +1436,29 @@ fun Double?.roundToTwoDecimal(): Double {
         BigDecimal(it).setScale(2, RoundingMode.HALF_UP).toDouble()
     } ?: 0.0
 }
+
+/**
+ * Checks if a post is empty (has no content, feelings, or media)
+ * A post is considered empty if all three are missing
+ */
+fun com.thehotelmedia.android.modals.feeds.feed.Data.isPostEmpty(): Boolean {
+    val hasContent = !content.isNullOrBlank()
+    val hasFeelings = !feelings.isNullOrBlank()
+    val hasMedia = mediaRef.isNotEmpty()
+    
+    // Post is empty if it has no content, no feelings, and no media
+    return !hasContent && !hasFeelings && !hasMedia
+}
+
+/**
+ * Checks if a search post is empty (has no content, feelings, or media)
+ * A post is considered empty if all three are missing
+ */
+fun com.thehotelmedia.android.modals.search.SearchData.isPostEmpty(): Boolean {
+    val hasContent = !content.isNullOrBlank()
+    val hasFeelings = !feelings.isNullOrBlank()
+    val hasMedia = mediaRef.isNotEmpty()
+    
+    // Post is empty if it has no content, no feelings, and no media
+    return !hasContent && !hasFeelings && !hasMedia
+}

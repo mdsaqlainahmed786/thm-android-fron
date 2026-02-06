@@ -59,10 +59,9 @@ class BookingHistoryActivity : BaseActivity() {
             individualViewModal.userCancelBooking(bookingId)
         }
 
-        binding.bookingHistoryRv.adapter = bookingHistoryAdapter
-
-        binding.bookingHistoryRv.adapter = bookingHistoryAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+        binding.bookingHistoryRv.adapter = bookingHistoryAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { bookingHistoryAdapter.retry() }
+        )
 
         individualViewModal.getBookingHistory().observe(this) {
             this.lifecycleScope.launch {

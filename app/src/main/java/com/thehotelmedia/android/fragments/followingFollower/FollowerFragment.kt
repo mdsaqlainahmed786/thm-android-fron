@@ -72,10 +72,9 @@ class FollowerFragment : Fragment() {
 
     private fun getFollowerData() {
         profileAdapter = ProfilesAdapter(requireContext(), ::onMenuClicked, "FollowerScreen")
-        binding.itemsRv.adapter = profileAdapter
-
-        binding.itemsRv.adapter = profileAdapter
-            .withLoadStateFooter(footer = LoaderAdapter())
+        binding.itemsRv.adapter = profileAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { profileAdapter.retry() }
+        )
 
 
         individualViewModal.getFollowerData(userId.toString()).observe(viewLifecycleOwner) {

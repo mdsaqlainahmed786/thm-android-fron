@@ -59,7 +59,9 @@ class LikedFragment : Fragment() {
     }
 
     private fun getLikeData() {
-        binding.itemsRv.adapter = likedStoryAdapter.withLoadStateFooter(footer = LoaderAdapter())
+        binding.itemsRv.adapter = likedStoryAdapter.withLoadStateFooter(
+            footer = LoaderAdapter { likedStoryAdapter.retry() }
+        )
         individualViewModal.getLikes(storyId).observe(viewLifecycleOwner) {
             this.lifecycleScope.launch {
                 isLoading()

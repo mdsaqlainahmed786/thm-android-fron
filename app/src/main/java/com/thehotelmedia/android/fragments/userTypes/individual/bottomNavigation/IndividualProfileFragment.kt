@@ -389,31 +389,67 @@ class IndividualProfileFragment : Fragment() {
 //            val amenitiesAdapter = AmenitiesAdapter(requireContext(), amenitiesRef)
 //            binding.amenitiesRv.adapter = amenitiesAdapter
 
-            val tempMin = result.data?.weather?.main?.feelsLike ?: 0.0
+            // Log weather data to debug temperature issue
+            android.util.Log.wtf("IndividualProfile", "Weather data: ${result.data?.weather}")
+            android.util.Log.wtf("IndividualProfile", "Weather main: ${result.data?.weather?.main}")
+            android.util.Log.wtf("IndividualProfile", "TempMin: ${result.data?.weather?.main?.tempMin}, TempMax: ${result.data?.weather?.main?.tempMax}, FeelsLike: ${result.data?.weather?.main?.feelsLike}")
+
+            val tempMin = result.data?.weather?.main?.tempMin ?: 0.0
             val tempMax = result.data?.weather?.main?.tempMax ?: 0.0
             val pm25Value = result.data?.weather?.airPollution?.list?.firstOrNull()?.components?.pm25 ?: 0.0
-            val tempMinC = (tempMin - 273.15).roundToInt()
-            val tempMaxC = (tempMax - 273.15).roundToInt()
+            
+            // Only calculate temperature if we have valid data (not 0.0)
+            val tempMinC = if (tempMin > 0.0) (tempMin - 273.15).roundToInt() else null
+            val tempMaxC = if (tempMax > 0.0) (tempMax - 273.15).roundToInt() else null
             val overallAqi = pm25Value.toAQI()
 
             // Determine the span count and orientation based on the size of amenitiesRef
             val spanCount: Int
             val orientation: Int
 
-
-
             val alreadyExists = amenitiesRef.any { it.Id == "static_id" }
 
             if (!alreadyExists) {
-                val staticAmenity = AmenitiesRef(
-                    Id = "static_id",
-                    icon = "static_icon_url",
-                    name = "Static Amenity",
-                    order = 0,
-                    minMaxTemp = "$tempMinC°C - $tempMaxC°C",
-                    aqi = overallAqi
-                )
-                amenitiesRef.add(0, staticAmenity)
+                val tempDisplay = when {
+                    tempMinC != null && tempMaxC != null && tempMinC == tempMaxC -> "$tempMinC°C"
+                    tempMinC != null && tempMaxC != null -> "$tempMinC°C - $tempMaxC°C"
+                    tempMinC != null -> "$tempMinC°C"
+                    tempMaxC != null -> "$tempMaxC°C"
+                    else -> null
+                }
+
+                // Remove older static items (if any) to prevent duplicates
+                amenitiesRef.removeAll { it.Id == "static_id" || it.Id == "static_temp" || it.Id == "static_aqi" }
+
+                val staticItems = arrayListOf<AmenitiesRef>()
+                if (tempDisplay != null) {
+                    staticItems.add(
+                        AmenitiesRef(
+                            Id = "static_temp",
+                            icon = "static_icon_url",
+                            name = "Temperature",
+                            order = 0,
+                            minMaxTemp = tempDisplay,
+                            aqi = null
+                        )
+                    )
+                }
+                if (overallAqi > 0) {
+                    staticItems.add(
+                        AmenitiesRef(
+                            Id = "static_aqi",
+                            icon = "static_icon_url",
+                            name = "AQI",
+                            order = 1,
+                            minMaxTemp = null,
+                            aqi = overallAqi
+                        )
+                    )
+                }
+
+                if (staticItems.isNotEmpty()) {
+                    amenitiesRef.addAll(0, staticItems)
+                }
             }
 
             if ((amenitiesRef.size ?: 0) > 6) {
