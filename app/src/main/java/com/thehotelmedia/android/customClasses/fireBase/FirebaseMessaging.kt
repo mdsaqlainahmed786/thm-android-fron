@@ -47,28 +47,31 @@ class FirebaseMessaging : FirebaseMessagingService() {
         val preferenceManager = PreferenceManager.getInstance(this)
         val businessType = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "") ?: ""
 
-        val title = remoteMessage.data["title"] ?: ""
+        val title = remoteMessage.data["title"]?.takeIf { it.isNotBlank() } ?: getString(R.string.app_name)
 
         val abusiveWords = this.loadAbusiveWordsFromJson()
         val rawBody = remoteMessage.data["body"] ?: ""
         val body = rawBody.censorAbusiveWords(abusiveWords)
 //        val body = remoteMessage.data["body"] ?: ""
         val screen = remoteMessage.data["screen"] ?: ""
+        // Route must drive navigation; screen is a fallback (backend sets screen=route when route exists)
+        val route = remoteMessage.data["route"]?.takeIf { it.isNotBlank() } ?: screen
+        val storyId = remoteMessage.data["storyID"]
         val rating = remoteMessage.data["rating"]?.toIntOrNull() ?: 5
 
         val imageUrl = ""
         val profilePic = ""
 
-        if (screen == "messaging") {
+        if (route == "messaging") {
             showChatRedDot()
         } else {
             showNotificationRedDot()
         }
 
         if (rating <= 3) {
-            showAlertNotification(title, body, screen, imageUrl, profilePic, businessType)
+            showAlertNotification(title, body, route, storyId, imageUrl, profilePic, businessType)
         } else {
-            showNormalNotification(title, body, screen, imageUrl, profilePic, businessType)
+            showNormalNotification(title, body, route, storyId, imageUrl, profilePic, businessType)
         }
     }
 
@@ -76,7 +79,8 @@ class FirebaseMessaging : FirebaseMessagingService() {
     private fun showAlertNotification(
         title: String?,
         body: String?,
-        screen: String,
+        route: String,
+        storyId: String?,
         imageUrl: String,
         profilePic: String,
         businessType: String
@@ -87,7 +91,11 @@ class FirebaseMessaging : FirebaseMessagingService() {
         createChannel(CHANNEL_ID_ALERT, CHANNEL_NAME_ALERT, NotificationManager.IMPORTANCE_HIGH, soundUri, vibrationPattern)
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val pendingIntent = createPendingIntent(this, screen, businessType)
+        val pendingIntent = if (route == "story_detail" && !storyId.isNullOrBlank()) {
+            createStoryPendingIntent(this, storyId, businessType)
+        } else {
+            createPendingIntent(this, route, businessType)
+        }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID_ALERT)
             .setSmallIcon(R.drawable.ic_app_logo_png)
@@ -109,7 +117,8 @@ class FirebaseMessaging : FirebaseMessagingService() {
     private fun showNormalNotification(
         title: String?,
         body: String?,
-        screen: String,
+        route: String,
+        storyId: String?,
         imageUrl: String,
         profilePic: String,
         businessType: String
@@ -119,7 +128,11 @@ class FirebaseMessaging : FirebaseMessagingService() {
         createChannel(CHANNEL_ID_NORMAL, CHANNEL_NAME_NORMAL, NotificationManager.IMPORTANCE_DEFAULT, Settings.System.DEFAULT_NOTIFICATION_URI, vibrationPattern)
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val pendingIntent = createPendingIntent(this, screen, businessType)
+        val pendingIntent = if (route == "story_detail" && !storyId.isNullOrBlank()) {
+            createStoryPendingIntent(this, storyId, businessType)
+        } else {
+            createPendingIntent(this, route, businessType)
+        }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID_NORMAL)
             .setSmallIcon(R.drawable.ic_app_logo_png)
@@ -164,11 +177,38 @@ class FirebaseMessaging : FirebaseMessagingService() {
             putExtra(Constants.FROM, Constants.notification)
         }
 
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+
         return PendingIntent.getActivity(
             context,
             System.currentTimeMillis().toInt(),
             intent,
-            PendingIntent.FLAG_MUTABLE
+            flags
+        )
+    }
+
+    private fun createStoryPendingIntent(context: Context, storyId: String, businessType: String): PendingIntent {
+        val targetActivity = if (businessType == Constants.business_type_individual) {
+            BottomNavigationIndividualMainActivity::class.java
+        } else {
+            BottomNavigationBusinessMainActivity::class.java
+        }
+
+        val intent = Intent(context, targetActivity).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("route", "story_detail")
+            putExtra("storyID", storyId)
+        }
+
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+
+        return PendingIntent.getActivity(
+            context,
+            storyId.hashCode(),
+            intent,
+            flags
         )
     }
 

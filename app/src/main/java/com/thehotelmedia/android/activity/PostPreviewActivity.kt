@@ -119,6 +119,12 @@ class PostPreviewActivity : BaseActivity() {
             getPostData(postId)
         }
 
+        if (postId.isBlank() || postId == "null") {
+            CustomSnackBar.showSnackBar(binding.root, "Invalid post")
+            finish()
+            return
+        }
+
         println("Afsdklaslk   $postId")
 
         binding.replyLayout.visibility = View.GONE

@@ -120,6 +120,13 @@ class CommentsBottomSheetFragment : BottomSheetDialogFragment() {
         binding.replyLayout.visibility = View.GONE
         postId = arguments?.getString("POST_ID") ?: ""
         commentsCount = arguments?.getInt("COMMENTS_COUNT") ?: 0
+
+        if (postId.isBlank() || postId == "null") {
+            CustomSnackBar.showSnackBar(binding.root, "Invalid post")
+            dismiss()
+            return
+        }
+
         if (commentsCount == 0){
             binding.commentsTv.text = getString(R.string.comments)
         }else{

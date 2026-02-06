@@ -13,5 +13,8 @@ data class Metadata (
   @SerializedName("jobID"         ) var jobID        : String? = null,
   @SerializedName("bookingID"     ) var bookingID        : String? = null,
   @SerializedName("type"          ) var type        : String? = null,
+  // Deep link contract for story-tag notifications saved in Notifications list
+  @SerializedName("entityType"    ) var entityType  : String? = null,
+  @SerializedName(value = "storyID", alternate = ["storyId"]) var storyID : String? = null,
 
 )
