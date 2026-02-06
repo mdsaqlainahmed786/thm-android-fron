@@ -18,9 +18,13 @@ import com.thehotelmedia.android.activity.BusinessProfileDetailsActivity
 import com.thehotelmedia.android.activity.JobDetailActivity
 import com.thehotelmedia.android.activity.PostPreviewActivity
 import com.thehotelmedia.android.activity.ViewEventDetailsActivity
+import com.thehotelmedia.android.activity.userTypes.business.bottomNavigation.BottomNavigationBusinessMainActivity
+import com.thehotelmedia.android.activity.userTypes.individual.bottomNavigation.BottomNavigationIndividualMainActivity
 import com.thehotelmedia.android.activity.userTypes.individual.BookTableBanquetActivity
 import com.thehotelmedia.android.activity.userTypes.individual.settingsScreen.BookingSummaryActivity
 import com.thehotelmedia.android.activity.userTypes.individual.settingsScreen.PostJobActivity
+import com.thehotelmedia.android.customClasses.Constants
+import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.customClasses.Constants.business_type_individual
 import com.thehotelmedia.android.databinding.NotificationItemsLayoutBinding
 import com.thehotelmedia.android.extensions.calculateDaysAgoInSmall
@@ -178,6 +182,8 @@ class NotificationAdapter(
             val bookingType = it.metadata?.type ?: ""
             val postId = it.metadata?.postID ?: ""
             val metaDataPostType = it.metadata?.postType ?: ""
+            val metaEntityType = it.metadata?.entityType
+            val metaStoryId = it.metadata?.storyID
             val userID = it.userID.toString()
             val title = it.description.toString()
             val connectionId = it.metadata?.connectionID ?: ""
@@ -384,7 +390,11 @@ class NotificationAdapter(
                             moveToBusinessProfileDetailsActivity(userID)
                         }
                         "tagged" -> {
-                            moveToPostPreviewScreen(postId)
+                            if (metaEntityType.equals("story", ignoreCase = true) && !metaStoryId.isNullOrBlank()) {
+                                moveToStoryDetail(metaStoryId)
+                            } else {
+                                moveToPostPreviewScreen(postId)
+                            }
                         }
                         "event-join" -> {
                             moveToEventDetailsActivity(postId)
@@ -448,6 +458,23 @@ class NotificationAdapter(
         val intent = Intent(context, PostPreviewActivity::class.java)
         intent.putExtra("FROM", "Notification")
         intent.putExtra("POST_ID", postId)
+        context.startActivity(intent)
+    }
+
+    private fun moveToStoryDetail(storyId: String) {
+        val preferenceManager = PreferenceManager.getInstance(context)
+        val businessType = preferenceManager.getString(PreferenceManager.Keys.BUSINESS_TYPE, "").orEmpty()
+        val targetActivity = if (businessType == Constants.business_type_individual) {
+            BottomNavigationIndividualMainActivity::class.java
+        } else {
+            BottomNavigationBusinessMainActivity::class.java
+        }
+
+        val intent = Intent(context, targetActivity).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("route", "story_detail")
+            putExtra("storyID", storyId)
+        }
         context.startActivity(intent)
     }
 

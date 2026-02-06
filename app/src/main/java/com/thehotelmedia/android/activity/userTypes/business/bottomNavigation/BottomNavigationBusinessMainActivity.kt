@@ -18,11 +18,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.constraintlayout.motion.widget.MotionLayout
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.ViewModelProvider
+import com.google.gson.Gson
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.Socket.SocketViewModel
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.activity.BaseActivity
+import com.thehotelmedia.android.activity.stories.ViewStoriesActivity
 import com.thehotelmedia.android.activity.userTypes.forms.CreatePostActivity
 import com.thehotelmedia.android.activity.userTypes.forms.createEvent.CreateEventActivity
 import com.thehotelmedia.android.activity.userTypes.forms.createStory.CreateStoryActivity
@@ -41,9 +44,15 @@ import com.thehotelmedia.android.extensions.ChatDotUtil
 import com.thehotelmedia.android.extensions.LocationHelper
 import com.thehotelmedia.android.extensions.NotificationDotUtil
 import com.thehotelmedia.android.extensions.blurTheView
+import com.thehotelmedia.android.extensions.isRecentPost
 import com.thehotelmedia.android.extensions.showToast
+import com.thehotelmedia.android.modals.Stories.ProfilePic
+import com.thehotelmedia.android.modals.Stories.Stories
+import com.thehotelmedia.android.modals.Stories.StoriesData
+import com.thehotelmedia.android.modals.Stories.StoriesRef
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
+import kotlinx.coroutines.launch
 
 class BottomNavigationBusinessMainActivity : BaseActivity() {
 
@@ -96,6 +105,12 @@ class BottomNavigationBusinessMainActivity : BaseActivity() {
         initUI()
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationDeepLink(intent)
+    }
+
     private fun handelBackClick() {
         val selectedItemId: Int = binding.bottomNavigationView.selectedItemId
         if (selectedItemId != R.id.homeFrag) {
@@ -142,6 +157,9 @@ class BottomNavigationBusinessMainActivity : BaseActivity() {
         preferenceManager.putString(PreferenceManager.Keys.BUSINESS_TYPE, business_type_business)
         userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME,"").toString()
         checkLocationPermission()
+
+        // Handle push deep links (route-driven)
+        handleNotificationDeepLink(intent)
 
 
 
@@ -448,6 +466,99 @@ class BottomNavigationBusinessMainActivity : BaseActivity() {
                 binding.plusLayout.visibility = View.INVISIBLE
             }, delayInMilliseconds.toLong())
         }
+    }
+
+    private fun handleNotificationDeepLink(intent: Intent?) {
+        if (intent == null) return
+
+        val route = intent.getStringExtra("route")?.takeIf { it.isNotBlank() }
+            ?: intent.getStringExtra("screen")?.takeIf { it.isNotBlank() }
+
+        if (route != "story_detail") return
+
+        val storyId = intent.getStringExtra("storyID")?.takeIf { it.isNotBlank() }
+            ?: intent.getStringExtra("storyId")?.takeIf { it.isNotBlank() }
+
+        if (storyId.isNullOrBlank()) return
+
+        // Consume extras to avoid re-triggering on rotation/resume
+        intent.removeExtra("route")
+        intent.removeExtra("screen")
+        intent.removeExtra("storyID")
+        intent.removeExtra("storyId")
+
+        openStoryById(storyId)
+    }
+
+    private fun openStoryById(storyId: String) {
+        lifecycleScope.launch {
+            try {
+                val repo = IndividualRepo(this@BottomNavigationBusinessMainActivity)
+                val response = repo.getStories(pageNumber = 1, documentLimit = 50)
+                if (!response.isSuccessful) {
+                    showToast("Story no longer available")
+                    return@launch
+                }
+
+                val storiesData = response.body()?.storiesData
+                val storyOwnerBundle = findStoryOwnerBundle(storiesData, storyId)
+                if (storyOwnerBundle == null) {
+                    showToast("Story no longer available")
+                    return@launch
+                }
+
+                val jsonString = Gson().toJson(listOf(storyOwnerBundle))
+                val viewIntent = Intent(this@BottomNavigationBusinessMainActivity, ViewStoriesActivity::class.java).apply {
+                    putExtra("StoriesJson", jsonString)
+                }
+                startActivity(viewIntent)
+            } catch (e: Exception) {
+                showToast("Story no longer available")
+            }
+        }
+    }
+
+    /**
+     * Locate a story by ID in the stories payload and return a single-user Stories bundle
+     * compatible with ViewStoriesActivity ("StoriesJson").
+     */
+    private fun findStoryOwnerBundle(storiesData: StoriesData?, storyId: String): Stories? {
+        if (storiesData == null) return null
+
+        // 1) Check myStories (list of StoriesRef only)
+        val myStoryRef: StoriesRef? = storiesData.myStories.firstOrNull { it.Id == storyId }
+        if (myStoryRef != null) {
+            val createdAt = myStoryRef.createdAt ?: ""
+            if (createdAt.isNotEmpty() && !isRecentPost(createdAt)) return null
+
+            val userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
+            val fullName = preferenceManager.getString(PreferenceManager.Keys.USER_FULL_NAME, "").orEmpty()
+            val smallProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_SMALL_PROFILE_PIC, "").orEmpty()
+            val mediumProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_MEDIUM_PROFILE_PIC, "").orEmpty()
+            val largeProfilePic = preferenceManager.getString(PreferenceManager.Keys.USER_LARGE_PROFILE_PIC, "").orEmpty()
+
+            return Stories(
+                id = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").orEmpty(),
+                accountType = "business",
+                username = userName,
+                name = fullName,
+                profilePic = ProfilePic(small = smallProfilePic, medium = mediumProfilePic, large = largeProfilePic),
+                businessProfileRef = null,
+                storiesRef = arrayListOf(myStoryRef),
+                seenByMe = null
+            )
+        }
+
+        // 2) Check other users' stories (already bundled)
+        for (userStories in storiesData.stories) {
+            val storyRef = userStories.storiesRef.firstOrNull { it.Id == storyId } ?: continue
+            val createdAt = storyRef.createdAt ?: ""
+            if (createdAt.isNotEmpty() && !isRecentPost(createdAt)) return null
+
+            return userStories.copy(storiesRef = arrayListOf(storyRef))
+        }
+
+        return null
     }
 
 //    private fun setCurrentFragment(fragment: Fragment) {
