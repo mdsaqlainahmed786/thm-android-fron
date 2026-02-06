@@ -52,7 +52,9 @@ class ZoomClass : AppCompatImageView, View.OnTouchListener,
         mMatrixValues = FloatArray(9)
         imageMatrix = mMatrix
         scaleType = ScaleType.MATRIX
-        mGestureDetector = GestureDetector(context, this)
+        mGestureDetector = GestureDetector(context, this).apply {
+            setOnDoubleTapListener(this@ZoomClass)
+        }
         setOnTouchListener(this)
     }
 
@@ -160,28 +162,45 @@ class ZoomClass : AppCompatImageView, View.OnTouchListener,
         Ontouch
      */
     override fun onTouch(view: View?, event: MotionEvent): Boolean {
+        // Let scale + gesture detectors inspect all events first.
         mScaleDetector!!.onTouchEvent(event)
         mGestureDetector!!.onTouchEvent(event)
+
+        // If we are zooming / panning, do not let parent views (e.g., ViewPager2/RecyclerView)
+        // intercept the gesture. When not zoomed, allow parent to handle page swipes.
+        val shouldHandleHere =
+            (mScaleDetector?.isInProgress == true) || event.pointerCount > 1 || mSaveScale > 1f
+        try {
+            parent?.requestDisallowInterceptTouchEvent(shouldHandleHere)
+        } catch (_: Exception) {
+            // no-op: some parents may throw in edge cases
+        }
+
         val currentPoint = PointF(event.x, event.y)
-        when (event.action) {
+        when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 mLast.set(currentPoint)
                 mStart.set(mLast)
                 mode = DRAG
             }
-            MotionEvent.ACTION_MOVE -> if (mode == DRAG) {
+            MotionEvent.ACTION_MOVE -> if (mode == DRAG && mSaveScale > 1f) {
                 val dx = currentPoint.x - mLast.x
                 val dy = currentPoint.y - mLast.y
                 val fixTransX = getFixDragTrans(dx, viewWidth.toFloat(), origWidth * mSaveScale)
                 val fixTransY = getFixDragTrans(dy, viewHeight.toFloat(), origHeight * mSaveScale)
                 mMatrix!!.postTranslate(fixTransX, fixTransY)
                 fixTranslation()
-                mLast[currentPoint.x] = currentPoint.y
+                mLast.set(currentPoint)
             }
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL,
             MotionEvent.ACTION_POINTER_UP -> mode = NONE
         }
         imageMatrix = mMatrix
-        return false
+
+        // Consume events only when the image is being manipulated; otherwise allow parent
+        // (like a ViewPager2) to receive swipes for changing pages.
+        return shouldHandleHere
     }
 
     /*
@@ -219,7 +238,7 @@ class ZoomClass : AppCompatImageView, View.OnTouchListener,
 
     override fun onDoubleTap(motionEvent: MotionEvent): Boolean {
         fitToScreen()
-        return false
+        return true
     }
 
     override fun onDoubleTapEvent(motionEvent: MotionEvent): Boolean {
