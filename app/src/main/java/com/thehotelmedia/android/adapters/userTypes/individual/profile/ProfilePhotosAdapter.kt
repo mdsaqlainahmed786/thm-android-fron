@@ -40,7 +40,8 @@ class ProfilePhotosAdapter(
                     // Launch UserPostsViewerActivity with image filter - only scroll through photos
                     // Pass media ID, sourceUrl, and position index for best-effort matching
                     val mediaId = item.Id ?: ""
-                    context.moveToUserPostsViewer(userId, null, "image", mediaId, mediaUri, position)
+                    val clickPos = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION } ?: position
+                    context.moveToUserPostsViewer(userId, null, "image", mediaId, mediaUri, clickPos)
                 } else {
                     // Fallback to old viewer if userId not available
                     context.moveToViewer(IMAGE, mediaUri)

@@ -548,38 +548,39 @@ class UserPostsViewerAdapter(
 
         private fun setupProfileIconClick(post: Data) {
             val postOwnerId = currentOwnerId.ifBlank { extractOwnerId(post) }
+            val safeOwnerId = postOwnerId.trim().takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }.orEmpty()
             
             // Set up click listener for reel profile icon (videos)
             binding.reelProfileIv.setOnClickListener {
-                if (postOwnerId.isNotEmpty()) {
+                if (safeOwnerId.isNotEmpty()) {
                     val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
-                    intent.putExtra("USER_ID", postOwnerId)
+                    intent.putExtra("USER_ID", safeOwnerId)
                     context.startActivity(intent)
                 }
             }
             
             // Set up click listener for photo profile icon (photos)
             binding.photoProfileIv.setOnClickListener {
-                if (postOwnerId.isNotEmpty()) {
+                if (safeOwnerId.isNotEmpty()) {
                     val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
-                    intent.putExtra("USER_ID", postOwnerId)
+                    intent.putExtra("USER_ID", safeOwnerId)
                     context.startActivity(intent)
                 }
             }
             
             // Also set up click listener for username text views
             binding.reelUsernameTv.setOnClickListener {
-                if (postOwnerId.isNotEmpty()) {
+                if (safeOwnerId.isNotEmpty()) {
                     val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
-                    intent.putExtra("USER_ID", postOwnerId)
+                    intent.putExtra("USER_ID", safeOwnerId)
                     context.startActivity(intent)
                 }
             }
             
             binding.photoUsernameTv.setOnClickListener {
-                if (postOwnerId.isNotEmpty()) {
+                if (safeOwnerId.isNotEmpty()) {
                     val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
-                    intent.putExtra("USER_ID", postOwnerId)
+                    intent.putExtra("USER_ID", safeOwnerId)
                     context.startActivity(intent)
                 }
             }
@@ -987,10 +988,11 @@ class UserPostsViewerAdapter(
             // Setup profile tap navigation
             binding.userLayout.setOnClickListener {
                 val profileUserId = postOwnerId.ifBlank { extractOwnerId(post) }
-                if (profileUserId.isNotEmpty()) {
+                val safeProfileUserId = profileUserId.trim().takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }.orEmpty()
+                if (safeProfileUserId.isNotEmpty()) {
                     // Navigate to user profile
                     val intent = Intent(context, BusinessProfileDetailsActivity::class.java)
-                    intent.putExtra("USER_ID", profileUserId)
+                    intent.putExtra("USER_ID", safeProfileUserId)
                     context.startActivity(intent)
                 }
             }
@@ -1073,12 +1075,18 @@ class UserPostsViewerAdapter(
     private fun extractOwnerId(post: Data?): String {
         post ?: return ""
         val postedBy = post.postedBy
-        return when {
-            !postedBy?.Id.isNullOrBlank() -> postedBy?.Id ?: ""
-            !postedBy?.businessProfileRef?.Id.isNullOrBlank() -> postedBy?.businessProfileRef?.Id ?: ""
-            !post.userID.isNullOrBlank() -> post.userID ?: ""
-            else -> ""
-        }
+
+        // BusinessProfileDetailsActivity expects a USER_ID (user id), not a businessProfile id.
+        // Some APIs return "null" (string) in id fields; treat it as invalid.
+        val candidates = listOf(
+            postedBy?.Id,
+            post.userID,
+            post.publicUserID
+        )
+            .map { it?.trim().orEmpty() }
+            .filter { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
+
+        return candidates.firstOrNull().orEmpty()
     }
 
     /**

@@ -57,7 +57,13 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     private var activePosition: Int = RecyclerView.NO_POSITION
     private lateinit var layoutManager: LinearLayoutManager
     private lateinit var snapHelper: PagerSnapHelper
-    private var imagesLoaded = false // Flag to prevent loading images multiple times
+    private var viewerMode: ViewerMode = ViewerMode.POSTS
+
+    private enum class ViewerMode {
+        POSTS,
+        PROFILE_IMAGES,
+        PROFILE_VIDEOS
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,6 +88,14 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         initialMediaUrl = intent.getStringExtra("INITIAL_MEDIA_URL")
         initialIndex = if (intent.hasExtra("INITIAL_INDEX")) intent.getIntExtra("INITIAL_INDEX", -1).takeIf { it >= 0 } else null
         filterMediaType = intent.getStringExtra("FILTER_MEDIA_TYPE")
+        val filterLower = filterMediaType?.lowercase(Locale.getDefault())
+        viewerMode = when {
+            // If opened by an explicit postId (feed, posts list, etc), always use posts.
+            !initialPostId.isNullOrBlank() -> ViewerMode.POSTS
+            filterLower == "image" -> ViewerMode.PROFILE_IMAGES
+            filterLower == "video" -> ViewerMode.PROFILE_VIDEOS
+            else -> ViewerMode.POSTS
+        }
         // Reels-style UI can be forced via intent, and is also enabled for feed-opened posts.
         // IMPORTANT: Do NOT enable reels UI for profile Photos/Videos viewers; only feed-opened should use it.
         val explicitForce = intent.getBooleanExtra("FORCE_REEL_UI", false)
@@ -115,8 +129,18 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         }
 
         setupRecyclerView()
-        loadPosts()
+        // Fetch profile first to ensure profile data is available for image/video conversion
         observeFollowState()
+        loadInitialData()
+    }
+
+    private fun loadInitialData() {
+        if (userId.isBlank()) return
+        when (viewerMode) {
+            ViewerMode.POSTS -> loadPosts()
+            ViewerMode.PROFILE_IMAGES -> loadImagesAsPosts()
+            ViewerMode.PROFILE_VIDEOS -> loadVideosAsPosts()
+        }
     }
 
     private fun setupRecyclerView() {
@@ -176,34 +200,22 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
         adapter.addLoadStateListener { loadStates ->
             val refreshState = loadStates.refresh
-            // When data is loaded, check if we need to load images instead
             if (refreshState is LoadState.NotLoading) {
-                if (adapter.itemCount == 0 && filterMediaType == "image" && userId.isNotEmpty() && !imagesLoaded) {
-                    // No posts found, try loading images directly
-                    imagesLoaded = true
-                    loadImagesAsPosts()
-                } else if (adapter.itemCount > 0) {
-                    // We have posts, try to scroll to the target media/index
-                    if (activePosition == RecyclerView.NO_POSITION) {
-                        // Trigger scroll if we have media/index to scroll to
-                        if (initialPostId != null || initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
-                            lifecycleScope.launch {
-                                when {
-                                    initialPostId != null -> {
-                                        scrollToPost(initialPostId!!)
-                                    }
-                                    initialMediaId != null || initialMediaUrl != null || initialIndex != null -> {
-                                        scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
-                                    }
-                                }
+                if (adapter.itemCount > 0 && activePosition == RecyclerView.NO_POSITION) {
+                    // We have items, try to scroll to the target media/index
+                    if (initialPostId != null || initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
+                        lifecycleScope.launch {
+                            when {
+                                initialPostId != null -> scrollToPost(initialPostId!!)
+                                else -> scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
                             }
-                        } else {
-                            // No specific target, just show first item
-                            binding.postsRecyclerView.post {
-                                val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
-                                val target = if (firstVisible != RecyclerView.NO_POSITION) firstVisible else 0
-                                updateActivePosition(target)
-                            }
+                        }
+                    } else {
+                        // No specific target, just show first item
+                        binding.postsRecyclerView.post {
+                            val firstVisible = layoutManager.findFirstCompletelyVisibleItemPosition()
+                            val target = if (firstVisible != RecyclerView.NO_POSITION) firstVisible else 0
+                            updateActivePosition(target)
                         }
                     }
                 }
@@ -244,20 +256,70 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     
     private fun loadImagesAsPosts() {
         if (userId.isNotEmpty()) {
-            individualViewModal.getImages(userId).observe(this) { imagePagingData ->
-                lifecycleScope.launch {
-                    // Convert ImageData to Data (post format) using map
-                    val postsPagingData = imagePagingData.map { imageData ->
-                        convertImageToPost(imageData)
+            // Wait for profile data to be loaded first to avoid null profile pic/name
+            val profileData = individualViewModal.userProfileByIdResult.value
+            if (profileData?.status == true && profileData.data != null) {
+                // Profile already loaded, proceed immediately
+                loadImagesInternal()
+            } else {
+                // Profile not loaded yet, wait for it
+                individualViewModal.userProfileByIdResult.observe(this) { result ->
+                    if (result?.status == true && result.data != null) {
+                        loadImagesInternal()
                     }
-                    
-                    adapter.submitData(postsPagingData)
-                    
-                    // Scroll to the initial image if specified
-                    if (initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
-                        kotlinx.coroutines.delay(300)
-                        scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
+                }
+            }
+        }
+    }
+    
+    private fun loadImagesInternal() {
+        individualViewModal.getImages(userId).observe(this) { imagePagingData ->
+            lifecycleScope.launch {
+                val postsPagingData = imagePagingData.map { imageData ->
+                    convertImageToPost(imageData)
+                }
+
+                adapter.submitData(postsPagingData)
+
+                // Scroll to the initial media if specified
+                if (initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
+                    kotlinx.coroutines.delay(250)
+                    scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
+                }
+            }
+        }
+    }
+
+    private fun loadVideosAsPosts() {
+        if (userId.isNotEmpty()) {
+            // Wait for profile data to be loaded first to avoid null profile pic/name
+            val profileData = individualViewModal.userProfileByIdResult.value
+            if (profileData?.status == true && profileData.data != null) {
+                // Profile already loaded, proceed immediately
+                loadVideosInternal()
+            } else {
+                // Profile not loaded yet, wait for it
+                individualViewModal.userProfileByIdResult.observe(this) { result ->
+                    if (result?.status == true && result.data != null) {
+                        loadVideosInternal()
                     }
+                }
+            }
+        }
+    }
+    
+    private fun loadVideosInternal() {
+        individualViewModal.getVideos(userId).observe(this) { videoPagingData ->
+            lifecycleScope.launch {
+                val postsPagingData = videoPagingData.map { videoData ->
+                    convertVideoToPost(videoData)
+                }
+
+                adapter.submitData(postsPagingData)
+
+                if (initialMediaId != null || initialMediaUrl != null || initialIndex != null) {
+                    kotlinx.coroutines.delay(250)
+                    scrollToPostByMedia(initialMediaId, initialMediaUrl, initialIndex)
                 }
             }
         }
@@ -359,6 +421,94 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         )
     }
 
+    private fun convertVideoToPost(videoData: com.thehotelmedia.android.modals.profileData.video.Data): Data {
+        val mediaRef = MediaRef(
+            Id = videoData.Id,
+            mediaType = videoData.mediaType ?: "video",
+            mimeType = videoData.mimeType,
+            sourceUrl = videoData.sourceUrl,
+            thumbnailUrl = videoData.thumbnailUrl,
+            duration = null
+        )
+
+        val userProfile = individualViewModal.userProfileByIdResult.value?.data
+        val userBusinessProfileRef = userProfile?.businessProfileRef
+
+        val feedProfilePic = userProfile?.profilePic?.let {
+            ProfilePic(
+                small = it.small,
+                medium = it.medium,
+                large = it.large
+            )
+        }
+
+        val feedBusinessProfileRef = userBusinessProfileRef?.let {
+            BusinessProfileRef(
+                Id = it.Id,
+                profilePic = it.profilePic?.let { pic ->
+                    ProfilePic(
+                        small = pic.small,
+                        medium = pic.medium,
+                        large = pic.large
+                    )
+                },
+                name = it.name,
+                businessRating = it.rating,
+                address = it.address?.let { addr ->
+                    Address(
+                        street = addr.street,
+                        city = addr.city,
+                        state = addr.state,
+                        zipCode = addr.zipCode,
+                        country = addr.country,
+                        lat = addr.lat,
+                        lng = addr.lng
+                    )
+                },
+                businessTypeRef = it.businessTypeRef?.let { typeRef ->
+                    BusinessTypeRef(
+                        Id = typeRef.Id,
+                        icon = typeRef.icon,
+                        name = typeRef.name
+                    )
+                },
+                businessSubtypeRef = it.businessSubtypeRef?.let { subtypeRef ->
+                    BusinessSubtypeRef(
+                        Id = subtypeRef.Id,
+                        name = subtypeRef.name
+                    )
+                },
+                isFollowedByMe = userProfile?.isConnected
+            )
+        }
+
+        val postedBy = PostedBy(
+            Id = userId,
+            accountType = userProfile?.accountType,
+            businessProfileID = userProfile?.businessProfileID,
+            name = userProfile?.name,
+            profilePic = feedProfilePic,
+            businessProfileRef = feedBusinessProfileRef,
+            isFollowedByMe = userProfile?.isConnected
+        )
+
+        val currentDateTime = ZonedDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME)
+        return Data(
+            Id = "vid_${videoData.Id}",
+            mediaRef = arrayListOf(mediaRef),
+            postedBy = postedBy,
+            createdAt = currentDateTime,
+            likes = 0,
+            comments = 0,
+            views = videoData.views ?: 0,
+            shared = 0,
+            likedByMe = false,
+            savedByMe = false,
+            content = null,
+            userID = userId
+        )
+    }
+
     private fun scrollToPost(postId: String) {
         // Wait for adapter to load items, then scroll to the post
         lifecycleScope.launch {
@@ -388,6 +538,7 @@ class UserPostsViewerActivity : DarkBaseActivity() {
             var attempts = 0
             var lastItemCount = 0
             var foundPosition = -1
+            val preferIndex = viewerMode != ViewerMode.POSTS
             
             // Try both media matching and index-based scrolling in parallel
             while (attempts < 80) { // Max 8 seconds total
@@ -395,19 +546,21 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                 if (itemCount > 0) {
                     var position = -1
                     
-                    // Strategy 1: Try to find by media ID/URL
-                    if (mediaId != null && mediaId.isNotEmpty()) {
-                        position = adapter.findPostPositionByMediaId(mediaId)
-                    }
-                    if (position < 0 && mediaUrl != null && mediaUrl.isNotEmpty()) {
-                        position = adapter.findPostPositionByMediaUrl(mediaUrl)
-                    }
-                    
-                    // Strategy 2: If media matching fails and we have an index, use it
-                    // This is best-effort since filtering may change the order
-                    if (position < 0 && fallbackIndex != null && fallbackIndex >= 0) {
-                        // Use the index, clamped to valid range
+                    // If we're in profile media mode, the grid index is the most reliable signal.
+                    if (preferIndex && fallbackIndex != null && fallbackIndex >= 0) {
                         position = fallbackIndex.coerceIn(0, itemCount - 1)
+                    } else {
+                        // Strategy 1: Try to find by media ID/URL (best for posts, where ordering may differ)
+                        if (mediaId != null && mediaId.isNotEmpty()) {
+                            position = adapter.findPostPositionByMediaId(mediaId)
+                        }
+                        if (position < 0 && mediaUrl != null && mediaUrl.isNotEmpty()) {
+                            position = adapter.findPostPositionByMediaUrl(mediaUrl)
+                        }
+                        // Strategy 2: If media matching fails and we have an index, use it (best-effort)
+                        if (position < 0 && fallbackIndex != null && fallbackIndex >= 0) {
+                            position = fallbackIndex.coerceIn(0, itemCount - 1)
+                        }
                     }
                     
                     if (position >= 0) {
@@ -509,6 +662,7 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     }
 
     private fun observeFollowState() {
+        // Fetch user profile first - this is critical for images-only posts to have profile data
         if (userId.isNotEmpty()) {
             individualViewModal.getUserProfileById(userId)
         }
