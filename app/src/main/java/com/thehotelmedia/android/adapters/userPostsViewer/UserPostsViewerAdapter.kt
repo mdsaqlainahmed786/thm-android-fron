@@ -346,7 +346,8 @@ class UserPostsViewerAdapter(
                         mediaType = mediaType,
                         mediaUrl = selectedMedia?.sourceUrl,
                         thumbnailUrl = selectedMedia?.thumbnailUrl,
-                        mediaId = selectedMedia?.Id
+                        mediaId = selectedMedia?.Id,
+                        mediaDurationSeconds = selectedMedia?.duration
                     ).show(fragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
                 } else {
                     context.sharePostWithDeepLink(postId, userId)
@@ -966,7 +967,8 @@ class UserPostsViewerAdapter(
                         mediaType = mediaType,
                         mediaUrl = selectedMedia?.sourceUrl,
                         thumbnailUrl = selectedMedia?.thumbnailUrl,
-                        mediaId = selectedMedia?.Id
+                        mediaId = selectedMedia?.Id,
+                        mediaDurationSeconds = selectedMedia?.duration
                     ).show(fragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
                 } else {
                     context.sharePostWithDeepLink(postId, postOwnerId)

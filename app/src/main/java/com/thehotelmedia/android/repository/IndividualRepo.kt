@@ -658,7 +658,10 @@ class IndividualRepo (private val context: Context){
         }
     }
 
-    suspend fun publishPostToStory(postId: String): Response<PublishStoryModal> {
+    suspend fun publishPostToStory(
+        postId: String,
+        body: Map<String, @JvmSuppressWildcards Any> = emptyMap()
+    ): Response<PublishStoryModal> {
         val accessToken = getAccessToken()
         if (accessToken.isEmpty()) {
             throw IllegalStateException("Access token is null or empty")
@@ -669,7 +672,7 @@ class IndividualRepo (private val context: Context){
             return@withContext call.publishPostToStory(
                 bearerToken,
                 postId,
-                emptyMap()
+                body
             ).execute()
         }
     }

@@ -65,6 +65,7 @@ import com.thehotelmedia.android.extensions.updateTextWithAnimation
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.modals.feeds.feed.TaggedRef
 import com.thehotelmedia.android.modals.collaboration.CollaborationUser
+import com.thehotelmedia.android.utils.findTooLongStoryVideoSeconds
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -912,7 +913,8 @@ class FeedAdapter(
                     mediaType = mediaType,
                     mediaUrl = selectedMedia?.sourceUrl,
                     thumbnailUrl = selectedMedia?.thumbnailUrl,
-                    mediaId = selectedMedia?.Id
+                    mediaId = selectedMedia?.Id,
+                    mediaDurationSeconds = selectedMedia?.duration
                 ).show(parentFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
             } else {
                 context.sharePostWithDeepLink(postId, ownerUserId)
@@ -1645,7 +1647,7 @@ class FeedAdapter(
             val shouldShowAddToStory = canShareToStory && isStoryShareEligible(post)
             addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
             addToStoryBtn?.setOnClickListener {
-                publishPostToStory(postId)
+                publishPostToStory(postId, post)
                 popupWindow.dismiss()
             }
         }
@@ -1692,8 +1694,15 @@ class FeedAdapter(
                 ownerUserId.equals(postedById, ignoreCase = true)
     }
 
-    private fun publishPostToStory(postId: String) {
+    private fun publishPostToStory(postId: String, post: Data?) {
         if (postId.isBlank()) return
+
+        val tooLongSeconds = findTooLongStoryVideoSeconds(post?.mediaRef)
+        if (tooLongSeconds != null) {
+            Toast.makeText(context, R.string.story_video_too_long, Toast.LENGTH_SHORT).show()
+            return
+        }
+
         individualViewModal.publishPostToStory(postId)
     }
 

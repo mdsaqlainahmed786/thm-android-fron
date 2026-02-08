@@ -291,7 +291,8 @@ class SearchPostAdapter(
                         mediaType = mediaType,
                         mediaUrl = selectedMedia?.sourceUrl,
                         thumbnailUrl = selectedMedia?.thumbnailUrl,
-                        mediaId = selectedMedia?.Id
+                        mediaId = selectedMedia?.Id,
+                        mediaDurationSeconds = selectedMedia?.duration
                     ).show(childFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
                 } else {
                     context.sharePostWithDeepLink(postId, ownerUserId)

@@ -50,6 +50,7 @@ import com.thehotelmedia.android.extensions.openGoogleMaps
 import com.thehotelmedia.android.extensions.setRatingWithStar
 import com.thehotelmedia.android.extensions.setRatingWithStars
 import com.thehotelmedia.android.extensions.sharePostWithDeepLink
+import com.thehotelmedia.android.utils.findTooLongStoryVideoSeconds
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.modals.feeds.feed.TaggedRef
 import com.thehotelmedia.android.repository.IndividualRepo
@@ -483,7 +484,8 @@ class PostPreviewActivity : BaseActivity() {
                     mediaType = mediaType,
                     mediaUrl = selectedMedia?.sourceUrl,
                     thumbnailUrl = selectedMedia?.thumbnailUrl,
-                    mediaId = selectedMedia?.Id
+                    mediaId = selectedMedia?.Id,
+                    mediaDurationSeconds = selectedMedia?.duration
                 ).show(supportFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
             } else {
                 this.sharePostWithDeepLink(postId, ownerUserId)
@@ -709,7 +711,7 @@ class PostPreviewActivity : BaseActivity() {
         val shouldShowAddToStory = canShareToStory && isStoryShareEligible(post)
         addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
         addToStoryBtn?.setOnClickListener {
-            publishPostToStory(postId)
+            publishPostToStory(postId, post)
             popupWindow.dismiss()
         }
 
@@ -755,8 +757,15 @@ class PostPreviewActivity : BaseActivity() {
                 ownerUserId.equals(postedById, ignoreCase = true)
     }
 
-    private fun publishPostToStory(postId: String) {
+    private fun publishPostToStory(postId: String, post: Data?) {
         if (postId.isBlank()) return
+
+        val tooLongSeconds = findTooLongStoryVideoSeconds(post?.mediaRef)
+        if (tooLongSeconds != null) {
+            Toast.makeText(this, R.string.story_video_too_long, Toast.LENGTH_SHORT).show()
+            return
+        }
+
         individualViewModal.publishPostToStory(postId)
     }
 

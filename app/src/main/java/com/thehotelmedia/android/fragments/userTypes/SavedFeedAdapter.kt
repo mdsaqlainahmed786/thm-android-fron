@@ -56,6 +56,7 @@ import com.thehotelmedia.android.extensions.setRatingWithStar
 import com.thehotelmedia.android.extensions.setRatingWithStars
 import com.thehotelmedia.android.extensions.shareEventsWithDeepLink
 import com.thehotelmedia.android.extensions.sharePostWithDeepLink
+import com.thehotelmedia.android.utils.findTooLongStoryVideoSeconds
 import com.thehotelmedia.android.extensions.updateTextWithAnimation
 import com.thehotelmedia.android.modals.feeds.feed.Data
 import com.thehotelmedia.android.modals.feeds.feed.TaggedRef
@@ -680,7 +681,8 @@ class SavedFeedAdapter(
                     mediaType = mediaType,
                     mediaUrl = selectedMedia?.sourceUrl,
                     thumbnailUrl = selectedMedia?.thumbnailUrl,
-                    mediaId = selectedMedia?.Id
+                    mediaId = selectedMedia?.Id,
+                    mediaDurationSeconds = selectedMedia?.duration
                 ).show(parentFragmentManager, SharePostBottomSheetFragment::class.java.simpleName)
             } else {
                 context.sharePostWithDeepLink(postId, ownerUserId)
@@ -1382,7 +1384,12 @@ class SavedFeedAdapter(
             val shouldShowAddToStory = canShareToStory && !isOwner && isStoryShareEligible(post)
             addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
             addToStoryBtn?.setOnClickListener {
-                onStoryShareRequested?.invoke(postId)
+                val tooLongSeconds = findTooLongStoryVideoSeconds(post?.mediaRef)
+                if (tooLongSeconds != null) {
+                    Toast.makeText(context, R.string.story_video_too_long, Toast.LENGTH_SHORT).show()
+                } else {
+                    onStoryShareRequested?.invoke(postId)
+                }
                 popupWindow.dismiss()
             }
         } else {
@@ -1397,7 +1404,12 @@ class SavedFeedAdapter(
             val shouldShowAddToStory = canShareToStory && isStoryShareEligible(post)
             addToStoryBtn?.visibility = if (shouldShowAddToStory) View.VISIBLE else View.GONE
             addToStoryBtn?.setOnClickListener {
-                onStoryShareRequested?.invoke(postId)
+                val tooLongSeconds = findTooLongStoryVideoSeconds(post?.mediaRef)
+                if (tooLongSeconds != null) {
+                    Toast.makeText(context, R.string.story_video_too_long, Toast.LENGTH_SHORT).show()
+                } else {
+                    onStoryShareRequested?.invoke(postId)
+                }
                 popupWindow.dismiss()
             }
         }

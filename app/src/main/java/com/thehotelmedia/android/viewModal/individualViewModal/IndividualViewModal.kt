@@ -885,10 +885,11 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
 
     private val _publishStoryResult = MutableLiveData<PublishStoryModal>()
     val publishStoryResult: LiveData<PublishStoryModal> = _publishStoryResult
-    fun publishPostToStory(postId: String) {
+    fun publishPostToStory(postId: String, body: Map<String, @JvmSuppressWildcards Any> = emptyMap()) {
         viewModelScope.launch(Dispatchers.IO) {
+            _loading.postValue(true)
             try {
-                val response = individualRepo.publishPostToStory(postId)
+                val response = individualRepo.publishPostToStory(postId, body)
                 if (response.isSuccessful) {
                     try {
                         val res = response.body()
@@ -896,11 +897,13 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                             toastMessageLiveData.postValue(res.message ?: N_A)
                             _publishStoryResult.postValue(res)
                             Log.wtf(tag, res.toString())
+                            _loading.postValue(false)
                         } else {
                             // Response body is null
                             Log.wtf(tag + "NULL_BODY", "Response successful but body is null")
                             toastMessageLiveData.postValue("Failed to publish post to story")
                             _publishStoryResult.postValue(null)
+                            _loading.postValue(false)
                         }
                     } catch (e: com.google.gson.JsonSyntaxException) {
                         // Handle JSON parsing error - API returned unexpected format
@@ -908,6 +911,7 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                         Log.wtf(tag + "JSON_ERROR", "JSON parsing failed: ${e.message}. API returned unexpected JSON format.")
                         toastMessageLiveData.postValue("Failed to publish post to story. Please try again.")
                         _publishStoryResult.postValue(null)
+                        _loading.postValue(false)
                     } catch (e: IllegalStateException) {
                         // Handle JSON parsing errors - API returned unexpected format
                         if (e.message?.contains("BEGIN_OBJECT") == true || 
@@ -917,6 +921,7 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                             Log.wtf(tag + "JSON_ERROR", "JSON parsing failed: ${e.message}. API returned unexpected JSON format.")
                             toastMessageLiveData.postValue("Failed to publish post to story. Please try again.")
                             _publishStoryResult.postValue(null)
+                            _loading.postValue(false)
                         } else {
                             throw e // Re-throw if it's a different IllegalStateException
                         }
@@ -940,8 +945,10 @@ class IndividualViewModal(private val individualRepo: IndividualRepo) : ViewMode
                     }
                     toastMessageLiveData.postValue(message?.takeIf { it.isNotBlank() } ?: response.message() ?: "Failed to publish post to story")
                     _publishStoryResult.postValue(null)
+                    _loading.postValue(false)
                 }
             } catch (t: Throwable) {
+                _loading.postValue(false)
                 Log.wtf(tag + "ERROR", "Exception: ${t.message}", t)
                 val errorMessage = when {
                     t.message?.contains("JSON", ignoreCase = true) == true -> 

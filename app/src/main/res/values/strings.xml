@@ -321,6 +321,7 @@
     <string name="share_post">Share Post</string>
     <string name="share_outside_app">Share outside the app</string>
     <string name="share_to_story">Share this post to your story</string>
+    <string name="story_video_too_long">Video is too long to share to story. Stories support videos up to 15 seconds.</string>
     <string name="send_via_dm">Send via direct message</string>
     <string name="search_chats_hint">Search conversations</string>
     <string name="share_no_conversations">No conversations found</string>

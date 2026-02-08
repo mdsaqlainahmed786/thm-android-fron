@@ -31,6 +31,7 @@ import com.thehotelmedia.android.extensions.EncryptionHelper
 import com.thehotelmedia.android.extensions.sharePostWithDeepLink
 import com.thehotelmedia.android.repository.IndividualRepo
 import com.thehotelmedia.android.activity.userTypes.forms.createStory.CreateStoryActivity
+import com.thehotelmedia.android.utils.normalizeDurationToSeconds
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -51,6 +52,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
     private var sharedMediaUrl: String? = null
     private var sharedThumbnailUrl: String? = null
     private var sharedMediaId: String? = null
+    private var sharedMediaDurationSeconds: Double? = null
     private var userName: String = ""
     private var currentRecipientUsername: String? = null
     private val handler = Handler(Looper.getMainLooper())
@@ -105,6 +107,9 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         sharedMediaUrl = arguments?.getString(ARG_MEDIA_URL)
         sharedThumbnailUrl = arguments?.getString(ARG_THUMBNAIL_URL)
         sharedMediaId = arguments?.getString(ARG_MEDIA_ID)
+        sharedMediaDurationSeconds = normalizeDurationToSeconds(
+            arguments?.getDouble(ARG_MEDIA_DURATION_SECONDS, -1.0)?.takeIf { it >= 0 }
+        )
 
         userName = preferenceManager.getString(PreferenceManager.Keys.USER_USER_NAME, "").orEmpty()
         shareLink = if (postId.isNotBlank() && ownerUserId.isNotBlank()) {
@@ -225,9 +230,21 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
             return
         }
 
+        if (normalizedType == Constants.VIDEO) {
+            val durationSeconds = sharedMediaDurationSeconds
+            if (durationSeconds != null && durationSeconds > 15.0) {
+                Toast.makeText(requireContext(), R.string.story_video_too_long, Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
+
         val intent = Intent(requireContext(), CreateStoryActivity::class.java).apply {
             putExtra(CreateStoryActivity.EXTRA_INITIAL_MEDIA_URL, mediaUrl)
             putExtra(CreateStoryActivity.EXTRA_INITIAL_MEDIA_TYPE, normalizedType)
+            putExtra(CreateStoryActivity.EXTRA_SHARED_POST_ID, postId)
+            sharedMediaDurationSeconds?.let {
+                putExtra(CreateStoryActivity.EXTRA_INITIAL_MEDIA_DURATION_SECONDS, it)
+            }
         }
         startActivity(intent)
         dismissAllowingStateLoss()
@@ -351,6 +368,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         private const val ARG_MEDIA_URL = "ARG_MEDIA_URL"
         private const val ARG_THUMBNAIL_URL = "ARG_THUMBNAIL_URL"
         private const val ARG_MEDIA_ID = "ARG_MEDIA_ID"
+        private const val ARG_MEDIA_DURATION_SECONDS = "ARG_MEDIA_DURATION_SECONDS"
 
         fun newInstance(
             postId: String,
@@ -358,7 +376,8 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
             mediaType: String? = null,
             mediaUrl: String? = null,
             thumbnailUrl: String? = null,
-            mediaId: String? = null
+            mediaId: String? = null,
+            mediaDurationSeconds: Double? = null
         ): SharePostBottomSheetFragment {
             return SharePostBottomSheetFragment().apply {
                 arguments = Bundle().apply {
@@ -368,6 +387,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
                     putString(ARG_MEDIA_URL, mediaUrl)
                     putString(ARG_THUMBNAIL_URL, thumbnailUrl)
                     putString(ARG_MEDIA_ID, mediaId)
+                    mediaDurationSeconds?.let { putDouble(ARG_MEDIA_DURATION_SECONDS, it) }
                 }
             }
         }

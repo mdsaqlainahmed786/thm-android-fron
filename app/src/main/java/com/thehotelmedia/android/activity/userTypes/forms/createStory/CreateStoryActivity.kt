@@ -124,10 +124,15 @@ class CreateStoryActivity : BaseActivity() {
     private var selectedUserTagName: String? = null  // Name of the first tagged user
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var locationHelper: LocationHelper
+    private var sharedPostId: String? = null
+    private var sharedPostInitialMediaType: String? = null
+    private var sharedPostInitialVideoDurationSeconds: Double? = null
 
     companion object {
         const val EXTRA_INITIAL_MEDIA_URL = "EXTRA_INITIAL_MEDIA_URL"
         const val EXTRA_INITIAL_MEDIA_TYPE = "EXTRA_INITIAL_MEDIA_TYPE" // Constants.IMAGE / Constants.VIDEO
+        const val EXTRA_SHARED_POST_ID = "EXTRA_SHARED_POST_ID"
+        const val EXTRA_INITIAL_MEDIA_DURATION_SECONDS = "EXTRA_INITIAL_MEDIA_DURATION_SECONDS"
     }
 
 
@@ -309,10 +314,16 @@ class CreateStoryActivity : BaseActivity() {
             activeTextOverlay = null
         }
 
+        sharedPostId = intent?.getStringExtra(EXTRA_SHARED_POST_ID)?.takeIf { it.isNotBlank() }
+
         // If launched from a post share (media-only story), preload that media and skip picker flow.
         // Otherwise fallback to existing camera/gallery selection.
         val initialMediaUrl = intent?.getStringExtra(EXTRA_INITIAL_MEDIA_URL)
         val initialMediaType = intent?.getStringExtra(EXTRA_INITIAL_MEDIA_TYPE)
+        sharedPostInitialMediaType = initialMediaType
+        sharedPostInitialVideoDurationSeconds = intent
+            ?.getDoubleExtra(EXTRA_INITIAL_MEDIA_DURATION_SECONDS, -1.0)
+            ?.takeIf { it >= 0 }
         if (!initialMediaUrl.isNullOrBlank() && !initialMediaType.isNullOrBlank()) {
             preloadInitialMedia(initialMediaType, initialMediaUrl)
         } else {
@@ -327,7 +338,12 @@ class CreateStoryActivity : BaseActivity() {
         binding.doneButton.setOnClickListener {
             Log.d("CreateStoryActivity", "Done button clicked")
             try {
-                saveEditedImage()
+                val postId = sharedPostId
+                if (!postId.isNullOrBlank()) {
+                    publishSharedPostToStory(postId)
+                } else {
+                    saveEditedImage()
+                }
             } catch (e: Exception) {
                 Log.e("CreateStoryActivity", "Error in done button click: ${e.message}", e)
                 Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -406,6 +422,25 @@ class CreateStoryActivity : BaseActivity() {
             CustomSnackBar.showSnackBar(binding.root,it)
         }
 
+        individualViewModal.publishStoryResult.observe(activity) { result ->
+            // Only handle this result if we are in post->story mode
+            if (sharedPostId.isNullOrBlank()) return@observe
+
+            // Reset in-flight guard
+            isUploading = false
+            giffProgressBar.hide()
+
+            if (result?.status == true) {
+                val msg = result.message?.takeIf { it.isNotBlank() } ?: "Story posted"
+                successGiff.show(msg) {
+                    navigateToMainActivity(businessesType == business_type_individual)
+                }
+            } else if (result != null) {
+                val msg = result.message?.takeIf { it.isNotBlank() } ?: "Unable to post story"
+                CustomSnackBar.showSnackBar(binding.root, msg)
+            }
+        }
+
         setupSwipeGestures()
     }
 
@@ -418,8 +453,9 @@ class CreateStoryActivity : BaseActivity() {
 
             com.thehotelmedia.android.customClasses.Constants.VIDEO -> {
                 val uri = Uri.parse(mediaUrl)
-                // For remote URLs, download to a local file so saveVideo() can open an InputStream later.
-                if (uri.scheme == "http" || uri.scheme == "https") {
+                // For post-share, we should not recreate media; remote playback is fine for preview.
+                // For non-post share, download remote URLs so saveVideo() can open an InputStream later.
+                if ((uri.scheme == "http" || uri.scheme == "https") && sharedPostId.isNullOrBlank()) {
                     giffProgressBar.show()
                     lifecycleScope.launch {
                         val file = withContext(Dispatchers.IO) { downloadVideoToCache(mediaUrl) }
@@ -447,6 +483,48 @@ class CreateStoryActivity : BaseActivity() {
                 checkPermissions()
             }
         }
+    }
+
+    private fun publishSharedPostToStory(postId: String) {
+        // If we're trying to publish a shared post to story and it's a video longer than 15s,
+        // block before calling the publish-to-story endpoint.
+        val mediaType = sharedPostInitialMediaType?.lowercase(Locale.getDefault())
+        if (mediaType == com.thehotelmedia.android.customClasses.Constants.VIDEO) {
+            val durationSeconds = sharedPostInitialVideoDurationSeconds
+            if (durationSeconds != null && durationSeconds > 15.0) {
+                CustomSnackBar.showSnackBar(binding.root, getString(R.string.story_video_too_long))
+                return
+            }
+        }
+
+        // Prevent duplicate publish taps
+        if (isUploading) return
+        isUploading = true
+        giffProgressBar.show()
+
+        // Best-effort metadata payload. Backend may ignore unknown fields; core goal is to reuse post media.
+        val taggedIds = selectedTagPeopleList.mapNotNull { it.id }.filter { it.isNotBlank() }
+        val body = mutableMapOf<String, Any>().apply {
+            if (taggedIds.isNotEmpty()) put("tagged", taggedIds)
+            selectedLocationLabel?.let { if (it.isNotBlank()) put("placeName", it) }
+            selectedLocationLat?.let { put("lat", it) }
+            selectedLocationLng?.let { put("lng", it) }
+            selectedLocationX?.let { put("locationPositionX", it) }
+            selectedLocationY?.let { put("locationPositionY", it) }
+
+            // --- publish-as-story API expects these exact keys (see backend publishPostAsStory) ---
+            // Use the same "first user tag" we track for normal story uploads.
+            val userTaggedId = selectedUserTagId
+            val userTagged = selectedUserTagName
+            val posX = selectedUserTagX
+            val posY = selectedUserTagY
+            if (!userTaggedId.isNullOrBlank()) put("userTaggedId", userTaggedId)
+            if (!userTagged.isNullOrBlank()) put("userTagged", userTagged)
+            if (posX != null) put("userTaggedPositionX", posX)
+            if (posY != null) put("userTaggedPositionY", posY)
+        }
+
+        individualViewModal.publishPostToStory(postId, body)
     }
 
     private fun downloadVideoToCache(url: String): File? {
