@@ -55,7 +55,7 @@ import com.thehotelmedia.android.extensions.getEmojiForRating
 import com.thehotelmedia.android.extensions.isFutureDateOrTime
 import com.thehotelmedia.android.extensions.isRecentPost
 import com.thehotelmedia.android.extensions.moveToPostPreviewScreen
-import com.thehotelmedia.android.extensions.moveToUserPostsViewer
+import com.thehotelmedia.android.extensions.moveToFeedPostsViewer
 import com.thehotelmedia.android.extensions.openGoogleMaps
 import com.thehotelmedia.android.extensions.setRatingWithStar
 import com.thehotelmedia.android.extensions.setRatingWithStars
@@ -120,8 +120,19 @@ class FeedAdapter(
 ) : PagingDataAdapter<Data, RecyclerView.ViewHolder>(DIFF_CALLBACK) {
     private var dotsIndicator: SpringDotsIndicator? = null
 
-    private var activePosition = 0 // No active position initially
+    // Adapter position (including header offset) that should have inline media active.
+    // Important: position 0 is the header, so default to NO_POSITION to avoid
+    // "activating" the header and leaving all posts inactive (videos appear as still thumbnails).
+    private var activePosition = RecyclerView.NO_POSITION
     private var isScrollingDown = true // Track scroll direction for buffering control
+
+    private var currentLat: Double = Constants.DEFAULT_LAT
+    private var currentLng: Double = Constants.DEFAULT_LNG
+
+    fun setCurrentLocation(lat: Double, lng: Double) {
+        currentLat = lat
+        currentLng = lng
+    }
 
     companion object {
         private const val VIEW_TYPE_HEADER = -1
@@ -502,6 +513,11 @@ class FeedAdapter(
             // in sync with the current adapter position.
             // Pass scroll direction to control buffering indicator visibility
             val tapOwnerId = post.userID ?: post.postedBy?.Id ?: ""
+            val postJson = try {
+                Gson().toJson(post)
+            } catch (_: Exception) {
+                null
+            }
             mediaPagerAdapter = MediaPagerAdapter(
                 context, 
                 mediaList, 
@@ -523,7 +539,10 @@ class FeedAdapter(
                 },
                 isScrollingDown,
                 postOwnerId = tapOwnerId,
-                openPostViewerOnTap = true
+                openPostViewerOnTap = true,
+                feedPostJson = postJson,
+                feedLat = currentLat,
+                feedLng = currentLng
             )
             binding.viewPager.adapter = mediaPagerAdapter
             // Reset to first media item when adapter changes to ensure proper binding
@@ -532,8 +551,8 @@ class FeedAdapter(
             
             // Add click listener to open post viewer
             binding.mediaLayout.setOnClickListener {
-                if (tapOwnerId.isNotEmpty()) {
-                    context.moveToUserPostsViewer(tapOwnerId, postId)
+                if (postId.isNotBlank()) {
+                    context.moveToFeedPostsViewer(postJson, postId, currentLat, currentLng)
                 }
             }
         }else{
@@ -2058,15 +2077,18 @@ class FeedAdapter(
     }
 
     fun setActivePosition(newPosition: Int, isScrollingDown: Boolean = true) {
+        // Never mark the header as active; active media should be a real post (position >= 1).
+        if (newPosition == 0) return
         if (newPosition == activePosition) return
 
         val previous = activePosition
         activePosition = newPosition
         this.isScrollingDown = isScrollingDown // Store scroll direction
 
-        // Stop any currently playing inline video before switching the active
-        // feed item so only one post can play at a time.
-        com.thehotelmedia.android.fragments.VideoPlayerManager.releasePlayer()
+        // Stop current inline video immediately when the active feed item changes.
+        // IMPORTANT: don't fully release here; releasing during fast scroll/binds can
+        // cause random videos to get stuck. We'll reuse the player and just pause.
+        com.thehotelmedia.android.fragments.VideoPlayerManager.pausePlayer()
 
         // Post structural changes to the next frame to avoid RecyclerView's
         // "cannot call this method in a scroll callback" restriction.

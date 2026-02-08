@@ -65,6 +65,7 @@ class IndividualHomeFragment : Fragment() {
     private lateinit var progressBar: CustomProgressBar
     private var postIds: List<String> = emptyList()
     private var activePosition = RecyclerView.NO_POSITION // No active position initially
+    private var initialActivePostSet = false
     private var currentLat = DEFAULT_LAT
     private var currentLng = DEFAULT_LNG
     private val batchSize = 30
@@ -126,6 +127,12 @@ class IndividualHomeFragment : Fragment() {
                 // Handle the location callback
                 currentLat = latitude
                 currentLng = longitude
+                // Keep feed adapter in sync so taps can open feed viewer with the right paging params
+                try {
+                    feedAdapter.setCurrentLocation(currentLat, currentLng)
+                } catch (_: Exception) {
+                    // no-op (adapter might not be initialized yet in edge cases)
+                }
                 getFeedData("")
             },
             errorCallback = { errorMessage ->
@@ -165,6 +172,8 @@ class IndividualHomeFragment : Fragment() {
 
 //        storyAdapter = StoryAdapter(requireContext(), profilePic)
         feedAdapter = FeedAdapter(requireContext(), individualViewModal, parentFragmentManager,viewLifecycleOwner,profilePic,binding.postRecyclerView,ownerUserId,::onIdActive)
+        // Initialize adapter with current (possibly default) location immediately
+        feedAdapter.setCurrentLocation(currentLat, currentLng)
 
         if (type == business_type_individual) {
             binding.searchBtn.visibility = View.GONE
@@ -418,6 +427,12 @@ class IndividualHomeFragment : Fragment() {
                     when (newState) {
                         RecyclerView.SCROLL_STATE_IDLE -> {
                             isScrolling = false
+                            // After a fast fling, `viewTreeObserver` callbacks can miss the final
+                            // settled position. When scrolling stops, explicitly activate the most
+                            // visible post so its video starts immediately.
+                            recyclerView.post {
+                                activateMostVisiblePost()
+                            }
                         }
                         RecyclerView.SCROLL_STATE_DRAGGING, RecyclerView.SCROLL_STATE_SETTLING -> {
                             isScrolling = true
@@ -434,15 +449,15 @@ class IndividualHomeFragment : Fragment() {
                     // After initial data load, ensure the first visible post (after header)
                     // is marked active so its video can auto‑play.
                     binding.postRecyclerView.post {
-                        val initialPosition = findMostVisibleItemPosition(binding.postRecyclerView)
-                        if (initialPosition != RecyclerView.NO_POSITION) {
-                            updateActivePosition(initialPosition)
-                        }
+                        // Best-effort attempt here; we also re-attempt when paging refresh
+                        // finishes in the LoadState listener (more reliable than waiting for a scroll).
+                        ensureInitialActivePost()
                     }
                 }
             }
         } else {
              // For subsequent refreshes, just refresh the adapter
+            initialActivePostSet = false
             feedAdapter.refresh()
             feedAdapter.refreshStories()
         }
@@ -461,8 +476,10 @@ class IndividualHomeFragment : Fragment() {
             return RecyclerView.NO_POSITION
         }
 
-        // Item becomes "active" when ~60% of its height is visible on screen
-        val visibilityThreshold = 0.6f
+        // Pick the most visible post item. The old fixed 60% threshold can fail on
+        // smaller screens because feed items are often taller than the viewport,
+        // making it impossible for any item to ever reach 60% visibility.
+        val minVisibleRatioToSelect = 0.15f
         var bestPosition = RecyclerView.NO_POSITION
         var maxVisibleRatio = 0f
 
@@ -495,7 +512,11 @@ class IndividualHomeFragment : Fragment() {
             }
         }
 
-        return if (maxVisibleRatio >= visibilityThreshold) bestPosition else RecyclerView.NO_POSITION
+        return if (bestPosition != RecyclerView.NO_POSITION && maxVisibleRatio >= minVisibleRatioToSelect) {
+            bestPosition
+        } else {
+            RecyclerView.NO_POSITION
+        }
     }
 
     private fun updateActivePosition(newPosition: Int) {
@@ -503,10 +524,59 @@ class IndividualHomeFragment : Fragment() {
         if (newPosition < 0 || newPosition >= feedAdapter.itemCount) return
 
         activePosition = newPosition
+        initialActivePostSet = true
         // Delegate item update logic to the adapter so it can decide which post
         // should have its media (video/image) in the active state.
         // Pass scroll direction so adapter can control buffering indicator
         feedAdapter.setActivePosition(newPosition, isScrollingDown)
+    }
+
+    /**
+     * Ensure at least one real post item (not the header) is active so its video can autoplay.
+     * This is needed because scroll callbacks may not fire until the user interacts.
+     */
+    private fun ensureInitialActivePost(attempt: Int = 0) {
+        if (initialActivePostSet) return
+        if (!isAdded) return
+
+        val rv = binding.postRecyclerView
+        if (feedAdapter.itemCount <= 1 || rv.childCount == 0) {
+            if (attempt < 12) {
+                rv.postDelayed({ ensureInitialActivePost(attempt + 1) }, 120)
+            }
+            return
+        }
+
+        val activated = activateMostVisiblePost()
+        if (activated) {
+            initialActivePostSet = true
+        } else if (attempt < 12) {
+            rv.postDelayed({ ensureInitialActivePost(attempt + 1) }, 120)
+        }
+    }
+
+    /**
+     * Pick the best candidate post (skipping header) and activate it.
+     * @return true if an active post was selected and updated.
+     */
+    private fun activateMostVisiblePost(): Boolean {
+        val rv = binding.postRecyclerView
+        if (feedAdapter.itemCount <= 1) return false
+        val layoutManager = rv.layoutManager as? LinearLayoutManager ?: return false
+
+        val candidate = findMostVisibleItemPosition(rv).takeIf { it != RecyclerView.NO_POSITION }
+            ?: run {
+                var firstVisible = layoutManager.findFirstVisibleItemPosition()
+                if (firstVisible == 0) firstVisible = 1 // skip header
+                if (firstVisible >= 1 && firstVisible < feedAdapter.itemCount) firstVisible else RecyclerView.NO_POSITION
+            }
+
+        return if (candidate != RecyclerView.NO_POSITION) {
+            updateActivePosition(candidate)
+            true
+        } else {
+            false
+        }
     }
 
     private fun ensureLoadStateListener() {
@@ -560,6 +630,14 @@ class IndividualHomeFragment : Fragment() {
                         isManualRefresh = false
                         binding.postRecyclerView.post {
                             binding.postRecyclerView.scrollToPosition(0)
+                        }
+                    }
+
+                    // When paging refresh completes (often before the user scrolls),
+                    // ensure the first visible post becomes active so videos autoplay immediately.
+                    if (refreshState is LoadState.NotLoading) {
+                        binding.postRecyclerView.post {
+                            ensureInitialActivePost()
                         }
                     }
                 }

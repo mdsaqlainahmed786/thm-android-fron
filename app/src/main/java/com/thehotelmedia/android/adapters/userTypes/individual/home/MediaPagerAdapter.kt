@@ -16,6 +16,7 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.PlaybackException
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.activity.VideoImageViewer
 import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LAT
@@ -23,6 +24,7 @@ import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LNG
 import com.thehotelmedia.android.customClasses.Constants.IMAGE
 import com.thehotelmedia.android.customClasses.Constants.VIDEO
 import com.thehotelmedia.android.databinding.ItemMediaBinding
+import com.thehotelmedia.android.extensions.moveToFeedPostsViewer
 import com.thehotelmedia.android.extensions.moveToUserPostsViewer
 import com.thehotelmedia.android.fragments.VideoPlayerManager
 import com.thehotelmedia.android.modals.feeds.feed.MediaRef
@@ -50,7 +52,10 @@ class MediaPagerAdapter(
     private val onLikeClicked: (isLikedByMe: Boolean, likeCount: Int, commentCount: Int) -> Unit,
     private val isScrollingDown: Boolean = true, // Track scroll direction for buffering control
     private val postOwnerId: String? = null,
-    private val openPostViewerOnTap: Boolean = false
+    private val openPostViewerOnTap: Boolean = false,
+    private val feedPostJson: String? = null,
+    private val feedLat: Double = DEFAULT_LAT,
+    private val feedLng: Double = DEFAULT_LNG
 ) : RecyclerView.Adapter<MediaPagerAdapter.ViewHolder>() {
 
 
@@ -64,6 +69,8 @@ class MediaPagerAdapter(
         private var currentIsPostLiked = isPostLiked
         private var currentLikeCount = likeCount
         private var playerListener: com.google.android.exoplayer2.Player.Listener? = null
+        private var playerRetryCount = 0
+        private var lastBoundPlaybackUrl: String? = null
         
         fun updateState(newIsPostLiked: Boolean, newLikeCount: Int) {
             android.util.Log.d("MediaPagerAdapter", "ViewHolder.updateState() called: newIsPostLiked=$newIsPostLiked, newLikeCount=$newLikeCount (old: currentIsPostLiked=$currentIsPostLiked, currentLikeCount=$currentLikeCount)")
@@ -150,36 +157,40 @@ class MediaPagerAdapter(
 
             // If the current position changes, release the previous player
             if (currentPlayingPosition != position) {
-                VideoPlayerManager.releasePlayer()
+                // Don't fully release during fast scrolling/page changes; it can race with bind() and
+                // leave some videos stuck. We'll reuse the shared player and just pause; the next
+                // initializePlayer() call will stop/clear and prepare the new media item.
+                VideoPlayerManager.pausePlayer()
                 currentPlayingPosition = position
             }
 
             if (isVideo(mediaItem)) {
                 // Validate sourceUrl before initializing player
                 // For videos, prefer sourceUrl, but fallback to thumbnailUrl if sourceUrl is missing
-                var sourceUrl = mediaItem.sourceUrl
-                if (sourceUrl.isNullOrEmpty()) {
-                    // Some APIs might only provide thumbnailUrl for videos
-                    sourceUrl = mediaItem.thumbnailUrl
-                    android.util.Log.w("MediaPagerAdapter", "Video mediaItem has empty sourceUrl, trying thumbnailUrl: ${sourceUrl?.take(50)}")
-                }
+                val playbackUrl = (mediaItem.sourceUrl?.takeIf { it.isNotBlank() }
+                    ?: mediaItem.thumbnailUrl?.takeIf { it.isNotBlank() })
                 
-                if (sourceUrl.isNullOrEmpty()) {
+                if (playbackUrl.isNullOrEmpty()) {
                     android.util.Log.e("MediaPagerAdapter", "Video mediaItem has both empty sourceUrl and thumbnailUrl, showing placeholder")
                     setupVideoThumbnail(mediaItem, postId)
                 } else {
                     // Validate URL format
-                    val isValidUrl = sourceUrl.startsWith("http://") || sourceUrl.startsWith("https://") || 
-                                    sourceUrl.startsWith("file://") || sourceUrl.startsWith("content://")
+                    val isValidUrl = playbackUrl.startsWith("http://") || playbackUrl.startsWith("https://") ||
+                                    playbackUrl.startsWith("file://") || playbackUrl.startsWith("content://")
                     
                     if (!isValidUrl) {
-                        android.util.Log.e("MediaPagerAdapter", "Video sourceUrl has invalid format: ${sourceUrl.take(50)}")
+                        android.util.Log.e("MediaPagerAdapter", "Video playbackUrl has invalid format: ${playbackUrl.take(50)}")
                         setupVideoThumbnail(mediaItem, postId)
                     } else {
                         try {
-                            android.util.Log.d("MediaPagerAdapter", "Initializing video player with URL: ${sourceUrl.take(80)}")
-                            val player = VideoPlayerManager.initializePlayer(context, sourceUrl)
-                            setupVideoPlayer(mediaItem, player, postId)
+                            android.util.Log.d("MediaPagerAdapter", "Initializing video player with URL: ${playbackUrl.take(80)}")
+                            val player = VideoPlayerManager.initializePlayer(context, playbackUrl)
+                            // Reset retry state when we switch to a new URL.
+                            if (lastBoundPlaybackUrl != playbackUrl) {
+                                lastBoundPlaybackUrl = playbackUrl
+                                playerRetryCount = 0
+                            }
+                            setupVideoPlayer(mediaItem, player, postId, playbackUrl)
                         } catch (e: Exception) {
                             android.util.Log.e("MediaPagerAdapter", "Error initializing video player: ${e.message}", e)
                             // Fallback to thumbnail if player initialization fails
@@ -195,14 +206,10 @@ class MediaPagerAdapter(
         private fun setupVideoPlayer(
             mediaItem: MediaRef,
             player: ExoPlayer,
-            postId: String
+            postId: String,
+            playbackUrl: String
         ) {
-            val sourceUrl = mediaItem.sourceUrl
-            if (sourceUrl.isNullOrEmpty()) {
-                // If sourceUrl is empty, show thumbnail as fallback
-                setupVideoThumbnail(mediaItem, postId)
-                return
-            }
+            val sourceUrl = playbackUrl
             val id = mediaItem.Id ?: ""
 
             // Hide buffering progress initially
@@ -225,6 +232,8 @@ class MediaPagerAdapter(
 
             // Set the video player to loop
             player.repeatMode = ExoPlayer.REPEAT_MODE_ONE
+            // Ensure we always attempt playback once prepared.
+            player.playWhenReady = true
             
             // Remove any existing listener first to prevent duplicates
             if (playerListener != null) {
@@ -264,6 +273,39 @@ class MediaPagerAdapter(
                     // Hide buffering when video starts playing
                     if (isPlaying) {
                         binding.bufferingProgress.visibility = View.GONE
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    android.util.Log.e(
+                        "MediaPagerAdapter",
+                        "Player error for postId=$postId url=${sourceUrl.take(120)} code=${error.errorCodeName} msg=${error.message}",
+                        error
+                    )
+                    binding.bufferingProgress.visibility = View.GONE
+
+                    // Self-heal: a lot of transient network / decoder issues recover on retry.
+                    // We retry a couple of times before giving up and leaving the thumbnail.
+                    if (playerRetryCount < 2) {
+                        playerRetryCount++
+                        android.util.Log.w(
+                            "MediaPagerAdapter",
+                            "Retrying playback ($playerRetryCount/2) postId=$postId url=${sourceUrl.take(120)}"
+                        )
+                        binding.bufferingProgress.visibility = View.VISIBLE
+                        try {
+                            player.seekTo(0)
+                            player.prepare()
+                            player.playWhenReady = true
+                        } catch (e: Exception) {
+                            android.util.Log.e("MediaPagerAdapter", "Retry failed: ${e.message}", e)
+                            binding.bufferingProgress.visibility = View.GONE
+                        }
+                    } else {
+                        // Give up: show thumbnail (still tappable to open viewer).
+                        binding.videoLayout.visibility = View.GONE
+                        binding.imageView.visibility = View.VISIBLE
+                        binding.muteIcon.visibility = View.GONE
                     }
                 }
             }
@@ -364,8 +406,12 @@ class MediaPagerAdapter(
                     player.pause()
 
                     // Feed: open reels-style post viewer instead of legacy viewer
-                    if (openPostViewerOnTap && !postOwnerId.isNullOrBlank() && postId.isNotBlank()) {
-                        context.moveToUserPostsViewer(postOwnerId, postId)
+                    if (openPostViewerOnTap && postId.isNotBlank()) {
+                        if (!feedPostJson.isNullOrBlank()) {
+                            context.moveToFeedPostsViewer(feedPostJson, postId, feedLat, feedLng)
+                        } else if (!postOwnerId.isNullOrBlank()) {
+                            context.moveToUserPostsViewer(postOwnerId, postId)
+                        }
                         return true
                     }
 
@@ -374,7 +420,7 @@ class MediaPagerAdapter(
                         putExtra("MEDIA_TYPE", VIDEO)
                         putExtra("MEDIA_ID", id)
                         putExtra("POST_ID", postId)
-                        putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl)
+                        putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl ?: sourceUrl)
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
@@ -394,6 +440,10 @@ class MediaPagerAdapter(
             // Make video layout clickable and focusable to receive touch events
             binding.videoLayout.isClickable = true
             binding.videoLayout.isFocusable = true
+            // While the player is preparing we show `imageView` (thumbnail). That view must
+            // also receive taps; otherwise videos look "frozen" and tapping does nothing.
+            binding.imageView.isClickable = true
+            binding.imageView.isFocusable = true
             
             // Set up gesture detector on the video layout (parent container)
             // This ensures gestures are detected even if playerView intercepts some touches
@@ -404,8 +454,12 @@ class MediaPagerAdapter(
                     player.pause()
 
                         // Feed: open reels-style post viewer instead of legacy viewer
-                        if (openPostViewerOnTap && !postOwnerId.isNullOrBlank() && postId.isNotBlank()) {
-                            context.moveToUserPostsViewer(postOwnerId, postId)
+                        if (openPostViewerOnTap && postId.isNotBlank()) {
+                            if (!feedPostJson.isNullOrBlank()) {
+                                context.moveToFeedPostsViewer(feedPostJson, postId, feedLat, feedLng)
+                            } else if (!postOwnerId.isNullOrBlank()) {
+                                context.moveToUserPostsViewer(postOwnerId, postId)
+                            }
                             return@setOnTouchListener true
                         }
 
@@ -414,7 +468,7 @@ class MediaPagerAdapter(
                         putExtra("MEDIA_TYPE", VIDEO)
                         putExtra("MEDIA_ID", id)
                         putExtra("POST_ID", postId)
-                        putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl)
+                        putExtra("THUMBNAIL_URL", mediaItem.thumbnailUrl ?: sourceUrl)
                         putExtra("LIKED_BY_ME", currentIsPostLiked)
                         putExtra("LIKE_COUNT", currentLikeCount)
                         putExtra("COMMENT_COUNT", commentCount)
@@ -429,6 +483,12 @@ class MediaPagerAdapter(
                     context.startActivity(intent)
                 }
                 handled
+            }
+
+            // Also bind the same gesture handling to the thumbnail view that is visible
+            // until the player reaches STATE_READY.
+            binding.imageView.setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event) || false
             }
             
             // Also set on playerView to catch touches directly on the player
@@ -537,8 +597,12 @@ class MediaPagerAdapter(
 
                 override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                     // Feed: open reels-style post viewer instead of legacy viewer
-                    if (openPostViewerOnTap && !postOwnerId.isNullOrBlank() && postId.isNotBlank()) {
-                        context.moveToUserPostsViewer(postOwnerId, postId)
+                    if (openPostViewerOnTap && postId.isNotBlank()) {
+                        if (!feedPostJson.isNullOrBlank()) {
+                            context.moveToFeedPostsViewer(feedPostJson, postId, feedLat, feedLng)
+                        } else if (!postOwnerId.isNullOrBlank()) {
+                            context.moveToUserPostsViewer(postOwnerId, postId)
+                        }
                         return true
                     }
 
@@ -600,8 +664,12 @@ class MediaPagerAdapter(
 
                 override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                     // Feed: open reels-style post viewer instead of legacy viewer
-                    if (openPostViewerOnTap && !postOwnerId.isNullOrBlank() && postId.isNotBlank()) {
-                        context.moveToUserPostsViewer(postOwnerId, postId)
+                    if (openPostViewerOnTap && postId.isNotBlank()) {
+                        if (!feedPostJson.isNullOrBlank()) {
+                            context.moveToFeedPostsViewer(feedPostJson, postId, feedLat, feedLng)
+                        } else if (!postOwnerId.isNullOrBlank()) {
+                            context.moveToUserPostsViewer(postOwnerId, postId)
+                        }
                         return true
                     }
 
@@ -749,7 +817,12 @@ class MediaPagerAdapter(
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
-        VideoPlayerManager.releasePlayer()
+        // ViewPager2's internal RecyclerView can detach/attach during fast scrolling or
+        // adapter swaps. Releasing the shared player here causes flaky "video stays still"
+        // behaviour because another active post may be trying to use it.
+        // We only pause here; the owning screen (e.g. `IndividualHomeFragment.onDestroyView`)
+        // is responsible for a full release when leaving the feed.
+        VideoPlayerManager.pausePlayer()
     }
 
     fun updateLikeBtn(postLiked: Boolean, count: Int) {

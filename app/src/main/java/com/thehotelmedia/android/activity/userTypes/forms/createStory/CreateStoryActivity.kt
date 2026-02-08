@@ -30,6 +30,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.res.ResourcesCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -77,9 +78,16 @@ import ja.burhanrashid52.photoeditor.PhotoFilter
 import ja.burhanrashid52.photoeditor.TextStyleBuilder
 import ja.burhanrashid52.photoeditor.ViewType
 import android.media.MediaMetadataRetriever
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Locale
 
 class CreateStoryActivity : BaseActivity() {
@@ -116,6 +124,11 @@ class CreateStoryActivity : BaseActivity() {
     private var selectedUserTagName: String? = null  // Name of the first tagged user
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var locationHelper: LocationHelper
+
+    companion object {
+        const val EXTRA_INITIAL_MEDIA_URL = "EXTRA_INITIAL_MEDIA_URL"
+        const val EXTRA_INITIAL_MEDIA_TYPE = "EXTRA_INITIAL_MEDIA_TYPE" // Constants.IMAGE / Constants.VIDEO
+    }
 
 
     private val pickMediaLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -296,8 +309,16 @@ class CreateStoryActivity : BaseActivity() {
             activeTextOverlay = null
         }
 
-        // Check and request necessary permissions
-        checkPermissions()
+        // If launched from a post share (media-only story), preload that media and skip picker flow.
+        // Otherwise fallback to existing camera/gallery selection.
+        val initialMediaUrl = intent?.getStringExtra(EXTRA_INITIAL_MEDIA_URL)
+        val initialMediaType = intent?.getStringExtra(EXTRA_INITIAL_MEDIA_TYPE)
+        if (!initialMediaUrl.isNullOrBlank() && !initialMediaType.isNullOrBlank()) {
+            preloadInitialMedia(initialMediaType, initialMediaUrl)
+        } else {
+            // Check and request necessary permissions
+            checkPermissions()
+        }
 
         binding.backBtn.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
@@ -386,6 +407,82 @@ class CreateStoryActivity : BaseActivity() {
         }
 
         setupSwipeGestures()
+    }
+
+    private fun preloadInitialMedia(mediaType: String, mediaUrl: String) {
+        when (mediaType.lowercase(Locale.getDefault())) {
+            com.thehotelmedia.android.customClasses.Constants.IMAGE -> {
+                // Glide supports remote URLs directly; this also keeps filters working.
+                loadImage(Uri.parse(mediaUrl))
+            }
+
+            com.thehotelmedia.android.customClasses.Constants.VIDEO -> {
+                val uri = Uri.parse(mediaUrl)
+                // For remote URLs, download to a local file so saveVideo() can open an InputStream later.
+                if (uri.scheme == "http" || uri.scheme == "https") {
+                    giffProgressBar.show()
+                    lifecycleScope.launch {
+                        val file = withContext(Dispatchers.IO) { downloadVideoToCache(mediaUrl) }
+                        giffProgressBar.hide()
+
+                        if (file != null) {
+                            showVideoPreview(Uri.fromFile(file))
+                        } else {
+                            Toast.makeText(
+                                this@CreateStoryActivity,
+                                "Unable to load video. Please try again.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            checkPermissions()
+                        }
+                    }
+                } else {
+                    // content:// or file:// (or any other local-like Uri)
+                    showVideoPreview(uri)
+                }
+            }
+
+            else -> {
+                Toast.makeText(this, "Something went wrong", Toast.LENGTH_SHORT).show()
+                checkPermissions()
+            }
+        }
+    }
+
+    private fun downloadVideoToCache(url: String): File? {
+        var connection: HttpURLConnection? = null
+        return try {
+            val targetFile = File(cacheDir, "shared_story_${System.currentTimeMillis()}.mp4")
+            val u = URL(url)
+            connection = (u.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 15_000
+                readTimeout = 30_000
+                instanceFollowRedirects = true
+                requestMethod = "GET"
+            }
+            connection.connect()
+
+            if (connection.responseCode !in 200..299) {
+                Log.e("CreateStoryActivity", "Video download failed: HTTP ${connection.responseCode}")
+                return null
+            }
+
+            BufferedInputStream(connection.inputStream).use { input ->
+                BufferedOutputStream(FileOutputStream(targetFile)).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            targetFile
+        } catch (e: Exception) {
+            Log.e("CreateStoryActivity", "Video download error: ${e.message}", e)
+            null
+        } finally {
+            try {
+                connection?.disconnect()
+            } catch (_: Exception) {
+                // ignore
+            }
+        }
     }
 
     private fun setupSwipeGestures() {

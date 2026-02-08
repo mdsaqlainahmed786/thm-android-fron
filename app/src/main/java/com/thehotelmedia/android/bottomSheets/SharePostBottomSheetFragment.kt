@@ -1,6 +1,7 @@
 package com.thehotelmedia.android.bottomSheets
 
 import android.app.Dialog
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -29,6 +30,7 @@ import com.thehotelmedia.android.databinding.BottomSheetSharePostBinding
 import com.thehotelmedia.android.extensions.EncryptionHelper
 import com.thehotelmedia.android.extensions.sharePostWithDeepLink
 import com.thehotelmedia.android.repository.IndividualRepo
+import com.thehotelmedia.android.activity.userTypes.forms.createStory.CreateStoryActivity
 import com.thehotelmedia.android.viewModal.individualViewModal.IndividualViewModal
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -76,7 +78,6 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         setupRecycler()
         setupListeners()
         observeChatData()
-        observeStoryPublishResult()
         observeSharePostMessageResult()
         connectAndFetchChats()
     }
@@ -141,9 +142,7 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         binding.shareToStoryBtn.apply {
             isVisible = hasMedia
             setOnClickListener {
-                if (postId.isNotBlank()) {
-                    individualViewModal.publishPostToStory(postId)
-                }
+                openStoryEditorWithSharedMedia()
             }
         }
 
@@ -206,20 +205,32 @@ class SharePostBottomSheetFragment : BottomSheetDialogFragment() {
         }
     }
 
-    private fun observeStoryPublishResult() {
-        individualViewModal.publishStoryResult.observe(viewLifecycleOwner) { result ->
-            if (result?.status == true) {
-                val message = result.message?.takeIf { it.isNotBlank() }
-                    ?: getString(R.string.story_publish_success)
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                dismissAllowingStateLoss()
-            } else if (result != null) {
-                // Error case - result is not null but status is false
-                val message = result.message?.takeIf { it.isNotBlank() }
-                    ?: getString(R.string.something_went_wrong)
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-            }
+    private fun openStoryEditorWithSharedMedia() {
+        val mediaUrl = sharedMediaUrl.orEmpty()
+        val mediaType = sharedMediaType.orEmpty()
+
+        if (mediaUrl.isBlank() || mediaType.isBlank()) {
+            Toast.makeText(requireContext(), R.string.something_went_wrong, Toast.LENGTH_SHORT).show()
+            return
         }
+
+        val normalizedType = when (mediaType.lowercase(Locale.getDefault())) {
+            Constants.IMAGE -> Constants.IMAGE
+            Constants.VIDEO -> Constants.VIDEO
+            else -> null
+        }
+
+        if (normalizedType == null) {
+            Toast.makeText(requireContext(), R.string.something_went_wrong, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = Intent(requireContext(), CreateStoryActivity::class.java).apply {
+            putExtra(CreateStoryActivity.EXTRA_INITIAL_MEDIA_URL, mediaUrl)
+            putExtra(CreateStoryActivity.EXTRA_INITIAL_MEDIA_TYPE, normalizedType)
+        }
+        startActivity(intent)
+        dismissAllowingStateLoss()
     }
 
     private fun observeChatData() {

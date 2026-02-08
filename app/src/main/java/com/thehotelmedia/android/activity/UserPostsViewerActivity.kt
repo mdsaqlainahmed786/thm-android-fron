@@ -10,15 +10,19 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.paging.LoadState
 import androidx.paging.filter
+import androidx.paging.insertHeaderItem
 import androidx.paging.map
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.google.gson.Gson
 import com.google.android.exoplayer2.ExoPlayer
 import com.thehotelmedia.android.R
 import com.thehotelmedia.android.ViewModelFactory
 import com.thehotelmedia.android.adapters.LoaderAdapter
 import com.thehotelmedia.android.adapters.userPostsViewer.UserPostsViewerAdapter
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LAT
+import com.thehotelmedia.android.customClasses.Constants.DEFAULT_LNG
 import com.thehotelmedia.android.customClasses.PreferenceManager
 import com.thehotelmedia.android.databinding.ActivityUserPostsViewerBinding
 import com.thehotelmedia.android.extensions.formatCount
@@ -53,6 +57,10 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     private var initialIndex: Int? = null
     private var filterMediaType: String? = null // "image" or "video" to filter posts
     private var forceReelUi: Boolean = false
+    private var isFeedMode: Boolean = false
+    private var feedLat: Double = DEFAULT_LAT
+    private var feedLng: Double = DEFAULT_LNG
+    private var initialPostJson: String? = null
     private var currentExoPlayer: ExoPlayer? = null
     private var activePosition: Int = RecyclerView.NO_POSITION
     private lateinit var layoutManager: LinearLayoutManager
@@ -61,7 +69,13 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
     private enum class ViewerMode {
         POSTS,
+        // Legacy: older implementation used separate user/images + user/videos endpoints and
+        // wrapped each media into a "fake" post (likes/views/createdAt were defaulted),
+        // which caused invalid UI (0 likes/0 views/"Just now"). We now always use real
+        // posts (`user/posts/{id}`) and filter by media type.
+        @Deprecated("Use POSTS with FILTER_MEDIA_TYPE instead")
         PROFILE_IMAGES,
+        @Deprecated("Use POSTS with FILTER_MEDIA_TYPE instead")
         PROFILE_VIDEOS
     }
 
@@ -82,6 +96,14 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         preferenceManager = PreferenceManager.getInstance(this)
         ownerUserId = preferenceManager.getString(PreferenceManager.Keys.USER_ID, "").toString()
 
+        val viewerSource = intent.getStringExtra("VIEWER_SOURCE") ?: ""
+        isFeedMode = viewerSource.equals("FEED", ignoreCase = true)
+        if (isFeedMode) {
+            feedLat = intent.getDoubleExtra("LAT", DEFAULT_LAT)
+            feedLng = intent.getDoubleExtra("LNG", DEFAULT_LNG)
+            initialPostJson = intent.getStringExtra("INITIAL_POST_JSON")
+        }
+
         userId = intent.getStringExtra("USER_ID") ?: ""
         initialPostId = intent.getStringExtra("INITIAL_POST_ID")
         initialMediaId = intent.getStringExtra("INITIAL_MEDIA_ID")
@@ -92,8 +114,10 @@ class UserPostsViewerActivity : DarkBaseActivity() {
         viewerMode = when {
             // If opened by an explicit postId (feed, posts list, etc), always use posts.
             !initialPostId.isNullOrBlank() -> ViewerMode.POSTS
-            filterLower == "image" -> ViewerMode.PROFILE_IMAGES
-            filterLower == "video" -> ViewerMode.PROFILE_VIDEOS
+            // When opened from profile Photos/Videos tabs we still want to show the *real* post
+            // objects so counts/timestamps remain consistent. We just filter the posts list.
+            filterLower == "image" -> ViewerMode.POSTS
+            filterLower == "video" -> ViewerMode.POSTS
             else -> ViewerMode.POSTS
         }
         // Reels-style UI can be forced via intent, and is also enabled for feed-opened posts.
@@ -135,11 +159,16 @@ class UserPostsViewerActivity : DarkBaseActivity() {
     }
 
     private fun loadInitialData() {
+        if (isFeedMode) {
+            loadFeedPosts()
+            return
+        }
         if (userId.isBlank()) return
         when (viewerMode) {
             ViewerMode.POSTS -> loadPosts()
-            ViewerMode.PROFILE_IMAGES -> loadImagesAsPosts()
-            ViewerMode.PROFILE_VIDEOS -> loadVideosAsPosts()
+            // Legacy modes kept for safety; should no longer be used.
+            ViewerMode.PROFILE_IMAGES -> loadPosts()
+            ViewerMode.PROFILE_VIDEOS -> loadPosts()
         }
     }
 
@@ -235,7 +264,14 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                             val mediaRef = post.mediaRef
                             if (mediaRef.isNotEmpty()) {
                                 mediaRef.any { media ->
-                                    media.mediaType?.lowercase() == filterMediaType?.lowercase()
+                                    val target = filterMediaType?.lowercase(Locale.getDefault())
+                                    val t = media.mediaType?.lowercase(Locale.getDefault())
+                                    val mime = media.mimeType?.lowercase(Locale.getDefault())
+                                    when (target) {
+                                        "image" -> t == "image" || mime?.startsWith("image") == true
+                                        "video" -> t == "video" || mime?.startsWith("video") == true
+                                        else -> false
+                                    }
                                 }
                             } else {
                                 false // Skip posts with no media
@@ -250,6 +286,45 @@ class UserPostsViewerActivity : DarkBaseActivity() {
                     // Don't scroll here - let the LoadStateListener handle it after data is loaded
                     // The LoadStateListener will check if posts are empty and load images if needed
                 }
+            }
+        }
+    }
+
+    private fun loadFeedPosts() {
+        individualViewModal.getFeeds(feedLat, feedLng).observe(this) { pagingData ->
+            lifecycleScope.launch {
+                // Media-only in feed viewer (photos/videos). Skip other feed types (reviews/events/suggestions).
+                var mediaOnly = pagingData.filter { post ->
+                    val isPostType = post.postType?.lowercase(Locale.getDefault()) == "post"
+                    if (!isPostType) return@filter false
+                    val mediaRef = post.mediaRef
+                    if (mediaRef.isEmpty()) return@filter false
+                    mediaRef.any { media ->
+                        val t = media.mediaType?.lowercase(Locale.getDefault())
+                        val mime = media.mimeType?.lowercase(Locale.getDefault())
+                        t == "image" || t == "video" || mime?.startsWith("image") == true || mime?.startsWith("video") == true
+                    }
+                }
+
+                // Seed tapped post at the top (and de-dupe by id) so the viewer starts on it.
+                val seeded = if (!initialPostJson.isNullOrBlank()) {
+                    val tappedPost = try {
+                        Gson().fromJson(initialPostJson, Data::class.java)
+                    } catch (_: Exception) {
+                        null
+                    }
+                    val tappedId = tappedPost?.Id
+                    if (tappedPost != null && !tappedId.isNullOrBlank()) {
+                        mediaOnly = mediaOnly.filter { it.Id != tappedId }
+                        mediaOnly.insertHeaderItem(item = tappedPost)
+                    } else {
+                        mediaOnly
+                    }
+                } else {
+                    mediaOnly
+                }
+
+                adapter.submitData(seeded)
             }
         }
     }
@@ -661,7 +736,7 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
     private fun observeFollowState() {
         // Fetch user profile first - this is critical for images-only posts to have profile data
-        if (userId.isNotEmpty()) {
+        if (!isFeedMode && userId.isNotEmpty()) {
             individualViewModal.getUserProfileById(userId)
         }
 
@@ -693,7 +768,10 @@ class UserPostsViewerActivity : DarkBaseActivity() {
 
         individualViewModal.unFollowUserResult.observe(this) { result ->
             if (result.status == true) {
-                adapter.setUserFollowState(userId, false, false)
+                val targetId = result.data ?: userId
+                if (!targetId.isNullOrBlank()) {
+                    adapter.setUserFollowState(targetId, false, false)
+                }
             }
         }
     }

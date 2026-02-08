@@ -696,8 +696,8 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
                 // Use environment data (already processed in Celsius)
                 tempMinC = environment?.tempMinC?.roundToInt()
                 tempMaxC = environment?.tempMaxC?.roundToInt()
-                // Prefer AQI index provided by backend
-                overallAqi = environment?.aqiIndex ?: 0
+                // Prefer actual AQI value from backend; fall back to AQI index if older payloads don't include it
+                overallAqi = environment?.aqi ?: (environment?.aqiIndex ?: 0)
                 // PM2.5 is only available inside weatherReport.airPollution; optional
                 pm25Value = weatherReport?.airPollution?.list?.getOrNull(0)?.components?.pm25 ?: 0.0
             } else if (weatherReport != null) {
@@ -707,7 +707,7 @@ class BusinessProfileDetailsActivity : BaseActivity() , BlockUserBottomSheetFrag
                 tempMinC = if (tempMin > 0.0) (tempMin - 273.15).roundToInt() else null
                 tempMaxC = if (tempMax > 0.0) (tempMax - 273.15).roundToInt() else null
                 pm25Value = weatherReport.airPollution?.list?.getOrNull(0)?.components?.pm25 ?: 0.0
-                // Prefer OpenWeather-style AQI index if present; otherwise compute AQI from PM2.5
+                // Prefer AQI from weatherReport air pollution if present; otherwise compute AQI from PM2.5
                 overallAqi = weatherReport.airPollution?.list
                     ?.getOrNull(0)
                     ?.main

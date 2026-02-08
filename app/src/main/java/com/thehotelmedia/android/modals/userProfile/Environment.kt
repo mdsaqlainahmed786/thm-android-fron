@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class Environment (
     @SerializedName("lat"       ) var lat       : Double? = null,
     @SerializedName("lng"       ) var lng       : Double? = null,
+    @SerializedName("aqi"       ) var aqi       : Int?    = null,
     @SerializedName("aqiIndex"  ) var aqiIndex  : Int?    = null,
     @SerializedName("aqiLabel"  ) var aqiLabel  : String? = null,
     @SerializedName("tempK"     ) var tempK     : Double? = null,
@@ -14,6 +15,7 @@ data class Environment (
     @SerializedName("tempMinC"  ) var tempMinC  : Double? = null,
     @SerializedName("tempMaxC"  ) var tempMaxC  : Double? = null
 )
+
 
 
 

@@ -1113,6 +1113,29 @@ fun Context.moveToUserPostsViewer(
     startActivity(intent)
 }
 
+/**
+ * Opens the post viewer in FEED mode, so vertical scrolling continues through the global feed
+ * instead of the tapped user's profile posts.
+ *
+ * - Provide `initialPostJson` when available so the viewer can show the tapped post immediately.
+ * - `lat/lng` should match the home feed request so paging continues consistently.
+ */
+fun Context.moveToFeedPostsViewer(
+    initialPostJson: String?,
+    initialPostId: String,
+    lat: Double,
+    lng: Double
+) {
+    val intent = Intent(this, UserPostsViewerActivity::class.java).apply {
+        putExtra("VIEWER_SOURCE", "FEED")
+        putExtra("INITIAL_POST_ID", initialPostId)
+        initialPostJson?.let { putExtra("INITIAL_POST_JSON", it) }
+        putExtra("LAT", lat)
+        putExtra("LNG", lng)
+    }
+    startActivity(intent)
+}
+
 fun formatCount(count: Int): String {
     return when {
         count >= 1_000_000_000 -> String.format("%.1fB", count / 1_000_000_000.0) // Billion (B)
