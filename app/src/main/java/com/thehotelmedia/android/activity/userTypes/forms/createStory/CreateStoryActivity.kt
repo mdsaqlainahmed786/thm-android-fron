@@ -383,6 +383,7 @@ class CreateStoryActivity : BaseActivity() {
             val intent = Intent(this, TagPeopleActivity::class.java)
             intent.putExtra("selectedTagPeopleList", selectedTagPeopleList)
             intent.putExtra("searchAllUsers", true) // Search all users (individual + business) for story tagging
+            intent.putExtra("singleSelect", true) // Stories: allow tagging only 1 user
             tagPeopleLauncher.launch(intent)
         }
 

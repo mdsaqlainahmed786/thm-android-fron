@@ -25,7 +25,8 @@ import com.thehotelmedia.android.modals.forms.taggedPeople.ProfilePic
 class TagPeopleListAdapter(
     private val context: Context,
     private val onItemSelected: (ArrayList<TagPeople>) -> Unit,
-    private val isCollaboration: Boolean = false
+    private val isCollaboration: Boolean = false,
+    private val isSingleSelect: Boolean = false
 ) : PagingDataAdapter<TaggedData, TagPeopleListAdapter.ViewHolder>(TagPeopleDiffCallback()) {
     private val MAX_TAGGED_PEOPLE = 30
     private val MAX_COLLABORATORS = 1 // Only one collaborator allowed
@@ -84,21 +85,18 @@ class TagPeopleListAdapter(
             holder.itemView.setOnClickListener { view ->
                 view.isEnabled = false // Disable the item click temporarily
 
+                val shouldSingleSelect = isCollaboration || isSingleSelect
                 if (isSelected) {
                     selectedItems.removeAll { selectedItem -> selectedItem.Id == it.Id }
+                    notifyItemChanged(position)
                 } else {
-                    // For collaboration, only allow one selection - replace existing selection
-                    if (isCollaboration) {
-                        if (selectedItems.isNotEmpty()) {
-                            // Clear the previous selection first
-                            val previousPosition = selectedItems.firstOrNull()?.let { prevItem ->
-                                // Find the position of the previously selected item
-                                // We'll need to notify all items to update their checkmarks
-                                notifyDataSetChanged()
-                            }
-                            selectedItems.clear()
-                        }
+                    // For collaboration or story-tagging, only allow one selection - replace existing selection
+                    if (shouldSingleSelect) {
+                        val hadPreviousSelection = selectedItems.isNotEmpty()
+                        selectedItems.clear()
                         selectedItems.add(it)
+                        // We don't reliably know the old item's adapter position (paging), so refresh.
+                        if (hadPreviousSelection) notifyDataSetChanged() else notifyItemChanged(position)
                     } else {
                         // For tag people, check if limit is reached
                         if (selectedItems.size >= MAX_TAGGED_PEOPLE) {
@@ -107,10 +105,9 @@ class TagPeopleListAdapter(
                             return@setOnClickListener
                         }
                         selectedItems.add(it)
+                        notifyItemChanged(position)
                     }
                 }
-
-                notifyItemChanged(position)
 
                 // Convert selectedItems from TaggedData to TagPeople
                 val selectedTagPeopleList = selectedItems.map { selectedItem ->
@@ -155,8 +152,8 @@ class TagPeopleListAdapter(
 
     fun setSelectedItems(selectedTagPeopleList: ArrayList<TagPeople>) {
         selectedItems.clear()
-        // For collaboration, only keep the first item if multiple are provided
-        val itemsToProcess = if (isCollaboration && selectedTagPeopleList.size > 1) {
+        // For collaboration or story tagging, only keep the first item if multiple are provided
+        val itemsToProcess = if ((isCollaboration || isSingleSelect) && selectedTagPeopleList.size > 1) {
             arrayListOf(selectedTagPeopleList.first())
         } else {
             selectedTagPeopleList

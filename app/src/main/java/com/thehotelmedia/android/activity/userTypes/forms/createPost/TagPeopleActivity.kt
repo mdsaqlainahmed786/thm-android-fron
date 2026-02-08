@@ -47,6 +47,7 @@ class TagPeopleActivity : BaseActivity() {
     private lateinit var progressBar : CustomProgressBar
     private var isCollaboration: Boolean = false
     private var searchAllUsers: Boolean = false // For story tagging - search all users instead of just followers
+    private var singleSelect: Boolean = false // For story tagging - allow tagging only one user
 //    private lateinit var profilePhotosAdapter : ProfilePhotosAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +65,7 @@ class TagPeopleActivity : BaseActivity() {
         selectedTagPeopleList = intent.getSerializableExtra("selectedTagPeopleList") as? ArrayList<TagPeople>
         isCollaboration = intent.getBooleanExtra("isCollaboration", false)
         searchAllUsers = intent.getBooleanExtra("searchAllUsers", false)
+        singleSelect = intent.getBooleanExtra("singleSelect", false)
         
         // Update title based on whether it's for collaboration or tagging
         if (isCollaboration) {
@@ -137,8 +139,8 @@ class TagPeopleActivity : BaseActivity() {
         // Hide the progress bar when starting a new search
         progressBar.hide()
 
-        // Pass isCollaboration flag to adapter to limit selection to 1 for collaboration
-        tagPeopleListAdapter = TagPeopleListAdapter(this,::onPeopleSelected, isCollaboration)
+        // Pass flags to adapter. Collaboration and Story tagging can be single-select.
+        tagPeopleListAdapter = TagPeopleListAdapter(this, ::onPeopleSelected, isCollaboration, singleSelect)
 
         binding.tagPeopleRv.adapter = tagPeopleListAdapter
             .withLoadStateFooter(footer = LoaderAdapter { tagPeopleListAdapter.retry() })
@@ -171,8 +173,8 @@ class TagPeopleActivity : BaseActivity() {
             emptyList()
         }
         
-        // For collaboration, only allow one selection - take the first item if multiple exist
-        val itemsToRestoreFiltered = if (isCollaboration && itemsToRestore.size > 1) {
+        // For collaboration or story tagging, only allow one selection - take the first item if multiple exist
+        val itemsToRestoreFiltered = if ((isCollaboration || singleSelect) && itemsToRestore.size > 1) {
             arrayListOf(itemsToRestore.first())
         } else {
             itemsToRestore
